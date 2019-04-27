@@ -1,6 +1,9 @@
 process to use this tool
 
 
+A word cloud generator for bnusss, we use it to generate word cloud for each paper we read. You can visit https://bnusss.github.io/groupmeeting.html to view how it works.
+
+
 ---------
 
 1. conda activate keyword
