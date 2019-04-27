@@ -1,2 +1,3 @@
-./pdfs/*
-./txts/*
+./pdfs/.*
+./txts/.*
+./freq_pickle/.*
