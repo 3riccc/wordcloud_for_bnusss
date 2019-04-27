@@ -1,0 +1,1238 @@
+Hyperspherical Variational Auto-Encoders
+
+Tim R. Davidson∗ Luca Falorsi∗ Nicola De Cao∗ Thomas Kipf
+
+Jakub M. Tomczak
+
+University of Amsterdam
+
+Abstract
+
+The Variational Auto-Encoder (VAE) is one
+of the most used unsupervised machine learn-
+ing models. But although the default choice
+of a Gaussian distribution for both the prior
+and posterior represents a mathematically con-
+venient distribution often leading to competi-
+tive results, we show that this parameterization
+fails to model data with a latent hyperspheri-
+cal structure. To address this issue we propose
+using a von Mises-Fisher (vMF) distribution in-
+stead, leading to a hyperspherical latent space.
+Through a series of experiments we show how
+such a hyperspherical VAE, or S -VAE, is more
+suitable for capturing data with a hyperspheri-
+cal latent structure, while outperforming a nor-
+mal, N -VAE, in low dimensions on other data
+types.
+
+1
+
+INTRODUCTION
+
+First introduced by Kingma and Welling (2013); Rezende
+et al. (2014), the Variational Auto-Encoder (VAE) is an
+unsupervised generative model that presents a principled
+fashion for performing variational inference using an auto-
+encoding architecture. Applying the non-centered pa-
+rameterization of the variational posterior (Kingma and
+Welling, 2014), further simpliﬁes sampling and allows to
+reduce bias in calculating gradients for training. Although
+the default choice of a Gaussian prior is mathematically
+convenient, we can show through a simple example that in
+some cases it breaks the assumption of an uninformative
+prior leading to unstable results. Imagine a dataset on
+the circle Z ⊂ S 1 , that is subsequently embedded in RN
+using a transformation f to obtain f : Z → X ⊂ RN .
+Given two hidden units, an autoencoder quickly discovers
+
+∗ Equal contribution.
+
+the latent circle, while a normal VAE becomes highly
+unstable. This is to be expected as a Gaussian prior is con-
+centrated around the origin, while the KL-divergence tries
+to reconcile the differences between S 1 and R2 . A more
+detailed discussion of this ‘manifold mismatch’ problem
+will follow in subsection 2.3.
+The fact that some data types like directional data are
+better explained through spherical representations is long
+known and well-documented (Mardia, 1975; Fisher et al.,
+1987), with examples spanning from protein structure, to
+observed wind directions. Moreover, for many modern
+problems such as text analysis or image classiﬁcation,
+data is often ﬁrst normalized in a preprocessing step to
+focus on the directional distribution. Yet, few machine
+learning methods explicitly account for the intrinsically
+spherical nature of some data in the modeling process. In
+this paper, we propose to use the von Mises-Fisher (vMF)
+distribution as an alternative to the Gaussian distribution.
+This replacement leads to a hyperspherical latent space
+as opposed to a hyperplanar one, where the Uniform dis-
+tribution on the hypersphere is conveniently recovered as
+a special case of the vMF. Hence this approach allows
+for a truly uninformative prior, and has a clear advantage
+in the case of data with a hyperspherical interpretation.
+This was previously attempted by Hasnat et al. (2017), but
+crucially they do not learn the concentration parameter
+around the mean, κ.
+In order to enable training of the concentration parame-
+ter, we extend the reparameterization trick for rejection
+sampling as recently outlined in Naesseth et al. (2017) to
+allow for n additional transformations. We then combine
+this with the rejection sampling procedure proposed by
+Ulrich (1984) to efﬁciently reparameterize the VAE 1 .
+We demonstrate the utility of replacing the normal dis-
+tribution with the von Mises-Fisher distribution for gen-
+erating latent representations by conducting a range of
+experiments in three distinct settings. First, we show that
+
+1 https://github.com/nicola-decao/s-vae
+
+our S -VAEs outperform VAEs with the Gaussian varia-
+tional posterior (N -VAEs) in recovering a hyperspherical
+latent structure. Second, we conduct a thorough com-
+parison with N -VAEs on the MNIST dataset through an
+unsupervised learning task and a semi-supervised learning
+scenario. Finally, we show that S -VAEs can signiﬁcantly
+improve link prediction performance on citation network
+datasets in combination with a Variational Graph Auto-
+Encoder (VGAE) (Kipf and Welling, 2016).
+
+2 VARIATIONAL AUTO-ENCODERS
+
+2.1 FORMULATION
+
+In the VAE setting, we have a latent variable model for
+data, where z ∈ RM denotes latent variables, x is a vector
+timize the log-likelihood of the data, log (cid:82) pφ (x, z)dz.
+of D observed variables, and pφ (x, z) is a parameterized
+model of the joint distribution. Our objective is to op-
+When pφ (x, z) is parameterized by a neural network,
+marginalizing over the latent variables is generally in-
+tractable. One way of solving this issue is to maximize
+the Evidence Lower Bound (ELBO)
+
+(cid:90)
+
+log
+
+pφ (x, z)dz ≥ Eq(z) [log pφ (x|z)]+
+− K L(q(z)||p(z)),
+
+(1)
+
+where q(z) is the approximate posterior distribution, be-
+longing to a family Q. The bound is tight if q(z) =
+p(z|x), meaning q(z) is optimized to approximate the
+true posterior. While in theory q(z) should be optimized
+for every data point x, to make inference more scalable
+to larger datasets the VAE setting introduces an inference
+network qψ (z|x; θ) parameterized by a neural network
+that outputs a probability distribution for each data point
+x. The ﬁnal objective is therefore to maximize
+
+L(φ, ψ) = Eqψ (z|x;θ) [log pφ (x|z)]+
+− K L(qψ (z|x; θ)||p(z)),
+
+(2)
+
+In the original VAE both the prior and the posterior are
+deﬁned as normal distributions. We can further efﬁciently
+approximate the ELBO by Monte Carlo estimates, using
+the reparameterization trick (Kingma and Welling, 2013;
+Rezende et al., 2014). This is done by expressing a sam-
+reparameterization transformation and ε ∼ s(ε) is some
+noise random variable independent from θ .
+
+ple of z ∼ qψ (z|x; θ), as z = h(θ , ε, x), where h is a
+
+2.2 THE LIMITATIONS OF A GAUSSIAN
+DISTRIBUTION PRIOR
+
+mass around the origin, encouraging points to cluster in
+the center. This is particularly problematic when the data
+is divided into multiple clusters. Although an ideal latent
+space should separate clusters for each class, the normal
+prior will encourage all the cluster centers towards the
+origin. An ideal prior would only stimulate the variance
+of the posterior without forcing its mean to be close to
+the center. A prior satisfying these properties is a uniform
+over the entire space. Such a uniform prior, however, is
+not well deﬁned on the hyperplane.
+
+High dimensions: soap bubble effect
+
+It is a well-
+known phenomenon that the standard Gaussian distri-
+bution in high dimensions tends to resemble a uniform
+distribution on the surface of a hypersphere, with the vast
+majority of its mass concentrated on the hyperspherical
+shell. Hence it would appear interesting to compare the
+behavior of a Gaussian approximate posterior with an
+approximate posterior already naturally deﬁned on the
+hypersphere. This is also motivated from a theoretical
+point of view, since the Gaussian deﬁnition is based on
+the L2 norm that suffers from the curse of dimensionality.
+
+2.3 BEYOND THE HYPERPLANE
+
+Once we let go of the hyperplanar assumption, the pos-
+sibility of a uniform prior on the hypersphere opens up.
+Mirroring our discussion in the previous subsection, such
+a prior would exhibit no pull towards the origin allowing
+clusters of data to evenly spread over the surface with no
+directional bias. Additionally, in higher dimensions, the
+cosine similarity is a more meaningful distance measure
+than the Euclidean norm.
+
+Manifold mapping In general, exploring VAE mod-
+els that allow a mapping to distributions in a latent
+space not homeomorphic to RD is of fundamental in-
+terest. Consider data lying in a small M -dimensional
+manifold M, embedded in a much higher dimensional
+space X = RN . For most real data, this manifold will
+likely not be homeomorphic to RM . An encoder can
+be considered as a smooth map enc : X → Z = RD
+from the original space to Z . The restriction of the en-
+coder to M, enc|M : M → Z will also be a smooth
+mapping. However since M is not homeomorphic to Z
+if D ≤ M , then enc|M cannot be a homeomorphism.
+That is, there exists no invertible and globally continuous
+mapping between the coordinates of M and the ones of
+Z . Conversely if D > M then M can be smoothly
+embedded in Z for D sufﬁciently large 2 , such that
+homeomorphism and emb(M) denotes the embedding of
+
+enc|M : M → enc|M (M) =: emb(M) ⊂ Z is a
+
+Low dimensions: origin gravity
+
+In low dimensions,
+the Gaussian density presents a concentrated probability
+
+2By the Whitney embedding theorem any smooth real M -
+dimensional manifold can be smoothly embedded in R2M
+
+(a) Original
+
+(b) Autoencoder
+
+(c) N -VAE
+
+(d) N -VAE, β = 0.1
+
+(e) S -VAE
+
+Figure 1: Plots of the original latent space (a) and learned latent space representations in different settings, where β is a
+re-scaling factor for weighting the KL divergence. (Best viewed in color)
+
+M. Yet, since D > M , when taking random points in
+the latent space they will most likely not be in emb(M)
+resulting in a poorly reconstructed sample.
+The VAE tries to solve this problem by forcing M to be
+mapped into an approximate posterior distribution that
+has support in the entire Z . Clearly, this approach is
+bound to fail since the two spaces have a fundamentally
+different structure. This can likely produce two behaviors:
+emb(M) leaving most of the latent space empty, leading
+ﬁrst, the VAE could just smooth the original embedding
+to bad samples. Second, if we increase the KL term the
+encoder will be pushed to occupy all the latent space,
+but this will create instability and discontinuity, affecting
+the convergence of the model. To validate our intuition
+we performed a small proof of concept experiment using
+M = S 1 , which is visualized in Figure 1. Note that as
+expected the auto-encoder in Figure 1(b) mostly recovers
+the original latent space of Figure 1(a) as there are no dis-
+tributional restrictions. In Figure 1(c) we clearly observe
+for the N -VAE that points collapse around the origin due
+to the KL, which is much less pronounced in Figure 1(d)
+when its contribution is scaled down. Lastly, the S -VAE
+almost perfectly recovers the original circular latent space.
+The observed behavior conﬁrms our intuition.
+To solve this problem the best option would be to directly
+specify a Z homeomorphic to M and distributions on M.
+However, for real data discovering the structure of M
+will often be a difﬁcult inference task. Nevertheless, we
+believe this shows investigating VAE architectures that
+map to posterior distributions deﬁned on manifolds differ-
+ent than the Euclidean space is a topic worth exploring.
+
+3 REPLACING GAUSSIAN WITH VON
+MISES-FISHER
+
+3.1 VON MISES-FISHER DISTRIBUTION
+
+The von Mises-Fisher (vMF) distribution is often seen
+
+as the Normal Gaussian distribution on a hypersphere.
+Analogous to a Gaussian, it is parameterized by µ ∈
+Rm indicating the mean direction, and κ ∈ R≥0 the
+concentration around µ. For the special case of κ = 0, the
+vMF represents a Uniform distribution. The probability
+density function of the vMF distribution for a random unit
+vector z ∈ Rm (or z ∈ S m−1 ) is then deﬁned as
+
+q(z|µ, κ) = Cm (κ) exp (κµT z),
+Cm (κ) =
+
+κm/2−1
+
+(2π)m/2Im/2−1 (κ)
+
+(3)
+
+(4)
+
+,
+
+where ||µ||2 = 1, Cm (κ) is the normalizing constant, and
+Iv denotes the modiﬁed Bessel function of the ﬁrst kind
+at order v .
+
+3.2 KL DIVERGENCE
+
+As previously emphasized, one of the main advan-
+tages of using the vMF distribution as an approxi-
+mate posterior is that we are able to place a uniform
+prior on the latent space. The KL divergence term
+K L(vMF(µ, κ)||U (Sm−1 )) to be optimized is:
+(cid:19)−1
+
++ log Cm (κ) − log
+
+Im/2 (k)
+Im/2−1 (k)
+
+κ
+
+(cid:18) 2(πm/2 )
+Γ(m/2)
+
+,
+
+(5)
+
+see Appendix B for complete derivation. Notice that
+since the KL term does not depend on µ, this parameter
+is only optimized in the reconstruction term. The above
+expression cannot be handled by automatic differentia-
+tion packages because of the modiﬁed Bessel function in
+Cm (κ). Thus, to optimize this term we derive the gradient
+with respect to the concentration parameter:
+
+(cid:18) Im/2+1 (k)
+∇κK L(vMF(µ, κ)||U (Sm−1 )) =
+− Im/2 (k) (cid:0)Im/2−2 (k) + Im/2 (k)(cid:1)
+1
+k
+Im/2−1 (k)
+2
+Im/2−1 (k)2
+
+(cid:19)
+
++ 1
+
++
+
+,
+
+(6)
+
+Algorithm 1 vMF sampling
+Input: dimension m, mean µ, concentration κ
+sample v ∼ U (S m−2 )
+{acceptance-rejection sampling}
+U ← H ouseholder(e1 , µ) {Householder transform}
+
+sample ω ∼ g(ω |κ, m) ∝ exp(ωκ)(1 − ω2 ) 1
+z(cid:48) ← (ω ; (
+1 − ω2 )v(cid:62) )(cid:62)
+
+2 (m−3)
+
+√
+
+Return: U z(cid:48)
+
+where the modiﬁed Bessel functions can be computed
+without numerical instabilities using the exponentially
+scaled modiﬁed Bessel function.
+
+3.3 SAMPLING PROCEDURE
+
+To sample from the vMF we follow the procedure of
+ple from a vMF q(z|e1 , κ) with modal vector e1 =
+Ulrich (1984), outlined in Algorithm 1. We ﬁrst sam-
+(1, 0, · · · , 0). Since the vMF density is uniform in
+all the m − 2 dimensional sub-hyperspheres {x ∈
+S m−1 | e(cid:62)
+1 x = ω}, the sampling technique reduces
+to sampling the value ω from the univariate density
+
+g(ω |κ, m) ∝ exp(κω)(1 − ω2 )(m−3)/2 , ω ∈ [−1, 1],
+
+using an acceptance-rejection scheme. After getting a
+sample from q(z|e1 , κ) an orthogonal transformation
+tributed according to q(z|µ, κ). This can be achieved
+U (µ) is applied such that the transformed sample is dis-
+using a Householder reﬂection such that U (µ)e1 = µ. A
+more in-depth explanation of the sampling technique can
+be found in Appendix A.
+It is worth noting that the sampling technique does not
+suffer from the curse of dimensionality, as the acceptance-
+rejection procedure is only applied to a univariate distri-
+bution. Moreover in the case of S 2 , the density g(ω |κ, 3)
+
+reduces to g(ω |κ, 3) ∝ exp(kω)1[−1,+1] (ω) which can
+
+be directly sampled without rejection.
+
+3.4 N-TRANSFORMATION
+REPARAMETERIZATION TRICK
+
+While the reparameterization trick is easily imple-
+mentable in the normal case, unfortunately it can only
+be applied to a handful of distributions. However a recent
+technique introduced by Naesseth et al. (2017) allows to
+extend the reparameterization trick to the wide class of dis-
+tributions that can be simulated using rejection sampling.
+Dropping the dependence from x for simplicity, assume
+the approximate posterior is of the form g(ω |θ) and that
+it can be sampled by making proposals from r(ω |θ). If
+the proposal distribution can be reparameterized we can
+still perform the reparameterization trick. Let ε ∼ s(ε),
+and ω = h(ε, θ), a reparameterization of the proposal dis-
+tribution, r(ω |θ). Performing the reparameterization trick
+
+for g(ω |θ) is made possible by the fundamental lemma
+proven in (Naesseth et al., 2017):
+Lemma 1. Let f be any measurable function and ε ∼
+the distribution of the ac-
+
+π(ε|θ) = s(ε)
+
+g(h(ε, θ)|θ)
+r(h(ε, θ)|θ)
+
+cepted sample. Then:
+
+(cid:90)
+
+(cid:90)
+
+Eπ(ε|θ) [f (h(ε, θ))] =
+f (h(ε, θ))π(ε|θ)dε
+f (ω)g(ω |θ)dω = Eg(ω |θ) [f (ω)],
+
+=
+
+(7)
+
+Then the gradient can be taken using the log derivative
+trick:
+
+∇θ Eg(ω |θ) [f (ω)] = ∇θ Eπ(ε|θ) [f (h(ε, θ))] =
+Eπ(ε|θ) [∇θ f (h(ε, θ))]+
+g(h(ε, θ)|θ)
+f (h(ε, θ))∇θ log
+r(h(ε, θ)|θ)
+
++ Eπ(ε|θ)
+
+(cid:20)
+
+(cid:21)
+
+,
+
+(8)
+
+However, in the case of the vMF a different procedure
+is required. After performing the transformation h(ε, θ)
+and accepting/rejecting the sample, we sample another
+random variable v ∼ π2 (v), and then apply a transfor-
+
+mation z = T (h(ε, θ), v; θ), such that z ∼ qψ (z|θ) is
+
+distributed as the approximate posterior (in our case a
+vMF). Effectively this entails applying another reparame-
+terization trick after the acceptance/rejection step. To still
+be able to perform the reparameterization we show that
+Lemma 1 fundamentally still holds in this case as well.
+Lemma 2. Let f be any measurable function and ε ∼
+the distribution of the ac-
+cepted sample. Also let v ∼ π2 (v), and T a trans-
+formation that depends on the parameters such that if
+
+g(h(ε, θ)|θ)
+r(h(ε, θ)|θ)
+
+π1 (ε|θ) = s(ε)
+
+z = T (ω , v ; θ) with ω ∼ g(ω |θ), then ∼ q(z|θ):
+E(ε,v)∼π1 (ε|θ)π2 (v) [f (T (h(ε, θ), v; θ))] =
+f (z)q(z|θ)dz = Eq(z|θ) [f (z)],
+
+(cid:90)
+
+(9)
+
+Proof. See Appendix C.
+
+With this result we are able to derive a gradient expression
+similarly as done in equation 8. We refer to Appendix D
+for a complete derivation.
+
+3.5 BEHAVIOR IN HIGH DIMENSIONS
+
+The surface area of a hypersphere is deﬁned as
+
+S (m − 1) = rm 2(πm/2 )
+Γ(m/2)
+
+,
+
+(10)
+
+(a) R2 latent space of the N -VAE.
+
+(b) Hammer projection of S 2 latent space of the S -VAE.
+
+Figure 2: Latent space visualization of the 10 MNIST digits in 2 dimensions of both N -VAE (left) and S -VAE (right).
+(Best viewed in color)
+
+where m is the dimensionality and r the radius. Notice
+that S (m − 1) → 0, as m → ∞. However, even for
+m > 20 we observe a vanishing surface problem (see
+Figure 6 in Appendix E). This could thus lead to unstable
+behavior of hyperspherical models in high dimensions.
+
+4 RELATED WORK
+
+Extending the VAE The majority of VAE extensions
+focus on increasing the ﬂexibility of the approximate
+posterior. This is usually achieved through normalizing
+ﬂows (Rezende and Mohamed, 2015), a class of invertible
+transformations applied sequentially to an initial repa-
+rameterizable density q0 (z0 ), allowing for more complex
+posteriors. Normalizing ﬂows can be considered orthogo-
+nal to our approach. While allowing for a more ﬂexible
+posterior, they do not modify the standard normal prior
+assumption. In (Gemici et al., 2016) a ﬁrst attempt is
+made to extend normalizing ﬂows to Riemannian mani-
+folds. However, as the method relies on the existence of a
+diffeomorphism between RN and S N , it is unsuited for
+hyperspheres.
+One approach to obtain a more ﬂexible prior is to use a
+simple mixture of Gaussians (MoG) prior (Dilokthanakul
+et al., 2016). The recently introduced VampPrior model
+(Tomczak and Welling, 2018) outlines several advantages
+over the MoG and instead tries to learn a more ﬂexible
+prior by expressing it as a mixture of approximate pos-
+teriors. A non-parametric prior is proposed in Nalisnick
+and Smyth (2017), utilizing a truncated stick-breaking
+process. Opposite to these approaches, we aim at using a
+non-informative prior to simplify the inference.
+The closest approach to ours is a VAE with a vMF distri-
+bution in the latent space used for a sentence generation
+
+task by (Guu et al., 2018). While formally this approach
+is cast as a variational approach, the proposed model does
+not reparameterize and learn the concentration parameter
+κ, treating it as a constant value that remains the same
+for every approximate posterior instead. Critically, as
+indicated in Equation 5, the KL divergence term only
+depends on κ therefore leaving κ constant means never
+explicitly optimizing the KL divergence term in the loss.
+The method then only optimizes the reconstruction error
+by adding vMF noise to the encoder output in the latent
+space to still allow generation. Moreover, using a ﬁxed
+global κ for all the approximate posteriors severely limits
+the ﬂexibility and the expressiveness of the model.
+
+Non-Euclidean Latent Space
+
+In Liu and Zhu (2018),
+a general model to perform Bayesian inference in Rieman-
+nian Manifolds is proposed. Following other Stein-related
+approaches, the method does not explicitly deﬁne a poste-
+rior density but approximates it with a number of particles.
+Despite its generality and ﬂexibility, it requires the choice
+of a kernel on the manifold and multiple particles to have
+a good approximation of the posterior distribution. The
+former is not necessarily straightforward, while the latter
+quickly becomes computationally unfeasible.
+Another approach by Nickel and Kiela (2017), capital-
+izes on the hierarchical structure present in some data
+types. By learning the embeddings for a graph in a
+non-euclidean negative curvature hyperbolical space, they
+show this topology has clear advantages over embedding
+these objects in a Euclidean space. Although they did not
+use a VAE-based approach, that is, they did not build a
+probabilistic generative model of the data interpreting the
+embeddings as latent variables, this approach shows the
+merit of explicitly adjusting the choice of latent topology
+to the data used.
+
+Table 1: Summary of results (mean and standard-deviation over 10 runs) of unsupervised model on MNIST. RE and KL
+correspond respectively to the reconstruction and the KL part of the ELBO. Best results are highlighted only if they
+passed a student t-test with p < 0.01.
+
+Method
+
+d = 2
+d = 5
+d = 10
+d = 20
+d = 40
+
+LL
+-135.73±.83
+-110.21±.21
+-93.84±.30
+-88.90±.26
+
+-88.93±.30
+
+N -VAE
+
+L[q ]
+
+RE
+
+K L
+
+-137.08±.83
+-112.98±.21
+-98.36±.30
+-94.79±.19
+-94.91±.18
+
+-129.84±.91
+7.24±.11
+-100.16±.22 12.82±.11
+-78.93±.30
+19.44±.14
+-71.29±.45
+23.50±.31
+-71.14±.56
+23.77±.49
+
+LL
+
+-132.50±.73
+-108.43±.09
+-93.16±.31
+
+-89.02±.31
+-90.87±.34
+
+S -VAE
+
+L[q ]
+
+RE
+
+K L
+
+-133.72±.85
+-111.19±.08
+-97.70±.32
+-96.15±.32
+-101.26±.33
+
+-126.43±.91
+-97.84±.13
+-77.03±.39
+-67.65±.43
+-67.75±.70
+
+7.28±.14
+13.35±.06
+20.67±.08
+28.50±.22
+33.50±.45
+
+A Hyperspherical Perspective As noted before, a dis-
+
+tinction must be made between models dealing with the
+challenges of intrinsically hyperspherical data like omni-
+directional video, and those attempting to exploit some
+latent hyperspherical manifold. A recent example of the
+ﬁrst can be found in Cohen et al. (2018), where spherical
+CNNs are introduced. While ﬂattening a spherical im-
+age produces unavoidable distortions, the newly deﬁned
+convolutions take into account its geometrical properties.
+The most general implementation of the second model
+type was proposed by Gopal and Yang (2014), who intro-
+duced a suite of models to improve cluster performance of
+high-dimensional data based on mixture of vMF distribu-
+tions. They showed that reducing an object representation
+to its directional components increases clusterability over
+standard methods like K -Means or Latent Dirichlet Allo-
+cation (Blei et al., 2003).
+Speciﬁc applications of the vMF can be further found
+ranging from computer vision, where it is used to infer
+structure from motion (Guan and Smith, 2017) in spheri-
+cal video, or structure from texture (Wilson et al., 2014),
+to natural language processing, where it is utilized in text
+analysis (Banerjee et al., 2003, 2005) and topic modeling
+(Banerjee and Basu, 2007; Reisinger et al., 2010).
+Additionally, modeling data by restricting it to a hyper-
+sphere provides some natural regularizing properties as
+noted in (Liu et al., 2017). Finally Aytekin et al. (2018)
+show on a variety of deep auto-encoder models that
+adding L2 normalization to the latent space during train-
+ing, i.e. forcing the latent space on a hypersphere, im-
+proves clusterability.
+
+5 EXPERIMENTS
+
+In this section, we ﬁrst perform a series of experiments
+to investigate the theoretical properties of the proposed
+S -VAE compared to the N -VAE. In a second experiment,
+we show how S -VAEs can be used in semi-supervised
+
+tasks to create a better separable latent representation to
+enhance classiﬁcation. In the last experiment, we show
+that the S -VAE indeed presents a promising alternative to
+N -VAEs for data with a non-Euclidean latent representa-
+tion of low dimensionality, on a link prediction task for
+three citation networks. All architecture and hyperparam-
+eter details are given in Appendix F.
+
+5.1 RECOVERING HYPERSPHERICAL
+LATENT REPRESENTATIONS
+
+In this ﬁrst experiment we build on the motivation devel-
+oped in Subsection 2.3, by conﬁrming with a synthetic
+data example the difference in behavior of the N -VAE
+and S -VAE in recovering latent hyperspheres. We ﬁrst
+generate samples from a mixture of three vMFs on the
+circle, S 1 , as shown in Figure 1(a), which subsequently
+are mapped into the higher dimensional R100 by applying
+a noisy, non-linear transformation. After this, we in turn
+train an auto-encoder, a N -VAE, and a S -VAE. We fur-
+ther investigate the behavior of the N -VAE, by training a
+model using a scaled down KL divergence.
+
+Results The resulting latent spaces, displayed in Figure
+1, clearly conﬁrm the intuition built in Subsection 2.3. As
+expected, in Figure 1(b) the auto-encoder is perfectly ca-
+pable to embed in low dimensions the original underlying
+data structure. However, most parts of the latent space are
+not occupied by points, critically affecting the ability to
+generate meaningful samples.
+In the N -VAE setting we observe two types of behaviours,
+summarized by Figures 1(c) and 1(d). In the ﬁrst we
+observe that if the prior is too strong it will force the
+posterior to match the prior shape, concentrating the sam-
+ples in the center. However, this prevents the N -VAE to
+correctly represent the true shape of the data and creates
+instability problems for the decoder around the origin. On
+the contrary, if we scale down the KL term, we observe
+that the samples from the approximate posterior maintain
+
+Table 2: Summary of results (mean accuracy and standard-deviation over 20 runs) of semi-supervised K -NN on MNIST.
+Best results are highlighted only if they passed a student t-test with p < 0.01.
+
+Method
+
+d = 2
+d = 5
+d = 10
+d = 20
+d = 40
+
+N -VAE
+72.6±2.1
+81.8±2.0
+75.7±1.8
+71.3±1.9
+
+72.3±1.6
+
+100
+
+600
+
+1000
+
+S -VAE N -VAE
+80.8±0.5
+90.9±0.4
+88.4±0.5
+88.3±0.5
+88.0±0.5
+
+77.9±1.6
+87.5±1.0
+80.6±1.3
+72.8±1.6
+
+67.7±2.3
+
+S -VAE N -VAE
+81.7±0.5
+92.0±0.2
+90.2±0.4
+90.1±0.4
+90.3±0.5
+
+84.9±0.6
+92.8±0.3
+91.2±0.4
+89.1±0.6
+
+87.4±0.7
+
+S -VAE
+
+85.6±0.5
+93.4±0.2
+92.8±0.3
+91.1±0.3
+
+90.4±0.4
+
+a shape that reﬂects the S 1 structure smoothed with Gaus-
+sian noise. However, as the approximate posterior differs
+strongly from the prior, obtaining meaningful samples
+from the latent space again becomes problematic.
+The S -VAE on the other hand, almost perfectly recovers
+the original dataset structure, while the samples from the
+approximate posterior closely match the prior distribution.
+This simple experiment conﬁrms the intuition that having
+a prior that matches the true latent structure of the data, is
+crucial in constructing a correct latent representation that
+preserves the ability to generate meaningful samples.
+
+5.2 EVALUATION OF EXPRESSIVENESS
+
+To compare the behavior of the N -VAE and S -VAE on a
+data set that does not have a clear hyperspherical latent
+structure, we evaluate both models on a reconstruction
+task using dynamically binarized MNIST (Salakhutdinov
+and Murray, 2008). We analyze the ELBO, KL, negative
+reconstruction error, and marginal log-likelihood (LL) for
+both models on the test set. The LL is estimated using
+importance sampling with 500 sample points (Burda et al.,
+2016).
+
+Results Results are shown in Table 1. We ﬁrst note that
+in terms of negative reconstruction error the S -VAE out-
+performs the N -VAE in all dimensions. Since the S -VAE
+uses a uniform prior, the KL divergence increases more
+strongly with dimensionality, which results in a higher
+ELBO. However in terms of log-likelihood (LL) the S -
+VAE clearly has an edge in low dimensions (d = 2, 5, 10)
+and performs comparable to the N -VAE in d = 20. This
+empirically conﬁrms the hypothesis of Subsection 2.2,
+showing the positive effect of having a uniform prior in
+low dimensions. In the absence of any origin pull, the
+data is able to cluster naturally, utilizing the entire latent
+space which can be observed in Figure 2. Note that in Fig-
+ure 2(a) all mass is concentrated around the center, since
+the prior mean is zero. Conversely, in Figure 2(b) all
+available space is evenly covered due to the uniform prior,
+
+resulting in more separable clusters in S 2 compared to
+R2 . However, as dimensionality increases, the Gaussian
+distribution starts to approximate a hypersphere, while
+its posterior becomes more expressive than the vMF due
+to the higher number of variance parameters. Simultane-
+ously, as described in Subsection 3.5, the surface area of
+the vMF starts to collapse limiting the available space.
+In Figure 7 and 8 of Appendix G, we present randomly
+generated samples from the N -VAE and the S -VAE, re-
+spectively. Moreover, in Figure 9 of Appendix G, we
+show 2-dimensional manifolds for the two models. Inter-
+estingly, the manifold given by the S -VAE indeed results
+in a latent space where digits occupy the entire space and
+there is a sense of continuity from left to right.
+
+5.3 SEMI-SUPERVISED LEARNING
+
+Having observed the S -VAE’s ability to increase clus-
+terability of data points in the latent space, we wish to
+further investigate this property using a semi-supervised
+classiﬁcation task. For this purpose we re-implemented
+the M1 and M1+M2 models as described in (Kingma
+et al., 2014), and evaluate the classiﬁcation accuracy of
+the S -VAE and the N -VAE on dynamically binarized
+MNIST. In the M1 model, a classiﬁer utilizes the latent
+features obtained using a VAE as in experiment 5.2. The
+M1+M2 model is constructed by stacking the M2 model
+on top of M1, where M2 is the result of augmenting the
+VAE by introducing a partially observed variable y, and
+combining the ELBO and classiﬁcation objective. This
+concatenated model is trained end-to-end 3 .
+This last model also allows for a combination of the two
+topologies due to the presence of two distinct latent vari-
+ables, z1 and z2 . Since in the M2 latent space the class
+assignment is expressed by the variable y, while z2 only
+needs to capture the style, it naturally follows that the
+
+3 It is worth noting that in the original implementation by
+Kingma et al. (2014) the stacked model did not converge well
+using end-to-end training, and used the extracted features of the
+M1 model as inputs for the M2 model instead.
+
+(a) R2 latent space of the N -VGAE.
+
+(b) Hammer projection of S 2 latent space of the S -VGAE.
+
+Figure 3: Latent space of unsupervised N -VGAE and S -VGAE models trained on Cora citation network. Colors denote
+documents classes which are not provided during training. (Best viewed in color)
+
+N -VAE is more suited for this objective due to its higher
+number of variance parameters. Hence, besides compar-
+ing the S -VAE against the N -VAE, we additionally run
+experiments for the M1+M2 model by modeling z1 , z2
+respectively with a vMF and normal distribution.
+Results As can be see in Table 2, for M1 the S -VAE
+outperforms the N -VAE in all dimensions up to d = 40.
+This result is ampliﬁed for a low number of observed
+labels. Note that for both models absolute performance
+drops as the dimensionality increases, since K -NN used
+as the classiﬁer suffers from the curse of dimensionality.
+Besides reconﬁrming superiority of the S -VAE in d <
+20, its better performance than the N -VAE for d = 20
+was unexpected. This indicates that although the log-
+likelihood might be comparable(see Table 1) for higher
+dimensions, the S -VAE latent space better captures the
+cluster structure.
+In the concatenated model M1+M2, we ﬁrst observe in
+Table 3 that either the pure S -VAE or the S +N -VAE
+model yields the best results, where the S -VAE almost
+always outperforms the N -VAE. Our hypothesis regard-
+ing the merit of a S +N -VAE model is further conﬁrmed,
+as displayed by the stable, strong performance across
+all different dimensions. Furthermore, the clear edge
+in clusterability of the S -VAE in low dimensional z1 as
+already observed in Table 2, is again evident. As the
+dimensionality of z1 , z2 increases, the accuracy of the
+N -VAE improves, reducing the performance gap with the
+S -VAE. As previously noticed the S -VAE performance
+drops when dim z2 = 50, with the best result being ob-
+tained for dim z1 = dim z2 = 10. In fact, it is worth
+noting that for this setting the S -VAE obtains comparable
+results to the original settings of (Kingma et al., 2014),
+while needing a considerably smaller latent space. Finally,
+the end-to-end trained S +N -VAE model is able to reach
+
+a signiﬁcantly higher classiﬁcation accuracy than the orig-
+inal results reported by Kingma et al. (2014), 96.7±.1.
+The M1+M2 model allows for conditional generation.
+Similarly to (Kingma et al., 2014), we set the latent vari-
+able z2 to the value inferred from the test image by the
+inference network, and then varied the class label y. In
+Figure 10 of Appendix H we notice that the model is able
+to disentangle the style from the class.
+
+Table 3: Summary of results of semi-supervised model
+M1+M2 on MNIST.
+
+Method
+
+dim z2 N +N
+
+dim z1
+
+5
+
+10
+
+50
+
+100
+
+S +S
+
+94.0±.1
+
+94.1±.1
+92.7±.2
+91.7±.5
+
+96.0±.2
+
+95.1±.2
+91.7±.4
+95.8±.1
+94.2±.1
+
+S +N
+
+93.8±.1
+
+94.8±.2
+93.0±.1
+94.0±.4
+95.9±.3
+95.7±.1
+95.8±.1
+97.1±.1
+97.4±.1
+
+5
+10
+50
+5
+10
+50
+5
+10
+50
+
+90.0±.4
+90.7±.3
+90.7±.1
+90.7±.3
+92.2±.1
+92.9±.4
+92.0±.2
+93.0±.1
+93.2±.2
+
+5.4 LINK PREDICTION ON GRAPHS
+
+In this experiment, we aim at demonstrating the ability of
+the S -VAE to learn meaningful embeddings of nodes in a
+graph, showing the advantages of embedding objects in
+a non-Euclidean space. We test hyperspherical reparam-
+eterization on the recently introduced Variational Graph
+Auto-Encoder (VGAE) (Kipf and Welling, 2016), a VAE
+model for graph-structured data. We perform training on
+
+a link prediction task on three popular citation network
+datasets (Sen et al., 2008): Cora, Citeseer and Pubmed.
+Dataset statistics and further experimental details are sum-
+marized in Appendix F.3. The models are trained in an un-
+supervised fashion on a masked version of these datasets
+where some of the links have been removed. All node
+features are provided and efﬁcacy is measured in terms
+of average precision (AP) and area under the ROC curve
+(AUC) on a test set of previously removed links. We use
+the same training, validation, and test splits as in Kipf and
+Welling (2016), i.e. we assign 5% of links for validation
+and 10% of links for testing.
+
+Table 4: Results for link prediction in citation networks.
+
+Method
+
+Cora
+
+AUC
+AP
+
+Citeseer AUC
+
+AP
+
+Pubmed AUC
+
+AP
+
+N -VGAE S -VGAE
+94.1±.1
+94.1±.3
+94.7±.2
+95.2±.2
+
+92.7±.2
+93.2±.4
+90.3±.5
+91.5±.5
+
+97.1±.0
+97.1±.0
+
+96.0±.1
+96.0±.1
+
+Results
+
+In Table 4, we show that our model outperforms
+the N -VGAE baseline on two out of the three datasets
+by a signiﬁcant margin. The log-probability of a link is
+computed as the dot product of two embeddings. In a hy-
+persphere, this can be interpreted as the cosine similarity
+between vectors. Indeed we ﬁnd that the choice of a dot
+product scoring function for link prediction is problematic
+in combination with the normal distribution on the latent
+space. If embeddings are close to the zero-center, noise
+during training can have a large destabilizing effect on the
+angle information between two embeddings. In practice,
+the model ﬁnds a solution where embeddings are ”pushed”
+away from the zero-center, as demonstrated in Figure 3(a).
+This counteracts the pull towards the center arising from
+the standard prior and can overall lead to poor modeling
+performance. By constraining the embeddings to the sur-
+face of a hypersphere, this effect is mitigated, and the
+model can ﬁnd a good separation of the latent clusters, as
+shown in Figure 3(b).
+On Pubmed, we observe that the S -VAE converges to a
+lower score than the N -VAE. The Pubmed dataset is sig-
+niﬁcantly larger than Cora and Citeseer, and hence more
+complex. The N -VAE has a larger number of variance pa-
+rameters for the posterior distribution, which might have
+played an important role in better modeling the relation-
+ships between nodes. We further hypothesize that not all
+graphs are necessarily better embedded in a hyperspher-
+
+ical space and that this depends on some fundamental
+topological properties of the graph. For instance, the
+already mentioned work from Nickel and Kiela (2017)
+shows that hyperbolical space is better suited for graphs
+with a hierarchical, tree-like structure. These considera-
+tions preﬁgure an interesting research direction that will
+be explored in future work.
+
+6 CONCLUSION
+
+With the S -VAE we set an important ﬁrst step in the
+exploration of hyperspherical latent representations for
+variational auto-encoders. Through various experiments,
+we have shown that S -VAEs have a clear advantage over
+N -VAEs for data residing on a known hyperspherical
+manifold, and are competitive or surpass N -VAEs for data
+with a non-obvious hyperspherical latent representation in
+lower dimensions. Speciﬁcally, we demonstrated S -VAEs
+improve separability in semi-supervised classiﬁcation and
+that they are able to improve results on state-of-the-art link
+prediction models on citation graphs, by merely changing
+the prior and posterior distributions as a simple drop-in
+replacement.
+We believe that the presented research paves the way for
+various promising areas of future work, such as exploring
+more ﬂexible approximate posterior distributions through
+normalizing ﬂows on the hypersphere, or hierarchical
+mixture models combining hyperspherical and hyperpla-
+nar space. Further research should be done in increasing
+the performance of S -VAEs in higher dimensions; one
+possible solution of which could be to dynamically learn
+the radius of the latent hypersphere in a full Bayesian
+setting.
+
+Acknowledgements
+
+We would like to thank Rianne van den Berg, Jonas
+K ¨ohler, Pim de Haan, Taco Cohen, Marco Federici, and
+Max Welling for insightful discussions. T.K. is supported
+by SAP SE Berlin. J.M.T. was funded by the European
+Commission within the Marie Skłodowska-Curie Individ-
+ual Fellowship (Grant No. 702666, Deep learning and
+Bayesian inference for medical imaging).
+
+References
+
+Aytekin, C., Ni, X., Cricri, F., and Aksu, E. (2018). Clus-
+tering and unsupervised anomaly detection with l2
+normalized deep auto-encoder representations. arXiv
+preprint arXiv:1802.00187.
+Banerjee, A. and Basu, S. (2007). Topic models over
+text streams: A study of batch and online unsupervised
+learning. ICDM, pages 431–436.
+
+Banerjee, A., Dhillon, I., Ghosh, J., and Sra, S. (2003).
+Generative model-based clustering of directional data.
+SIGKDD, pages 19–28.
+Banerjee, A., Dhillon, I. S., Ghosh, J., and Sra, S. (2005).
+Clustering on the unit hypersphere using von mises-
+ﬁsher distributions. JMLP, 6(Sep):1345–1382.
+Blei, D. M., Ng, A. Y., and Jordan, M. I. (2003). Latent
+dirichlet allocation. JMRL, 3(Jan):993–1022.
+Bowman, S. R., Vilnis, L., Vinyals, O., Dai, A., Jozefow-
+icz, R., and Bengio, S. (2016). Generating sentences
+from a continuous space. In Proceedings of The 20th
+SIGNLL Conference on Computational Natural Lan-
+guage Learning, pages 10–21.
+Burda, Y., Grosse, R., and Salakhutdinov, R. (2016). Im-
+portance weighted autoencoders. ICLR.
+Cohen, T. S., Geiger, M., Khler, J., and Welling, M.
+(2018). Spherical CNNs. ICLR.
+Dilokthanakul, N., Mediano, P. A. M., Garnelo, M., Lee,
+M. C. H., Salimbeni, H., Arulkumaran, K., and Shana-
+han, M. (2016). Deep unsupervised clustering with
+gaussian mixture variational autoencoders. CoRR,
+abs/1611.02648.
+Fisher, N. I., Lewis, T., and Embleton, B. J. (1987). Statis-
+tical analysis of spherical data. Cambridge university
+press.
+Gemici, M. C., Rezende, D., and Mohamed, S. (2016).
+Normalizing ﬂows on riemannian manifolds. NIPS
+Bayesian Deep Learning Workshop.
+Glorot, X. and Bengio, Y. (2010). Understanding the
+difﬁculty of training deep feedforward neural networks.
+AISTATS, pages 249–256.
+Gopal, S. and Yang, Y. (2014). Von mises-ﬁsher clustering
+models. ICML, pages 154–162.
+Guan, H. and Smith, W. A. (2017). Structure-from-
+motion in spherical video using the von mises-ﬁsher
+distribution. IEEE Transactions on Image Processing,
+26(2):711–723.
+Guu, K., Hashimoto, T. B., Oren, Y., and Liang, P. (2018).
+Generating sentences by editing prototypes. TACL.
+Hasnat, M., Bohn ´e, J., Milgram, J., Gentric, S., Chen, L.,
+et al. (2017). von mises-ﬁsher mixture model-based
+deep learning: Application to face veriﬁcation. arXiv
+preprint arXiv:1706.04264.
+Kingma, D. and Welling, M. (2014). Efﬁcient gradient-
+based inference through transformations between bayes
+nets and neural nets. ICML, pages 1782–1790.
+Kingma, D. P. and Ba, J. L. (2015). Adam: A method for
+stochastic optimization. In ICLR.
+
+Kingma, D. P., Mohamed, S., Rezende, D. J., and Welling,
+M. (2014). Semi-supervised learning with deep gener-
+ative models. NIPS, pages 3581–3589.
+Kingma, D. P. and Welling, M. (2013). Auto-encoding
+variational bayes. CoRR, abs/1312.6114.
+Kipf, T. N. and Welling, M. (2016). Variational Graph
+Auto-Encoders. NIPS Bayesian Deep Learning Work-
+shop.
+Liu, C. and Zhu, J. (2018). Riemannian Stein Variational
+Gradient Descent for Bayesian Inference. AAAI.
+Liu, W., Zhang, Y.-M., Li, X., Yu, Z., Dai, B., Zhao, T.,
+and Song, L. (2017). Deep hyperspherical learning.
+NIPS, pages 3953–3963.
+Mardia, K. V. (1975). Statistics of directional data. Jour-
+nal of the Royal Statistical Society. Series B (Method-
+ological), pages 349–393.
+Naesseth, C., Ruiz, F., Linderman, S., and Blei, D. (2017).
+Reparameterization Gradients through Acceptance-
+Rejection Sampling Algorithms. AISTATS, pages 489–
+498.
+Nalisnick, E. and Smyth, P. (2017). Stick-breaking varia-
+tional autoencoders. ICLR.
+Nickel, M. and Kiela, D. (2017). Poincar ´e embeddings
+for learning hierarchical representations. NIPS, pages
+6341–6350.
+Reisinger, J., Waters, A., Silverthorn, B., and Mooney,
+R. J. (2010). Spherical topic models. ICML.
+Rezende, D. and Mohamed, S. (2015). Variational infer-
+ence with normalizing ﬂows. ICML, 37:1530–1538.
+Rezende, D. J., Mohamed, S., and Wierstra, D. (2014).
+Stochastic backpropagation and approximate inference
+in deep generative models. In ICML, pages 1278–1286.
+Salakhutdinov, R. and Murray, I. (2008). On the quanti-
+tative analysis of deep belief networks. ICML, pages
+872–879.
+Sen, P., Namata, G., Bilgic, M., Getoor, L., Galligher, B.,
+and Eliassi-Rad, T. (2008). Collective classiﬁcation in
+network data. AI magazine, 29(3):93.
+Tomczak, J. and Welling, M. (2018). Vae with a vamp-
+prior. In AISTATS, pages 1214–1223.
+Ulrich, G. (1984). Computer generation of distributions
+on the m-sphere. Journal of the Royal Statistical Soci-
+ety. Series C (Applied Statistics), 33(2):158–163.
+Wilson, R. C., Hancock, E. R., Pekalska, E., and Duin,
+R. P. (2014). Spherical and hyperbolic embeddings
+of data. IEEE transactions on pattern analysis and
+machine intelligence, 36(11):2255–2269.
+
+

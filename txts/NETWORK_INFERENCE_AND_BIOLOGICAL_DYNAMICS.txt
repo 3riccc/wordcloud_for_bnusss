@@ -1,0 +1,1185 @@
+2
+1
+0
+2
+
+t
+
+c
+
+O
+
+1
+
+]
+
+P
+
+A
+
+.
+
+t
+
+a
+
+t
+
+s
+
+[
+
+2
+v
+7
+4
+0
+1
+
+.
+
+2
+1
+1
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+The Annals of Applied Statistics
+2012, Vol. 6, No. 3, 1209–1235
+DOI: 10.1214/11-AOAS532
+c(cid:13) Institute of Mathematical Statistics, 2012
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS1
+
+By Chris. J. Oates and Sach Mukherjee
+
+University of Warwick and Netherlands Cancer Institute,
+and Netherlands Cancer Institute and University of Warwick
+
+Network inference approaches are now widely used in biological ap-
+plications to probe regulatory relationships between molecular com-
+ponents such as genes or proteins. Many methods have been proposed
+for this setting, but the connections and diﬀerences between their
+statistical formulations have received less attention. In this paper,
+we show how a broad class of statistical network inference methods,
+including a number of existing approaches, can be described in terms
+of variable selection for the linear model. This reveals some subtle but
+important diﬀerences between the methods, including the treatment
+of time intervals in discretely observed data. In developing a gen-
+eral formulation, we also explore the relationship between single-cell
+stochastic dynamics and network inference on averages over cells.
+This clariﬁes the link between biochemical networks as they operate
+at the cellular level and network inference as carried out on data that
+are averages over populations of cells. We present empirical results,
+comparing thirty-two network inference methods that are instances of
+the general formulation we describe, using two published dynamical
+models. Our investigation sheds light on the applicability and limi-
+tations of network inference and provides guidance for practitioners
+and suggestions for experimental design.
+
+1. Introduction. Networks of molecular components such as genes, pro-
+teins and metabolites play a prominent role in molecular biology. A graph
+G = (V , E ) can be used to describe a biological network, with the ver-
+tices V identiﬁed with molecular components and the edges E with reg-
+ulatory relationships between them. For example, in a gene regulatory net-
+work [Babu et al. (2004); Davidson (2001)], nodes represent genes and edges
+transcriptional regulation, while in a protein signaling network [Yarden and
+
+Received June 2011; revised November 2011.
+1 Supported in part by EPSRC EP/E501311/1 (CJO & SM) and NCI U54 CA 112970
+(SM) and the Cancer Systems Biology Center grant from the Netherlands Organisation
+for Scientiﬁc Research.
+Key words and phrases. Network inference, biological dynamics, variable selection.
+
+This is an electronic reprint of the original article published by the
+Institute of Mathematical Statistics in The Annals of Applied Statistics,
+2012, Vol. 6, No. 3, 1209–1235. This reprint diﬀers from the original in pagination
+and typographic detail.
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+C. J. OATES AND S. MUKHERJEE
+
+Sliwkowski (2001)], nodes represent proteins and edges may represent the
+enzymatic inﬂuence of the parent on the biochemical state of the child, for
+example, via phosphorylation. In many biological contexts, including disease
+states, the edge structure of the network may itself be uncertain (e.g., due
+to genetic or epigenetic alterations). Then, an important biological goal is
+to characterize the edge structure (often referred to as the
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+3
+
+nardo (2007); Li and Chen (2010); Nam, Yoon and Kim (2007)] are inti-
+mately related, being based on linear regression, but with potentially dif-
+fering approaches to variable selection. In recent years, several empirical
+comparisons of competing network inference schemes have emerged, in-
+cluding Altay and Emmert-Streib (2010); Bansal, Belcastro and Ambesi-
+Impiombato (2007); Hache, Lehrach and Herwig (2009); Smith, Jarvis and
+Hartemink (2002); Werhli, Grzegorczyk and Husmeier (2006). Assessment
+methodology has received attention, including attempts to automate the
+generation of large scale biological network models for automatic bench-
+marking of performance [Marbach et al. (2009); Van den Bulcke et al.
+(2006)]. In particular, the Dialogue for Reverse Engineering Assessments
+and Methods (DREAM) challenges [Prill et al. (2010)] have provided an
+opportunity for ob jective empirical assessment of competing approaches. At
+the same time, developments in synthetic biology have led to the availability
+of gold standard data from hand-crafted biological systems, such that the
+underlying network is known by design [Camacho and Collins (2009); Can-
+tone et al. (2009); Minty, Varedi and Nina (2009)]. However, relatively little
+attention has been paid to the (sometimes contrasting) assumptions of the
+statistical formulations underlying these network inference schemes.
+Inferential limitations due to estimator bias and nonidentiﬁability remain
+incompletely understood. It is clear that chemical reaction networks (CRNs;
+these are graphs that give detailed descriptions of individual reactions com-
+prising the overall system) underlying biological networks are not in general
+identiﬁable [Craciun and Pantea (2008)]. Indeed, there exist topologically
+distinct CRNs which produce identical dynamics under mass-action kinet-
+ics. Moreover, even when the true network structure is known, reaction rates
+themselves may be nonidentiﬁable. However, mainstream descriptions of bio-
+logical networks, for example, gene regulatory or protein signaling networks,
+are coarser than CRNs. Such networks are useful because they are closely
+tied to validation experiments in which interventions (e.g., RNA interfer-
+ence or inhibitors) target network vertices. For example, inference of an
+edge in a gene regulatory network corresponds to the qualitative prediction
+that intervention on the parent will inﬂuence the child (via transcription
+factor activity). It remains unclear to what extent such biological network
+structure can be usefully identiﬁed from various kinds of data. On the other
+hand, Wilkinson (2006); Wilkinson (2009) discusses a number of general
+issues relating to stochastic modeling for systems biology, but does not dis-
+cuss network inference per se in detail. This paper complements existing
+empirical work by focusing on statistical issues associated with linear mod-
+els commonly used in network inference applications.
+Network inference methods can be viewed as generating hypotheses about
+cell biology. Yet the link between biochemical networks at the cellular level
+and network inference as applied to bulk or aggregate data (i.e., data that
+are averages over large numbers of cells) from assays such as microarrays
+
+4
+
+C. J. OATES AND S. MUKHERJEE
+
+remains unclear. In applications to noisy time-varying data there is uncer-
+tainty in the predictor variables of the same order of magnitude as uncer-
+tainty in the responses, yet often only the latter is explicitly accounted for.
+Moreover, the treatment of time intervals in discretely observed data re-
+mains unclear, with contradictory approaches appearing in the literature.
+Most high-throughput assays, including array based technologies (e.g., gene
+expression or protein arrays), as well as single-cell approaches (e.g., FACS-
+based) involve destructive sampling, that is, cells are destroyed to obtain
+the molecular measurements. The impact of the resulting nonlongitudinal-
+ity upon inference does not appear to have been investigated.
+The contributions of this paper are threefold. First, we explore the connec-
+tion between biological networks at the cellular level and the linear statisti-
+cal models that are widely used for inference. Starting from a description of
+stochastic dynamics at the single-cell level, we describe a general statistical
+approach rooted in the linear model. This makes explicit the assumptions
+that underlie a broad class of network inference approaches. This also clar-
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+5
+
+Since biological data are often unevenly resolved in time, this observation
+has important implications for experimental design.
+The remainder of this paper is organized as follows. We begin in Section 2
+with a description of stochastic dynamics in single cells and show how a series
+of assumptions allow us to arrive at a statistical framework rooted in the
+linear model. Section 3 contains an empirical comparison of several inference
+schemes, addressing questions of performance and consistency in a number
+of regimes. In Section 4 we discuss our results and point to several speciﬁc
+areas for future work.
+
+2. Methods. The cellular dynamics that underlie network inference are
+sub ject to stochastic eﬀects [Elowitz, Levine and Siggia (2002); Kou, Xie and
+Liu (2005); McAdams and Arkin (1997); Paulsson (2005); Swain, Elowitz
+and Siggia (2002)]. We therefore begin our description of the data-generating
+process at the level of single cells and then discuss the relationship to aggre-
+gate data of the kind acquired in high-throughput biochemical assays. We
+then develop a general statistical approach, rooted in the linear model, for
+data from such a system observed discretely in time. We discuss inference
+and show how a number of existing approaches can be recovered as special
+cases of the general model we describe. Our exposition clariﬁes a number
+of technical but important distinctions between published methodologies,
+which until now have received little attention.
+
+2.1. Data-generating process.
+
+2.1.1. Stochastic dynamics in single cel ls. Let X = (X1 , . . . , XP ) ∈ X de-
+
+note a state vector describing the abundance of molecular quantities of inter-
+est, on a space X chosen according to physical and statistical considerations.
+The components of the state vector (e.g., mRNA, protein or metabolite lev-
+els) are identiﬁed with the vertices of the graph G that describes the biolog-
+
+6
+
+C. J. OATES AND S. MUKHERJEE
+
+We further assume that the functions f , g are suﬃciently regular and de-
+pend only on recent history FX ([t − τ , t]). For example, in the context of
+gene regulation τ might be the time required for one cycle of transcription,
+translation and binding of a transcription factor to its target site, the char-
+acteristic time scale for gene regulation. This is a ﬁnite memory requirement
+and can be considered a generalization of the Markov property. Equivalently,
+this property codiﬁes the modeling assumption that the observed processes
+are suﬃcient to explain their own dynamics, that there are no latent vari-
+ables. It is common practice to take τ = 0, in which case the process deﬁned
+by equation (1) is Markovian. This stochastic dynamical system with phase
+space {(f (FX ), X) : X ∈ X } forms the basis of the following exposition.
+
+X(N ) := PN
+
+2.1.2. Aggregate data. A variety of experimental techniques, including,
+notably, microarrays and related assays, capture average expression levels
+k=1 Xk /N over cells, where Xk denotes the expression levels in
+cell k . This paper does not consider eﬀects due to intercellular signaling,
+which are typically assumed to be negligible. Then averaging sacriﬁces the
+ﬁnite memory property (a generalization of the fact that the sum of two
+independent Markov processes is not itself Markovian). However, it is usually
+possible to construct a ﬁnite memory approximation of the form
+
+(2)
+
+dX(N ) = f (N ) (FX(N ) ) dt + g(N ) (FX(N ) ) dB(N )
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+7
+
+N
+Xk=1
+
+= A 1
+N
+
+Xk! dt + R(N )
+= AX(N ) dt + R(N ) = f (FX(N ) ) dt + R(N ) ,
+
+where R(N ) := Pk g(FXk ) dBk /N → 0 almost surely as N → ∞, and so
+dX∞/dt = f (FX∞ ). In other words, the average over large numbers of cells
+shares the same drift function as the single cell, so that inference based on av-
+eraged data applies directly to single-cell dynamics. Otherwise this may not
+hold, that is, dX∞ /dt = dE(X)/dt = E(f (FX )) 6= f (FE(X) ) = f (FX∞ ). This
+has implications when using nonlinear forms, such as Michaelis-Menten or
+Hill kinetics, to describe the behavior of a large sample average; these non-
+linear functions are derived from single-cell biochemistry and may not apply
+equally to the large sample average X∞ . The error entailed by commuting
+drift and expectation may be assessed using the multivariate Feynman-Kac
+formula for X∞ = E(X) [Øksendal (1998)].
+In practice, the observation process may be complex and indirect, for
+example, measurements of gene expression may be relative to
+
+8
+
+C. J. OATES AND S. MUKHERJEE
+
+However, the likelihood for a SDDE model [equation (2)] is not gener-
+ally available in closed form. There has been recent research into computa-
+tionally eﬃcient approximate likelihoods for fully observed, noiseless diﬀu-
+sions [Hurn, Jeisman and Lindsay (2007)], but it remains the case that the
+most eﬃcient (though least accurate) closed-form approximate likelihood is
+based on the Euler-Maruyama discretization scheme for stochastic diﬀeren-
+tial equations (SDEs), which in the more general SDDE case may be written
+as (henceforth dropping the superscript N )
+
+(4)
+
+X(tj ) ≈ X(tj−1 ) + ∆j f (FX (tj−1)) + g(FX (tj−1 ))∆Bj ,
+
+where ∆Bj ∼ N (0, ∆j I) and ∆j = tj − tj−1 is the sampling time interval.
+Incorporating measurement error into this so-called Riemann-Itˆo likelihood
+[Dargatz (2010)] requires an integral over the hidden states X which would
+destroy the closed-form approximation. Therefore, the observed, nonlongi-
+tudinal data y are directly substituted for the latent states X, yielding the
+(triply) approximate likelihood
+
+L(θ) =
+
+n
+Yj=1
+
+N (y(tj ); µ(tj ), Σ(tj )),
+
+(5)
+
+µ(tj ) = y(tj−1 ) + ∆j f (Fy (tj−1 )),
+Σ(tj ) = ∆j g(Fy (tj−1 ))g(Fy (tj−1 ))′ .
+Here N (•; µ, Σ) denotes a Normal density with mean µ and covariance Σ.
+Implicit here is that the functions f , g depend on Fy only through time lags
+which coincide with the measurement times tj−1 .
+Thus, L may be obtained from a state-space approximation to the original
+SDDE model [equation (2)]. Despite reported weaknesses with the Riemann-
+Itˆo likelihood [Dargatz (2010); Hurn, Jeisman and Lindsay (2007)] and the
+poorly characterized error incurred by plugging in nonlongitudinal observa-
+tions, this form of approximate likelihood is widely used to facilitate network
+inference [equations (5) and (6) correspond to a Gaussian DBN for the ob-
+servations y, generalized to allow dependence on history]. This is due both
+to the possibility of parameter orthogonality, allowing inference to be per-
+formed for each network node separately, and the possibility of conjugacy,
+leading to a closed-form marginal likelihood π(y|G).
+
+2.2.2. Linear dynamics. Kinetic models have been described for many
+cellular processes [Cantone et al. (2009); Schoeberl et al. (2002); Swat,
+Kel and Herzel (2004); Wilkinson (2009)]. However, statistical inference for
+these often nonlinear models may be challenging [Bonneau (2008); Wilkin-
+son (2006); Wilkinson (2009); Xu et al. (2010)]. Moreover, there is no guar-
+antee that conclusions drawn from cellular averages will apply to single
+cells, because, as noted above, the deterministic behavior seen in averages
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+9
+
+may not coincide with the single-cell drift. However, linear dynamics satisfy
+E(f (FX )) = f (FE(X) ) exactly, so that conclusions drawn from verages ap-
+ply directly to single cells. For notational simplicity consider the Markovian
+τ = 0 regime. A Taylor approximation of the cellular drift f about the origin
+gives
+
+(6)
+
+f (X) ≈ f (0) + Df |x=0X,
+
+where Df is the Jacobian matrix of f . The constant term can be omitted
+(f (0) = 0), since absent any regulators there is no change in expression.
+Then, the Jacobian Df captures the dynamics approximately under a lin-
+ear model. Furthermore, the absence of an edge in the network G implies
+a zero entry in the Jacobian, that is, (i, j ) /∈ E ⇒ (Df )j i = 0. Obtaining the
+Jacobean at x = 0 therefore does not imply complete knowledge of the edge
+structure E . We note that the general SDDE case is similar but with addi-
+tional diﬀerentiation required for the additional dependencies of f . Hence-
+forth, we write equations for the simpler Markovian model, although they
+hold more generally.
+One may ask whether the restriction to linear drift functions allows the
+computational diﬃculties associated with inference for continuous time mod-
+els to be avoided, since in the Markovian (τ = 0) case both the SDE [equa-
+tion (1)] and limiting ordinary diﬀerential equation (ODE) have exact closed
+form solutions. In the ODE case, for example, X(t) = exp(At)X0 and under
+Gaussian measurement error the likelihood has a closed form as products
+of terms N (y(tj ); exp(Atj )X0 , M), where the parameters θ = (A, X0 , M)
+include the model parameters A, initial state vector X0 and the measure-
+ment error covariance M. Unfortunately, evaluation of the matrix exponen-
+tial is computationally demanding and inference for the entries of A must
+be performed jointly since, in general, exp(A) does not factorize usefully.
+It therefore remains the case that inference for continuous time models is
+computationally burdensome, even when the models are linear.
+
+2.2.3. The dynamical system as a regression model. The Jacobian Df
+
+with entries (Df )i,j = ∂ fi/∂xj |x=0 is now the focus of inference. We can
+identify the Jacobian with the unknown parameters in a linear regression
+problem by modeling the expression of gene p using
+dXp (t1 )
+X1 (t0 )
+· · · XP (t0 )
+(Df )p,1
+...
+...
+...
+...
+dXp (tn )
+X1 (tn−1 )
+· · · XP (tn−1 )
+(Df )p,P
+where the gradients dXp (tj ) are approximated by ﬁnite diﬀerences, in this
+case (Xp (tj ) − Xp (tj−1 ))/∆j . Our notation for ﬁnite diﬀerences should not
+be confused with the diﬀerentials of stochastic calculus. More generally, for
+processes with memory, the matrix may be augmented with columns corre-
+
+≈ 
+
+
+
+
+
+
+
+
+
+
+
+,
+
+
+
+
+(7)
+
+
+
+
+10
+
+C. J. OATES AND S. MUKHERJEE
+
+sponding to lagged state vectors and the vector (Df )p,• augmented with the
+corresponding derivatives of the drift function f with respect to these lagged
+states. To avoid confusion, we write A for Df when discussing parameters,
+since the drift f is unknown. Similarly, design matrices will be denoted by B
+to suppress the dependence on the random variables X. So equation (7) may
+be written compactly as
+
+(9)
+
+j,• .
+
+dXp ≈ BA′
+
+p,• .
+
+(8)
+Inference for the parameters Ap,• may be performed independently for each
+variable p. While equation (8) is fundamental for inference, one can equiva-
+lently consider the dynamically intuitive expression
+dX(tj ) ≈ AB ′
+An interesting issue arises from the dual interpretation of the regression
+model as a dynamical system [equation (9)], because there are natural re-
+strictions on A to avoid the solution tending to inﬁnity. For instance, if the
+sampling interval ∆ is constant, then we require R(λ) ≤ 0 for each eigen-
+value λ of A + ∆I. The inference schemes which we discuss do not account for
+this, because the condition forces a nontrivial coupling between rows Ap,• ,
+jeopardizing parameter orthogonality.
+Finally, the generative model is speciﬁed by substituting noisy, nonlongi-
+tudinal observables Y for latent variables X into equation (9) and stating
+the dependence of the approximation error on the sampling interval ∆j .
+Under uncorrelated Gaussian measurement error we arrive at a model
+dY(tj ) ∼ N (AB ′
+j,• , h(∆j )D(σ2
+1 , . . . , σ2
+(10)
+P )),
+where h : R+ → R+ is a variance function that must be speciﬁed and D(v)
+represents the diagonal matrix induced by the vector v.
+There are a number of ways in which this regression is nonstandard. For
+example, the substitution of (nonlongitudinal) observations for latent vari-
+ables is clearly unsatisfactory because the linear regression framework does
+not explicitly allow for uncertainty in the predictor variables B. It is unclear
+whether this introduces bias or leads to an overestimate of the signiﬁcance
+of results. Moreover, it is unclear how to choose the variance function h,
+since the Euler-Maruyama approximation [equation (4)] is only valid for
+small sampling intervals ∆j , but in this regime the responses dY(tj ) are
+dominated by measurement error, such that the data may carry little infor-
+mation. These issues are investigated in Sections 3 and 4 below.
+
+2.3. A unifying framework. Equation (10) describes a class of models
+with speciﬁc instances characterized by choice of design matrix B and vari-
+ance function h. Since any such model corresponds to the linear regression
+equation (7), the task of determining the edge structure of the network, or,
+equivalently, the location of nonzero entries in the Jacobian A, can be cast
+as a variable selection problem.
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+11
+
+Table 1
+
+A nonexhaustive list of network inference schemes rooted in the linear model.
+The examples from literature demonstrate the statistical features indicated,
+but may diﬀer in some aspects of implementation. The symbol ∅ denotes
+the VAR(q) model which lacks a variance function
+
+Design
+matrix B
+
+Standard
+
+Variance
+function
+h(∆) ∝
+
+∆−2
+
+Variable selection
+
+Example
+
+Ridge regression
+
+Bansal and di Bernardo (2007
+
+12
+
+C. J. OATES AND S. MUKHERJEE
+
+reduces to a linear VAR(1) model
+Y(tj ) ∼ N ( ¯AY(tj−1 ), D( ¯σ2
+1 , . . . , ¯σ2
+(12)
+P )),
+where ¯A = ∆A + I and ¯σ2
+p = ∆2h(∆)σ2
+p . More generally, the VAR(q) model
+is prevalent in the literature (see Table 1), yet it does not explicitly han-
+dle uneven sampling intervals. This is a potentially important issue since
+uneven sampling is commonplace in global perturbation experiments, with
+high frequency sampling used to capture short term cellular response and
+low frequency sampling to capture the approach to equilibrium. We discuss
+the importance of modeling using a variance function, and whether a natural
+choice for such a function exists in Section 4 below. In addition, we explored
+whether inference may be improved through the use of either nonlinear ba-
+sis functions or lagged predictors to capture respectively nonlinearity and
+memory in the underlying drift function is unclear. Section 3 presents an
+empirical investigation of these issues.
+
+2.4. Inference. An appealing feature of the discrete time model is that
+parameters corresponding to diﬀerent variables are orthogonal in the Fisher
+sense:
+
+(13)
+
+L(θ) =
+
+L(Ap,• , σp ).
+
+P
+Yp=1
+
+As a consequence, network inference over G may be factorized into P inde-
+pendent variable selection problems. For deﬁniteness we focus on just two
+approaches to variable selection, the Bayesian marginal likelihood and AIC,
+but note that many other approaches are available, including those listed
+in Table 1, and can be applied here in analogy to what follows. Below we
+assume the response vector dyp h−1/2 and the columns of the design matrix
+Bh−1/2 are standardized to have zero mean and unit variance, but for clarity
+subsume this into unaltered notation.
+
+p n(B′
+
+2.4.1. Bayesian variable selection. For simplicity, the variance function
+is initially taken to be constant (h = 1). We set up a Bayesian linear model
+conditional on a network G using Zellner’s g-prior [Zellner (1986)], that is,
+with priors Ap,• |σ2
+p ∼ N (0, σ2
+pBp )−1 ) and π(σ2
+p ) ∝ 1/σ2
+p where Bp is the
+design matrix B with nonpredictors removed according to G. We note that
+while the g-prior is a common choice, alternatives may oﬀer some advantages
+[Deltell (2011); Friedman et al. (2000)].
+Let mp be the number of predictors for variable p in the network G.
+Integrating the likelihood [induced by equation (10)] against the prior for
+(Ap,• , σ2
+p ) produces the following closed-form marginal likelihood:
+1 + n (cid:19)mp /2(cid:20)dy′
+π(y|G) ∝ Yp (cid:18) 1
+p dyp − (cid:18) n
+1 + n (cid:19) ˆdyp
+
+′ ˆdyp(cid:21)−n/2
+
+(14)
+
+,
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+13
+
+(15)
+
+−1
+
+pBp )−1B′
+
+I{(i, j ) ∈ E (G)}.
+
+where ˆdyp = Bp (B′
+pdyp . These formulae extend to arbitrary vari-
+ance functions h by substituting B 7→ Bh1/2 , dy 7→ dyh1/2 . Network in-
+ference may now be carried out by Bayesian model averaging, using the
+posterior probability of a directed edge from variable i to variable j :
+π(y|G)π(G)
+P(i regulates j ) = XG
+PG′ π(y|G′ )π(G′ )
+In experiments below, we take a network prior which, for each variable p,
+is uniform over the number of predictors mp up to a maximum permissi-
+ble in-degree dmax , that is, π(G) ∝ Qp (cid:0) P
+I{mp ≤ dmax }, but note that
+richer sub jective network priors are available in the literature [Mukherjee
+and Speed (2008)]. Finally, a network estimator ˆG is obtained by thresh-
+olding posterior edge probabilities: (i, j ) ∈ E ( ˆG) ⇔ P(i regulates j ) > ε. For
+small maximum in-degree dmax , exact inference by enumeration of variable
+subsets may be possible. Otherwise, Markov chain Monte Carlo (MCMC)
+methods can be used to explore an eﬀectively smaller model space [Ellis and
+Wong (2008); Friedman and Koller (2003)]. In the experiments below we use
+exact inference by enumeration.
+
+mp(cid:1)
+
+2.4.2. Variable selection by corrected AIC. Again, consider a constant
+
+p = 1
+
+variance function (h = 1); rescaling as described above recovers the general
+case. The usual maximum likelihood estimates ˆAp,• = (B′
+pdyp and
+ˆσ2
+n Pj (dyp (tj ) − ˆdyp (tj ))2 induce closed forms Cp ˆσ−n
+for the maximized
+factors of the likelihood function, where Cp is a constant not depending
+on the choice of predictors. Corrected AIC scores [Burnham and Anderson
+(2002)] for each variable p are then
+
+pBp )−1B′
+
+p
+
+(16)
+
+AICc (p, G) = n log( ˆσ2
+p ) + 2mp +
+
+2mp (mp + 1)
+n − mp − 1
+
+.
+
+Again we consider all models with maximum permissible in-degree dmax .
+Lowest scoring models are chosen for each variable in turn, inducing a net-
+work estimator ˆG.
+
+3. Results.
+
+In this section we present empirical results investigating the
+performance of a number of network inference schemes that are special cases
+of the general formulation described by equation (10). Ob jective assessment
+of network inference is challenging [Prill et al. (2010)], since for most bio-
+logical applications the true data-generating network is unknown. We there-
+fore exploit two published dynamical models of biological processes, namely,
+Cantone et al. (2009) and Swat, Kel and Herzel (2004), described in de-
+tail in the Supplemental Information [SI; Oates and Mukherjee (2011)]. The
+
+14
+
+C. J. OATES AND S. MUKHERJEE
+
+ﬁrst is a synthetic gene regulatory network built in the yeast Saccharomyces
+cerevisiae. These ﬁve gene network and associated delay diﬀerential equa-
+tions (DDEs) have received attention in computational biology [Camacho
+and Collins (2009); Minty, Varedi and Nina (2009)], and have been shown
+to agree with gold-standard data [at least under an E(f (FX )) ≈ f (FE(X) )
+assumption]. Cantone et al. consider two experimental cond
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+15
+
+(a)
+
+(b)
+
+Fig. 1. Two published dynamical systems models of cel lular processes were used to gen-
+erate data sets. Single-cel l trajectories were generated from an SDDE model [equation (1)]
+and averaged under measurement noise and nonlongitudinality due to destructive sampling.
+( a) Data generated from (a model due to) Cantone et al. (2009), describing a synthetic
+network built in yeast. ( b) Data generated from Swat, Kel and Herzel (2004), a theory–
+driven model of the G1/S transition in mammalian cel ls.
+
+hXi/σcell ≈ 10 [here hXi represents the average expression levels of the vari-
+ables X over all generated tra jectories]. Figure 1 shows typical data sets for
+the two dynamical systems.
+
+3.1.2. Inference schemes. The following inference schemes were assessed:
+
+Variable selection
+Design matrix
+Lagged predictors
+Variance function h(∆) ∝ ∆−α
+
+{ Bayesian, AICc }
+{ Standard, Quadratic }
+{ No, Yes }
+α = { 0, 1, 2 , ∅ }
+
+.
+
+16
+
+C. J. OATES AND S. MUKHERJEE
+
+basis functions. For the variance function the symbol ∅ is used to de-
+note the VAR(q
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+17
+
+(a)
+
+(b)
+
+Fig. 2. An empirical comparison of network inference schemes. Simulated experiments
+based on published dynamical systems al low benchmarking of performance in terms of area
+under ROC curves (AUR; higher scores correspond to better network inference perfor-
+mance). ( a) Even sampling intervals. ( b) Uneven sampling intervals.
+
+18
+
+C. J. OATES AND S. MUKHERJEE
+
+set therein). AUR scores obtained using this data (SFigure 5) were in close
+agreement with those obtained using synthetic data [Figure 2(a)], suggesting
+that the results of the simulations are relevant to real world studies.
+
+3.2.2. Uneven sampling intervals. Many biological time-course experi-
+ments are carried out with uneven sampling intervals. We therefore repeated
+the analysis above with sampling times of 0, 1, 5, 10, 15, 20, 30, 40, 50, 60, 75,
+90, 105, 120, 140, 160, 180, 210, 240 and 280 minutes. Figure 2(b) displays
+the AUR scores so obtained. We ﬁnd that all the methods perform worse in
+the uneven sampling regime, with no method performing signiﬁcantly bet-
+ter than random. Corresponding results for the Swat model are shown in
+SFigure 7. Again, here we ﬁnd that none of the methods perform well.
+
+3.2.3. Consistency. Figure 3 displays AUR scores for Cantone for a large
+number of evenly sampled time points (n = 100), and the limiting case of zero
+measurement noise and zero cellular heterogeneity (σmeas = 0, σcell = 0, even
+sampling intervals). Consistency (in the sense of asymptotic convergence of
+the network estimate to the data-generating network) may be unattainable
+due to the nonidentiﬁability resulting from limited exploration of the dy-
+namical phase space. This lack of sub jectivity means that in many cases
+
+Fig. 3.
+
+Investigation of empirical consistency of network estimators, using the Cantone
+et al. (2009) model with even sampling intervals. Area under ROC curves are shown in
+the large data set, zero cel lular heterogeneity and zero measurement noise limits.
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+19
+
+inference cannot possibly reveal the full data-generating graph, although,
+as we have seen, network inference can nonetheless be informative. From
+Figure 3 we see that the Bayesian schemes using linear predictors approach
+AUR equal to unity, and in this sense show empirical consistency with re-
+spect to network inference. However, some of the other methods do not
+converge to the correct graph even in this limit.
+
+4. Discussion. The analyses presented here were aimed at better under-
+standing statistical network inference for biological applications. We showed
+how a broad class of approaches, including VAR models, linear DBNs and
+certain ODE-based approaches, are related to stochastic dynamics at the
+cellular level. We discuss a number of these aspects below and close with
+some views on future perspectives for network inference, including recom-
+mendations for practitioners.
+
+4.1. Time intervals. We found that uneven sampling intervals posed
+problems, even for methods that explicitly accounted for the sampling in-
+
+20
+
+C. J. OATES AND S. MUKHERJEE
+
+Fig. 4. Variance functions used in literature provide partial appr
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+21
+
+where the average is over the region R ⊆ X in state space visited during the
+experiments. Clearly, if the region (f (FR ), R) is only a small subspace of
+phase space, then the estimate equation (18) will be poor compared to one
+based on the entire phase space ˆA∗ = hDf (FX )iX∈X .
+To investigate the added value of interventional treatments for network
+inference, we repeated both the Cantone and Swat analyses with an ensem-
+ble of data sets obtained by inhibiting each variable in turn; this gave 5 and
+9 data sets for Cantone and Swat respectively. While no improvement to the
+Cantone AUR scores was observed (SFigure 15), there was improved per-
+formance for Swat (SFigure 16). This suggests that global perturbations are
+insuﬃcient to explore the Swat dynamical phase space, and supports the
+intuitive notion that intervention experiments may be essential for infer-
+ence regarding larger dynamical systems. Nevertheless, AUR scores remain
+far from unity. This may be because the Swat drift function contains com-
+plex interaction terms which single interventions alone fail to elucidate. An
+important problem in experimental design will be to estimate how much
+(possibly combinatorial) intervention is required to achieve a certain level of
+network inference performance.
+We considered precise artiﬁcial intervention of single components in silico.
+However, biological interventions may be imprecise and imperfect. For ex-
+ample, RNA interference achieves only incomplete silencing of the target and
+small molecule inhibitors may have oﬀ-target eﬀects. Moreover, at present
+such interventions are not instantaneous nor truly exogenous. This means
+that in many cases the system itself may be changed by the intervention,
+rendering resulting predictions inaccurate for the native system of interest.
+There remains a need for novel statistical methodology capable of analyzing
+time-course data under biological interventions. Existing literature in causal
+inference [Pearl (2009)] and related work in graphical models [Eaton and
+Murphy (2007)] are relevant, but in biological applications it may also be
+important to consider the mechanism of action of speciﬁc interventions.
+
+4.3. Nonlinear models. We focused on linear statistical models. Clearly,
+linear models are inadequate in many cases. For example, Rogers, Khanin
+and Girolami (2007) demonstrate the beneﬁt of a nonlinear model based
+on Michaelis-Menten chemical kinetics for inference of transcription factor
+activity. However, network inference based on nonlinear ODEs remains chal-
+lenging [Xu et al. (2010)]. Alternatively, ¨Aij¨o and L¨ahdesm¨aki (2009) con-
+sider the use of a nonparametric Gaussian process (GP) interaction term
+in the regression, which is naturally more ﬂexible than linear regression us-
+ing ﬁnitely many basis functions. This may help to overcome the linearity
+restriction, but introduces additional degrees of freedom, including the GP
+covariance function and associated hyperparameters. While a thorough com-
+parison of such approaches was beyond the scope of this article, the potential
+
+22
+
+C. J. OATES AND S. MUKHERJEE
+
+utility of nonparametric interaction terms is worthy of investigation. In this
+study we observed that neither the use of predictor products nor lagged
+predictors led to improved performance; this may reﬂect nontrivial coupling
+between cellular dynamics and the observed data.
+
+4.4. Single-cel l data.
+
+In the future it may become possible to measure
+single-cell expression levels Xk nondestructively (e.g., by live cell imag-
+ing), producing truly longitudinal data sets. It is interesting to consider
+how such data may impact upon the performance of regression-based net-
+work inference. Under independent additive Gaussian measurement error
+Y(t) ∼ N (Xk (t), M) an expansion for the single-cell variance V(dY − f )
+over a time interval ∆, in analogy with equation (17), is given by
+
+(19)
+
+M∆−2 + (I∆−1 + DF)M(I∆−1 + DF)′ + ∆−1gg′ + · · ·
+
+(see SI). Thus, a (single) longitudinal single-cell data set contains less infor-
+mation about the drift f than aggregate data [equation (17)] due to cellular
+stochasticity g. However, multiple longitudinal data sets may jointly contain
+more information than a single aggregate data set. To empirically test the
+utility of such data, we carried out network inference using 10 such longitu-
+dinal single-cell data sets on both the Cantone and Swat models, observed
+at even intervals with the same magnitude of measurement error as aggre-
+gate data. Results (SFigures 13 and14) show a small improvement to the
+mean AUR scores, but reduction by a factor of about two in the variance
+of these scores (compared with the corresponding nonlongitudinal data),
+implying that the network estimators may be converging to an incorrect
+network. Bias may occur when the cellular drift f is not well approximated
+by a linear function, as is the case for the Swat model. Consider the ide-
+alized scenario where f ≡ f (X) is Markovian and it is possible to observe
+longitudinal, single-cell expression levels. Under these apparently favorable
+circumstances even estimators obtained after a thorough exploration of state
+space may not oﬀer good approximations, that is, ˆA∗ 6≈ Df |x=0 . As a toy
+example consider the cellular drift
+f (X) = (cid:18) (2π)−1 sin(2πX2 )
+(2π)−1 sin(2πX1 ) (cid:19) ,
+which is not well approximated by a linear function over the state space
+X = [0, 1]2 . In this case averaging leads to cancellation
+ˆA∗ = hDf (X)iX∈X = (cid:28)(cid:18)
+0
+cos(2πX1 )
+= 0 6= (cid:18) 0 1
+1 0 (cid:19) = Df |x=0
+
+(cid:19)(cid:29)X∈[0,1]2
+
+cos(2πX2 )
+0
+
+(20)
+
+f : [0, 1]2 → R,
+
+(21)
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+23
+
+so that no interactions are inferred. Under such circumstances network in-
+ference is no longer possible using the na¨ıve linear regression approach. This
+suggests that network inference rooted in nonlinear models may be needed
+to fully exploit longitudinal single-cell data in the future. A related line of
+work addresses heterogeneity of the drift function in time by coupling DBNs
+with change point processes [Grzegorczyk and Husmeier (2011); Kolar, Song
+and Xing (2009); L`ebre et al. (2010)]. A promising direction would be piece-
+wise linear regression modeling for network inference applications, where the
+heterogeneity appears in the spatial domain.
+
+4.5. High-dimensions and missing variables. We focused on the simplest
+
+possible case of fully observed, low-dimensional systems. There is a rich lit-
+erature in high-dimensional variable selection and related graphical models
+[Meinshausen and B¨uhlmann (2006); Hans, Dobra and West (2007); Fried-
+man, Hastie and Tibshirani (2008)] which applies equally to the regression
+models described here. The issues raised in this paper remain relevant in
+the high-dimensional setting. However, in practice, even high-dimensional
+observations are likely to be incomplete, since it is not currently possible
+to measure all relevant chemical species. Therefore, inferred relationships
+between variables may be indirect. This may be acceptable for the purpose
+of predicting the outcome of biochemical interventions (e.g., inhibiting gene
+or protein nodes), but limits stronger causal or mechanistic interpretations.
+Latent variable approaches are available [Beal et al. (2005)], but model se-
+lection can be challenging and remains an open area of research [Knowles
+and Ghahramani (2011)]. We note also that the missing variable issue for
+biological networks is arguably more severe than in, say, economics or epi-
+demiology, insofar as measured variables may represent only a small fraction
+of the true state vector, often with little speciﬁc insight available into the
+nature of the missing variables or their relationship to observations. Further
+work is required to better understand these issues in the context of inference
+for biological networks.
+
+4.6. Future perspectives. We found that a simple linear model could suc-
+cessfully infer network structure using globally perturbed time-course data
+from the Cantone system. It is encouraging that inference based only on as-
+sociations between variables, none of which were explicitly intervened upon,
+can in some cases be eﬀective. Interventional designs should further enhance
+prospects for network inference. On the other hand, theoretical arguments,
+and the results we showed from the Swat system, emphasize that in some
+cases network structure may not be identiﬁable, even at the coarse level re-
+quired for qualitative biological prediction. On balance, we believe that net-
+work inference can be useful in generating biological hypotheses and guiding
+further experiment. However, the concerns we raise motivate a need for cau-
+tion in statistical analysis and interpretation of results. At the present time,
+we do not believe network inference should be treated as a routine analysis
+
+24
+
+C. J. OATES AND S. MUKHERJEE
+
+in bioinformatics applications, but rather as an open research area that may,
+in the future, yield standard experimental and statistical protocols.
+Some speciﬁc recommendations that arise from the results presented here
+are as follows:
+
+• A default model. Our results suggest that a reasonable default choice of
+model for typical applications uses the standard design matrix with no
+lagged predictors and a ﬂat variance function, corresponding to the linear
+model
+
+(22)
+
+dY(tj ) ∼ N (AY(tj−1 ), D(σ2
+1 , . . . , σ2
+P )).
+Coupled with the Bayesian variable selection scheme outlined in Sec-
+tion 2.4.1, this simple model produced empirically consistent network es-
+timators for Cantone using evenly sampled global perturbation data (Fig-
+ure 3).
+• Diagnostics and validation. It is clear that network inference does not
+enjoy general theoretical guarantees and that the ability to successfully
+elucidate network structure depends on details of the speciﬁc system un-
+der study. Therefore, careful empirical validation on a case-by-case basis
+is essential. This should include statistical assessment of model ﬁt, ro-
+bustness and predictive ability and, where possible, systematic validation
+using independent interventional data.
+• Experimental design. We suggest sampling evenly in time as a default
+choice. Interventional designs may be helpful to eﬀectively explore larger
+dynamical phase spaces. However, to control the burden of experimentally
+exploring multiple time points, molecular species, interventions, culture
+conditions and biological samples, adaptive designs that prune experi-
+ments based on informativeness for the speciﬁc biological setting may be
+helpful [Xu et al. (2010)].
+
+In conclusion, linear statistical models for networks are closely related
+to models of cellular dynamics and can shed light on patterns of biochem-
+ical regulation. However, biological network inference remains profoundly
+challenging, and in some cases may not be possible even in principle. Nev-
+ertheless, studies aimed at elucidating networks from high-throughput data
+are now commonplace and play a prominent role in biology. For this reason
+there remains an urgent need for both new methodology and theoretical
+and empirical investigation of existing approaches. Furthermore, there re-
+main many open questions in experimental design and analysis of designed
+experiments in this setting.
+
+Acknowledgments. We would like to thank Professor K. Kafadar and
+the anonymous referees for constructive suggestions that helped to improve
+the content and presentation of this article, and G. O. Roberts, S. Spencer
+and S. M. Hill for discussion and comments.
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+25
+
+SUPPLEMENTARY MATERIAL
+
+Additional materials (DOI: 10.1214/11-AOAS532SUPP ; .zip). This sup-
+plement provides the dynamical systems used in this paper and accompany-
+ing MATLAB R2010a scripts, derivations and additional ﬁgures SFigures 1–
+16.
+
+REFERENCES
+
+¨Aij¨o, T. and L¨ahdesm¨aki, H. (2009). Learning gene regulatory networks from gene
+expression measurements using nonparametric molecular kinetics. Bioinformatics 25
+2937–2944.
+Altay, G. and Emmert-Streib, F. (2010). Revealing diﬀerences in gene network infer-
+ence algorithms on the network level by ensemble methods. Bioinformatics 26 1738–
+1744.
+
+Babu, M. M., Luscombe, N. M., Aravind, L., Gerstein, M. and Teichmann, S. A.
+
+(2004). Structure and evolution of transcriptional regulatory networks. Curr. Opin.
+Struct. Biol. 14 283–291.
+
+Bansal, M., Belcastro, V. and Ambesi-Impiombato, A. (2007). How to infer gene
+
+networks from expression proﬁles. Mol. Sys. Bio. 3 Article No. 78.
+Bansal, M. and di Bernardo, D. (2007). Inference of gene networks from temporal gene
+expression proﬁles. IET Syst. Biol. 1 306–312.
+
+Beal, M. J., Falciani, F., Ghahramani, Z., Rangel, C. and Wild, D. L. (2005).
+
+A Bayesian approach to reconstructing genetic regulatory networks with hidden factors.
+Bioinformatics 21 349–356.
+Bolstad, A., Van Veen, B. D. and Nowak, R. (2011). Causal network inference via
+group sparse regularization. IEEE Trans. Signal Process. 59 2628–2641. MR2840690
+Bonneau, R. (2008). Learning biological networks: From modules to dynamics. Nat.
+Chem. Bio. 4 658–664.
+Burnham, K. P. and Anderson, D. R. (2002). Model Selection and Multimodel In-
+ference: A Practical Information-Theoretic Approach, 2nd ed. Springer, New York.
+MR1919620
+Camacho, D. M. and Collins, J. J. (2009). Systems biology strikes gold. Cel l 137 24–26.
+
+Cantone, I., Marucci, L., Iorio, F., Ricci, M. A., Belcastro, V., Bansal, M., San-
+tini, S., di Bernardo, M., di Bernardo, D. and Cosma, M. P. (2009). A yeast syn-
+
+thetic network for in vivo assessment of reverse-engineering and modeling approaches.
+Cel l 137 172–181.
+Craciun, G. and Pantea, C. (2008). Identiﬁability of chemical reaction networks.
+J. Math. Chem. 44 244–259. MR2403645
+Dargatz, C. (2010). Bayesian inference for diﬀusion processes with applications in life
+sciences. Ph.D. thesis, M¨unchen.
+Davidson, E. H. (2001). Gene Regulatory Systems. Development And Evolution. Aca-
+demic Press, San Diego.
+Deltell, A. (2011). Ob jective Bayes criteria for variable selection. Ph.D. thesis, Univer-
+sitat de Valencia.
+Eaton, D. and Murphy, K. (2007). Exact Bayesian structure learning from uncertain
+interventions. In Proceedings of 11th Conference on Artiﬁcial Intel ligence and Statistics,
+March 21–24, 2007, San Juan, Puerto Rico. Journal of Machine Learning Research,
+Workshop and Conference Proceedings, Vol. 2: AISTATS 2007 107-114.
+
+26
+
+C. J. OATES AND S. MUKHERJEE
+
+Ellis, B. and Wong, W. H. (2008). Learning causal Bayesian network structures from
+experimental data. J. Amer. Statist. Assoc. 103 778–789. MR2524009
+Elowitz, M. B., Levine, A. J. and Siggia, E. D. (2002). Stochastic gene expression in
+a single cell. Science 297 1129–1131.
+Fawcett, T. (2005). An introduction to ROC analysis. Pattern Recognition Letters 27
+861–874.
+Friedman, J., Hastie, T. and Tibshirani, R. (2008). Sparse inverse covariance estima-
+tion with the graphical lasso. Biostatistics 9 432–441.
+Friedman, J. and Koller, D. (2003). Being Bayesian about network structure.
+A Bayesian approach to structure discovery in Bayesian networks. Mach. Learn. 50
+95–125.
+
+Friedman, N., Linial, M. and Nachman, I. et al. (2000). Using Bayesian networks to
+
+analyze expression data. J. Comp. Bio. 7 601–620.
+Grzegorczyk, M. and Husmeier, D. (2011). Improvements in the reconstruction of
+time-varying gene regulatory networks: Dynamic programming and regularization by
+information sharing among genes. Bioinformatics 27 693–699.
+Hache, H., Lehrach, H. and Herwig, R. (2009). Reverse engineering of gene regulatory
+networks: A comparative study. EURASIP J. Bioinform. Syst. Biol. 617281.
+
+Hans, C., Dobra, A. and West, M.
+
+NETWORK INFERENCE AND BIOLOGICAL DYNAMICS
+
+27
+
+Marbach, D., Schaffter, T., Mattiussi, C. and Floreano, D. (2009). Generating
+
+realistic in silico gene networks for performance assessment of reverse engineering meth-
+ods. J. Comput. Biol. 16 229–239.
+Markowetz, F. and Spang, R. (2007). Inferring cellular networks—A review. BMC
+Bioinformatics 8(Suppl. 6) S5.
+McAdams, H. H. and Arkin, A. (1997). Stochastic mechanisms in gene expression. PNAS
+94 814–819.
+Meinshausen, N. and B¨uhlmann, P. (2006). High-dimensional graphs and variable se-
+lection with the lasso. Ann. Statist. 34 1436–1462. MR2278363
+Minty, J. J., Varedi, K. S. M. and Nina, L. X. (2009). Network benchmarking: A happy
+marriage between systems and synthetic biology. Chemistry and Biology 16 239–241.
+
+Morrissey, E. R., Ju´arez, M. A., Denby, K. J. and Burroughs, N. J. (2010). On
+
+reverse engineering of gene interaction networks using time course data with repeated
+measurements. Bioinformatics 26 2305–2312.
+Mukherjee, S. and Speed, T. P. (2008). Network inference using informative priors.
+PNAS 105 14313–14318.
+Nam, D., Yoon, S. H. and Kim, J. F. (2007). Ensemble learning of genetic networks
+from time-series expression data. Bioinformatics 23 3225–3231.
+
+Oates, C. J. and Mukherjee, S.
+
+28
+
+C. J. OATES AND S. MUKHERJEE
+
+Werhli, A. V., Grzegorczyk, M. and Husmeier, D. (2006). Comparative evaluation of
+
+reverse engineering gene regulatory networks with relevance networks, graphical gaus-
+sian models and bayesian networks. Bioinformatics 22 2523–2531.
+Wilkinson, D. J. (2006). Stochastic Model ling for Systems Biology. Chapman &
+Hall/CRC, Boca Raton, FL. MR2222876
+Wilkinson, D. J. (2009). Stochastic modelling for quantitative description of heteroge-
+neous biological systems. Nature Reviews Genetics 10 122–133.
+
+Xu, T.-R., Vyshemirsky, V., Gormand, A., von Kriegsheim, A., Girolami, M.,
+Baillie, G. S., Ketley, D., Dunlop, A. J., Milligan, G., Houslay, M. D. and
+
+Kolch, W. (2010). Inferring signaling pathway topologies from multiple perturbation
+measurements of speciﬁc biochemical species. Sci. Signal. 3 ra20.
+Yarden, Y. and Sliwkowski, M. X. (2001). Untangling the ErbB signalling network.
+Nat. Rev. Mol. Cel l Biol. 2 127–137.
+Zellner, A. (1986). On assessing prior distributions and Bayesian regression analysis with
+g -prior distributions. In Bayesian Inference and Decision Techniques. Stud. Bayesian
+Econometrics Statist. 6 233–243. North-Holland, Amsterdam. MR0881437
+Zou, C. and Feng, J. (2009). Granger causality vs. dynamic Bayesian network inference:
+A comparative study. BMC Bioinformatics 10 12.
+
+Centre for Complexity Science
+University of Warwick
+Coventry, CV4 7AL
+United Kingdom
+
+E-mail: c.j.oates@warwick.ac.uk
+
+and
+Department of Biochemistry
+Netherlands Cancer Institute
+1066CX Amsterdam
+Netherlands
+
+E-mail: c.oates@nki.nl
+
+Department of Statistics
+University of Warwick
+Coventry, CV4 7AL
+United Kingdom
+
+E-mail: s.n.mukherjee@warwick.ac.uk
+
+and
+Department of Biochemistry
+Netherlands Cancer Institute
+1066CX Amsterdam
+Netherlands
+
+E-mail: s.mukherjee@nki.nl
+
+

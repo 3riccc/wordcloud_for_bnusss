@@ -1,0 +1,2887 @@
+OPEN
+
+Received: 5 June 2017
+Accepted: 23 October 2017
+Published: xx xx xxxx
+
+Reconstruction of Complex 
+Network based on the Noise via QR 
+Decomposition and Compressed 
+Sensing
+
+Lixiang Li 
+
+ 1,2, Dafei Xu1,2, Haipeng Peng1,2, Jürgen Kurths3 & Yixian Yang1,4
+
+It is generally known that the states of network nodes are stable and have strong correlations in a linear 
+network system. We find that without the control input, the method of compressed sensing can not 
+succeed in reconstructing complex networks in which the states of nodes are generated through the 
+linear network system. However, noise can drive the dynamics between nodes to break the stability 
+of the system state. Therefore, a new method integrating QR decomposition and compressed sensing 
+is proposed to solve the reconstruction problem of complex networks under the assistance of the 
+input noise. The state matrix of the system is decomposed by QR decomposition. We construct the 
+measurement matrix with the aid of Gaussian noise so that the sparse input matrix can be reconstructed 
+by compressed sensing. We also discover that noise can build a bridge between the dynamics and the 
+topological structure. Experiments are presented to show that the proposed method is more accurate 
+and more efficient to reconstruct four model networks and six real networks by the comparisons 
+between the proposed method and only compressed sensing. In addition, the proposed method can 
+reconstruct not only the sparse complex networks, but also the dense complex networks.
+
+Complex networks show a high degree of complexity and they can abstractly describe a large number of real sys-
+tems in the fields of biology, economy, society, physics and etc. At present, the link prediction1–3, the structure4–7, 
+the dynamical behavior8,9 and etc. are hot research issues in the field of complex network. Especially, the topolog-
+ical structure of networks is crucial for the research on dynamic properties of complex networks. It is very impor-
+tant to study the relationship between the topological structures and various dynamical behaviors of complex 
+networks for understanding and controlling complex network systems. The reconstruction of complex networks 
+is a challenging inverse problem. In general, the network structure and the node dynamics are unknown, and only 
+the time series can be measured. At times like that only limited data can be obtained from the dynamics of indi-
+vidual units of the networks, it is impossible to directly measure the interactions between nodes, which leads that 
+the network topology can not be obtained directly. The reconstruction of complex networks plays an important 
+role in many areas, such as inferring gene regulatory networks from expression data in biological networks10,11, 
+predicting information dissemination and virus transmission in social network12 and so on.
+Many methods were developed to deal with the problem of the network reconstruction, such as Bayesian rea-
+soning13, ODE14, Lasso15 and so on. The linear model has received a lot of attentions in the network reconstruc-
+tion, because many real systems can be described as linear or approximate linear equations16. For a linear system 
+with deterministic inputs, Gonçalves and Warnick17 considered that a certain number of inputs were needed to 
+solve the reconstruction problem. Materassi and Innocenti18 also mentioned that reliable estimations could be 
+obtained with sufficient data. For linear systems, Chang and Tomlin19 used the single-perturbation time series 
+to stimulate all the distinct states, and used a data-driven reasoning method to identify biological networks. The 
+
+1Information Security Center, State Key Laboratory of Networking and Switching Technology, Beijing University of 
+Posts and Telecommunications, Beijing, 100876, China. 2National Engineering Laboratory for Disaster Backup and 
+Recovery, Beijing University of Posts and Telecommunications, Beijing, 100876, China. 3Potsdam Institute for Climate 
+Impact Research, Potsdam, D14473, Germany. 4State Key Laboratory of Public Big Data, Guizhou, 550025, China. 
+Lixiang Li, Dafei Xu, Haipeng Peng, Jürgen Kurths, and Yixian Yang contributed equally to this work. Correspondence 
+and requests for materials should be addressed to L.L. (email: li_lixiang2006@163.com)
+
+1
+
+SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3www.nature.com/scientificreportsdisadvantage of their approaches was that enough data were needed to be observed. How to reduce measurement 
+data to achieve accurate network reconstruction is an important research problem.
+Noise is ubiquitous in physical and natural systems, and the data measured from linear systems are inevitably 
+influenced by the noise. However, Madni did not consider the noise in solving the reconstruction problem of 
+sparse networks20. The presence of noise may be a double-edged sword. On the one hand, many people believed 
+that the existence of noise was harmful to the network reconstruction. Experimental results of Shen et al .12  
+showed that the success rate of reconstruction was reduced by the fraction n f of states in the time series that 
+flipped due to noise. Minimum data increased for achieving at least 0.95 AUROC (area under the receiver operat-
+ing characteristic curve) and AUPR (area under the precision-recall curve) simultaneously with the increment of 
+noise15. On the other hand, the proper use of noise may be beneficial to the network reconstruction. The existence 
+of noise led to a general, one-to-one correspondence between the dynamical correlation and the connections 
+among the oscillators for a variety of node dynamics and network structures21. Thus, the states of network nodes 
+in the linear network system can be changed greatly by the stimulation of noise.
+For the network reconstruction with less measurement data, the compressed sensing is an efficient method 
+and it only acquires a smaller amount of sample data to recover the sparse signal. Shen et al.12 introduced in detail 
+the reconstruction of diverse propagation networks and the identification of hidden sources based on compressed 
+sensing. Wang et al.22 proposed the reconstruction of complex networks based on the evolutionary game data via 
+compressed sensing. Besides, the reconstruction of dynamical network based on compressed sensing was stud-
+ied23,24. Most of the existing researches studied the sparse networks. However, there are not only sparse networks, 
+but also dense networks. How to efficiently reconstruct the dense networks is an urgent problem to be solved. 
+Currently, the relevant research is still very few.
+This paper presents a new method to solve the reconstruction problem of complex networks whose node 
+states are generated by the linear network system. The state of simple linear systems is stable, and it has a strong 
+coherence, which brings difficulty to the reconstruction of complex networks generated by the linear system. 
+Therefore, Gaussian noise is used as the input to make the linear system oscillate and it breaks the stability of the 
+system state. We decompose the state matrix of the linear system by QR decomposition, construct the measure-
+ment matrix by Gaussian noise, and reconstruct the input sparse matrix based on compressed sensing. Thus, the 
+structure of complex network can be reconstructed. We discover that the noise can build the bridge between the 
+dynamics and the topological structure in order to realize the network reconstruction. The proposed approach 
+can efficiently reconstruct both the sparse and dense networks. We validate the applicability and the efficiency of 
+the proposed approach for the sparse and dense networks by utilizing four different model networks and several 
+real networks. We discover that only less measurement data are required by the proposed method to reconstruct 
+the network after adding the Gaussian noise, which will increase the success rate of network reconstruction.
+
+Results
+
+1
+
+2
+
+Network reconstruction without control input. We consider the reconstruction problem of complex 
+networks whose node states are generated by the following linear network system without control input
+X t
+( )
+AX t
+( )
+(1)
+where the vector 
+X t
+( )
+(
+x t
+( ) ,
+x t
+( ) ,
+,
+x t
+( ))
+ is the state of N nodes for a network system at time t, and this 
+×N
+N -dimensional matrix A is the network structure between nodes. From Equation (1), we have
+
+
+
+=
+
+=
+
+N
+
+T
+
+T
+
+T T
+
+= d
+
+Y
+X
+(2)
+where XT , YT represent the input and output matrices which are generated by P experiments, XT is the ×P
+N
+N -dimensional matrix. For the detailed explanation of A T , please 
+-dimensional matrix of the system, YT is a ×P
+see Eq. (15) in the Methods section.
+Now we consider the reconstruction problem of six different real networks and four model networks, namely, 
+a n e two rk o f b o ok s ab ou t U S p o l i t i c s (Po lb o ok s ) 1 2 , a n eu r a l n e two rk o f t h e n em ato d e C . E l e g an s 
+(Celegansneural)25, a social network of dolphins (Dolphins)26, the network of American football games in the Fall 
+of the year 2000 (Football)27, a network of jazz musicians (Jazz)28, a social network of friendships of a karate club 
+(ZK)29, the Newman-Watts small-world network (NW)30, the Watts-Strogatz small-world network (WS)31, the 
+Erdos-Renyi random network (ER)32, and the Barabasi-Albert scale-free network (BA)33. The nodes states of these 
+networks are generated though the linear network system (1). These networks are sparse (the sparsity k
+N ), 
+and the average sparsity of each network is shown in Table 1. In Table 1, N is the size of the network, L is the links 
+number of network nodes, k is the average sparsity of the network, and nt is the ratio between the row and the 
+column of matrix XT in Eq. (2), i.e. =
+nt
+P N
+/
+(0 1
+N
+P
+4 ).
+N
+Due to the rows of matrix XT can be controlled, we consider reconstructing these networks in three different 
+methods according to three cases of nt. Table 1 shows the success rate of the reconstruction for each network at 
+0 1
+4. From Table 1, we can see that
+
+. ≤ ≤nt
+
+. ≤ ≤
+
+i. When XT is an underdetermined matrix (i.e. . ≤ <nt
+0 1
+1), we reconstruct these networks by the 
+compressed sensing method. For the detailed explanation of compressed sensing, please see the Methods 
+section. And the success rates of networks reconstruction are 0;
+ ii. When XT is an ×N
+N -dimensional matrix (i.e. =nt
+1), we reconstruct these networks by solving the 
+inverse matrix method. But the reconstruction success rates of these networks are all 0;
+ iii. When XT is an overdetermined matrix (i.e. < ≤nt
+1
+4), we reconstruct these networks by the least square 
+
+2
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3 
+Networks
+Polbooks
+Celegansneural
+Dolphins
+Football
+Jazz
+ZK
+NW
+WS
+ER
+BA
+
+N
+105
+297
+62
+115
+198
+34
+100
+100
+100
+100
+
+L
+441
+2359
+159
+613
+5484
+78
+416
+400
+406
+390
+
+k
+8.4
+14.5
+5.1
+10.7
+27.7
+4.6
+4.2
+4.0
+4.1
+3.9
+
+. ≤ ≤nt
+
+Success rates as 
+0 1
+4
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+
+Table 1. In the linear network system without control input, the reconstruction success rates by three different 
+methods for some networks, i.e. Polbooks, Celegansneural, Dolphins, Football, Jazz, ZK, NW, WS, ER and BA, 
+where N is the size of the network, L is the links number of network nodes, k is the average sparsity of the 
+network, nt is the ratio between the row and the column of matrix XT in Eq. (2), i.e. =nt
+P N/
+, and P is the 
+number of experiments ( . ≤ ≤
+0 1
+N
+P
+4 ).
+N
+
+method, which is implemented directly in a function provided by MATLAB simulation software. But the 
+success rates of these networks are still 0.
+
+In other words, these networks can not be reconstructed in these three cases of nt.
+We analyze the reasons why these networks can not be reconstructed though the linear network system. When 
+the system has no control input, the state X t( ) of the system will eventually present a stable state and have a strong 
+correlation. In order to verify the strong coherence of the state X t( ) for the linear network system without control 
+input, we select the measurement data from the time =t
+350, gradually increase nt (that is, we increase the exper-
+iments number P, and the size N of the network is fixed) and obtain the coherence changes of the state matrices 
+XT generated by these networks. The coherence is calculated according to Eq. (8). In Fig. 1(a, c), the curves with 
+different marks represent the coherence changes of the state matrices for six real networks and four model net-
+works. The values of N are shown in Table 1, and the range of P is . ≤ ≤
+0 2
+N
+P
+N
+. It can be seen from Fig. 1(a) 
+that the coherence of the state matrix for ZK network presents the volatility, while the coherences of state matrices 
+for the rest five networks appear in a decreasing trend with the increment of nt. But in a whole, the coherences of 
+these six state matrices are still close to one (since the coherence of the state matrix is relatively strong when nt is 
+too small, the simulation of Fig. 1 starts with = .
+nt
+0 2). The coherence curves of the state matrices for BA, NW 
+and WS networks appear at a decreased trend with the increment of nt in Fig. 1(c), where the coherence of the 
+state matrix for BA network changes more greatly, but the coherences of these four model networks are all close 
+to one. These simulation results in Fig. 1(a) and Fig. 1(c) present the stable and strong coherence state of the linear 
+network system without control input. So we can not reconstruct these networks through the linear network 
+system without control input.
+
+4
+
+3
+
+2
+
+1
+
+Network reconstruction with control input. When there is no input (namely =u
+0), for example, a 
+simpler network with five observational states x x
+(
+,
+,
+x x x
+,
+,
+5 , and the states of network nodes have strong 
+)
+coherences in Fig. 2(a). At the same time, the noise leads to a general, one-to-one correspondence between the 
+dynamical coherence and the connections among oscillators for a variety of node dynamics and network struc-
+tures21. In order to reduce the states coherence of the network nodes, we choose the standard Gaussian noise as 
+the input vector u, and we expect to achieve the result as that in Fig. 2(b), i.e., the coherences between various 
+states are decreased, so that the reconstruction problem of complex networks whose states are generated by the 
+linear system can be solved. So the linear network system with control input is
+X t
+( )
+AX t
+( )
+Bu t
+( )
+(3)
+where B is an ×N M -dimensional input matrix. This system is controlled using a M-dimensional input vector 
+u t
+( )
+(
+u t u t
+( ) ,
+( ) ,
+,
+u t
+( ))M
+ imposed by the controller, where in general the same signal u t( )
+ may drive 
+multiple nodes. From the derivation process of Eqs (11–16) in the Methods section, we have
+
+
+
+=
+
++
+
+=
+
+T
+
+1
+
+2
+
+i
+
+U A
+]
+B
+(4)
+We decompose the state matrix XT of the linear network system by QR decomposition (For the detailed explana-
+tion of QR decomposition, please see the derivation process of Eqs (20–21) in the Methods section), and we can 
+obtain
+
+X
+
+Y
+
+[
+
+T
+
+T
+
+T
+
+
+
+
+
+
+T
+
+=¯
+¯
+
+T
+
+
+
+
+
+
+S U B
+
+T T T
+2
+
+=İ
+
+S y
+
+T
+2
+
+(5)
+
+3
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-30
+
+.
+
+1
+
+e
+c
+n
+e
+
+r
+
+e
+h
+o
+
+C
+
+9
+9
+9
+9
+9
+9
+9
+9
+
+.
+
+0
+
+Celegansneural
+Dolphins
+Football
+Jazz
+ZK
+Polbooks
+
+0.2
+
+0.4
+
+0.6
+
+nt
+
+0
+1
+
+.
+
+e
+c
+n
+e
+
+r
+
+e
+h
+o
+
+C
+
+1
+9
+9
+9
+9
+9
+9
+9
+9
+9
+9
+
+.
+
+0
+
+BA
+ER
+NW
+WS
+
+0.2
+
+0.4
+
+0.6
+
+nt
+
+0.8
+
+0.7
+
+0.6
+
+0.5
+
+0.4
+
+0.3
+
+e
+c
+n
+e
+
+r
+
+e
+h
+o
+
+C
+
+Celegansneural
+Dolphins
+Football
+Jazz
+ZK
+Polbooks
+
+(a)
+
+0.8
+
+1
+
+(b)
+
+0.2
+0.2
+
+0.4
+
+0.6
+
+nt
+
+0.8
+
+1
+
+0.8
+
+0.7
+
+0.6
+
+0.5
+
+0.4
+
+0.3
+
+e
+c
+n
+e
+
+r
+
+e
+h
+o
+
+C
+
+BA
+ER
+NW
+WS
+
+(c)
+
+0.8
+
+1
+
+(d)
+
+0.2
+0.2
+
+0.4
+
+0.6
+
+nt
+
+0.8
+
+1
+
+Figure 1. Coherence of measurement matrices as a fraction of nt. The networks size N is shown in Table 1, P is 
+the number of experiments, and we select the measurement data from the time =t
+350. (a) When the input 
+vector =u
+0, the coherences of six measurement matrices for these six networks, i.e. Celegansneural, Dolphins, 
+Football, Jazz, ZK, Polbooks vary with the increment of nt (now =nt
+P N/
+0 2
+N
+P
+N
+). (b) When the input 
+vector u is the standard Gaussian noise, the coherences of six measurement matrices for these six real networks 
+change with the increment of nt (now = −
+nt
+(
+P N M
+) /
+1 2
+N
+P
+2 , and we fix =M N ). (c) When the input 
+N
+vector =u
+0, the coherence values of measurement matrices for these four networks (i.e. Erdos-Renyi random 
+network (ER), Newman-Watts small-world network (NW), Barabási-Albert scale-free network (BA) and Watts-
+Strogatz small-world network (WS)) created through the linear network system change with the increment of nt 
+(now =nt
+P N/
+0 2
+N
+P
+N
+). (d) When the input vector u is the standard Gaussian noise, the coherence 
+values of these four measurement matrices for these four model networks change with the increment of nt (now 
+nt
+(
+P N M
+) /
+1 2
+N
+P
+2 , and we fix =M N ).
+N
+
+, . ≤ ≤
+
+, . ≤ ≤
+
+, . ≤ ≤
+
+, . ≤ ≤
+
+= −
+
+Figure 2. Intensity changes of states coherence for a linear network system. (a) When the input vector =u
+the coherence between the states is strong. (b) When the input vector u is the standard Gaussian noise, the 
+coherence between the states is weakened. The thickness degree of the interconnection between nodes 
+represents the strength or the weakness of states coherence.
+
+0, 
+
+R S
+(
+y U B
+)
+(6)
+where S UT T
+ is the − ×
+(
+P N
+)
+M
+-dimensional measurement matrix which is constructed by Gaussian noise, and it 
+should satisfy some conditions such as coherence, RIP, zero space and etc. Then we can reconstruct matrix B 
+based on compressed sens ing , and reconstruc t the network struc ture A . For the detai led explanat ion of 
+
+=
+
+−
+
+1
+
+2
+
+T
+
+d
+
+−
+
+1
+
+T
+1
+
+T T
+
+4
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3İ
+ 
+    
+   
+ 
+Figure 3. Success rates versus different columns M and different sparsities k of matrix B for WS, NW, ER and 
+BA networks with network size =N
+50. These experiments select measurement data from the time =t
+350, the 
+input vector u is the ×M P-dimensional standard Gaussian noise, =M 100 and =P
+150. The success rate is 
+defined as the ratio between the simulation number of successful reconstruction α and the simulation number 
+β. In these experiments, 20 simulations are performed, and the error of each simulation is ε < −10 6.
+
+2
+
+. ≤ ≤
+
+compressed sensing, please see the Methods section. From Eq. (6), we also discover that the noise can build the 
+bridge between the dynamics and the topological structure in order to realize the network reconstruction.
+In the presence of control input, the coherences of measurement matrices for six real networks and four model 
+networks are strong, and these networks can not be reconstructed based on compressed sensing. However, the 
+Gaussian noise is linearly independent, which makes it is possible for the measurement matrix S UT T
+ to meet the 
+coherence conditions. When the input vector u uses the standard Gaussian noise, the coherence changes of the 
+measurement matrices constructed by Eq. (5) in six real networks (Polbooks, Celegansneural, Dolphins, Football, 
+Jazz and ZK) and four model networks (NW, WS, ER and BA) are shown in Fig. 1(b,d) as nt (now = −
+nt
+(
+P N M
+) /
+, 
+N
+P
+2 , and we fix =M N ) increases. The values of the size N for these networks are given in Table 1, 
+N
+1 2
+and the measurement data are selected from the time =t
+350. In Fig. 1(b,d), the curves with different marks show 
+the coherence changes of different measurement matrices for six real networks and four model networks. From 
+Fig. 1(b), we can see that the coherence curves of these six constructed measurement matrices for six real net-
+works (Polbooks, Celegansneural, Dolphins, Football, Jazz and ZK) jump in the linear network system with the 
+control input, but the overall trend is declining. Compared with Fig. 1(a), it is obvious that the coherence values 
+of these six constructed measurement matrices in Fig. 1(b) are reduced. The coherence values of these six con-
+structed measurement matrices are between 0.3 and 0.6 where ≥ .
+nt
+0 3. Figure 1(d) shows that the coherence 
+curves of these four constructed measurement matrices for the model networks (NW, WS, ER and BA) present a 
+smooth jump, and the overall trend is also declining. When ≥ .
+nt
+0 3, the coherence values of these four measure-
+ment matrices are maintained between 0.35 and 0.6. Therefore, the measurement matrix constructed by Gaussian 
+noise has a smaller coherence, the noise drives the states of network nodes oscillate which breaks the states stabil-
+ity of the linear network system, and the network can be reconstructed using the compressed sensing method. In 
+other words, after adding the Gaussian noise as the control input, it is possible to reconstruct matrix B by the 
+compressed sensing method, and then we can reconstruct the network structure A. Thus, the proper use of noise 
+can bring advantage to the reconstruction of complex networks whose nodes states are generated from the linear 
+network system.
+
+Factors and success rates of networks reconstruction. From the detailed introduction of compressed 
+sensing in the Methods section, we can see that when the sparse signal is reconstructed with compressed sensing, 
+the sparsity of the signal should meet k M , and the measurement matrix should meet − <
+(
+P N
+)
+M
+. Therefore, 
+we study the relationship among the reconstruction success rates of WS, NW, ER and BA networks, the sparsity k 
+of the input matrix and the column M of matrix B in Fig. 3. In the experiments, the sizes N of these four model 
+networks are 50, the elements of matrix B are randomly selected as 0 or 1, the input vector u is the standard 
+Gaussian noise, and we select =M 100 and =P
+150. When the success rates of these four networks achieve 
+100%, the graphs in Fig. 3(a–d) appear substantially the same. In Fig. 3 , the measurement matrix constructed 
+according to Eq. (5) is an underdetermined matrix when >M 100. Based on compressed sensing, these networks 
+can be reconstructed with a small amount of measurement data. When the sparsity is ≤k
+50 and >M 100, the 
+complex networks can be reconstructed, and the sparsity of the signal satisfies both − ≥
+(
+P N
+)
+2 and k M . But 
+k
+the network can not be successfully reconstructed when >k
+50 and >M 100. At this time, the added noise will 
+disturb the state of the system which leads that the network can not be reconstructed. So we should select suitable 
+
+5
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3Figure 4. Network reconstruction performances. (a,c,e,g) Element values Bij vs. different nt for the linear 
+network system. (b,d,f,h) Relationship between reconstruction success rate and nt of network structure matrix 
+A and matrix B for four model networks (i.e. ER, NW, BA and WS networks). The networks size N is 100 with 
+average node sparsity =k
+4. The elements of matrix B are randomly selected as 0 or 1, and the sparsity of 
+controlled matrix B is 4 (namely 
+=İB
+4
+). The input vector u is the ×M P-dimensional standard Gaussian 
+noise. These experiments select measurement data from the time =t
+350, nt is the ratio between the row and 
+the column of the measurement matrix ( = −
+nt
+(
+P N M
+) /
+), P is the number of experiments + ≤ ≤
+(
+N
+1
+P
+3 ), 
+N
+and =M 200. The success rate is defined as the ratio between the number of successful simulation α and the 
+simulation number β . In these experiments, 20 simulations were performed, and the error of each simulation is 
+
+T
+
+0
+
+ε < −10 6.
+
+values of the sparsity for matrix B which should be chosen as ≤ ≤k
+1
+25 for the network reconstruction. The 
+measurement matrix is an overdetermined matrix when ≤M 100. The range of the sparsity for matrix B is 
+< ≤k M
+0
+ when the success rate of network reconstruction obtains 100%. Why is it only required that the spar-
+sity of matrix B can be selected as a value less than or equal to M for networks reconstruction when ≤M 100? The 
+problem is whether we only should consider the choice of ≤M 100 to simplify the network reconstruction. We 
+will continue to discuss this important issue in future studies.
+It can be seen from the theoretical derivation process of Eqs (19–23) in the Methods section, the input matrix 
+B plays an important role in the process of network reconstruction. Firstly we need to reconstruct the input 
+matrix B based on the method of compressed sensing, and then we reconstruct the network A according to Eq. 
+(6). Therefore, we should study the effect of the reconstruction of input matrix B on the reconstruction of network 
+A. In Fig. 4, we adopt the BA, ER, NW and WS networks with average node sparsity =k
+4, and the sizes of these 
+four networks are 100. The elements of matrix B are randomly selected as 0 or 1, the sparsity of controlled matrix 
+B is 4 (namely 
+=İB
+4
+), and the input vector u is the ×M P-dimensional standard Gaussian noise matrix, 
+where = −
+nt
+(
+P N M
+) /
+N
+1
+P
+3 , and =M 200. The measurement data are selected from the time 
+N
+=t
+350. The success rate is defined as the ratio between the simulation number of successful reconstruction α and 
+the simulation number β . In these experiments, 20 simulations were performed, and the error of each simulation 
+is ε < −10 6. We reconstruct matrix B at two different values of nt in Fig. 4(a,c,e,g), from which we can see that the 
+elements of matrix B have overlapping parts at = .
+nt
+0 1, but the elements of matrix B have been clearly distin-
+guished at = .
+nt
+0 3. Furthermore, in order to analyze the relationship between the reconstructed matrix B and the 
+reconstructed structure A of ER, NW, BA and WS networks, we give the curves of reconstruction success rates for 
+mat r ices B and A of these four ne tworks (ER , NW, BA and WS ne tworks) w ith the increment of nt in 
+Fig. 4(b,d,f,h). For those matrices B that are selected in these four networks in Fig. 4(b,d,f,h), ≥ .
+nt
+0 2 is required 
+for all these four networks so that the success rate of matrix B achieves 100%. However, ≥ .
+nt
+0 4 is required for 
+the reconstructions of ER, NW, WS networks and ≥ .
+nt
+0 35 is needed for the reconstruction of BA network so 
+
+, + ≤ ≤
+
+T
+
+0
+
+6
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-37
+
+that the reconstruction success rate of network structure A can reach 100%. For the minimal measurement data 
+needed to reconstruct matrix B, the ER, NW, BA and WS networks can not be reconstructed. For the reconstruc-
+tion of these four networks, it is required that the system state XT should be firstly resolved by QR decomposition, 
+and then these networks can reconstructed according to Eq. (6). But the inverse matrix of R1 can not be solved 
+when the measurement data are not enough. Therefore, it should use more measurement data to reconstruct ER, 
+NW, BA and WS networks.
+
+Comparison of two reconstruction methods. 
+In the above sections, we mentioned that we could not 
+reconstruct network structure A from Eq. (2) by CS method. In addition, we also try to reconstruct network 
+structure A from Eq. (4) by directly using CS method, and find that the success rates of networks reconstruction 
+are all 0. However, if the state matrix X is replaced by the stochastic Gaussian matrix, we show that network 
+structure A can be solved in a certain amount of measurement data by CS method. Here, we compare the QR-CS 
+method with the CS method (where state matrix X is replaced by the stochastic Gaussian matrix) to observe the 
+effects of these two methods on the reconstruction of complex networks.
+The proposed method can reconstruct not only the sparse networks but also the dense networks. We compare 
+the reconstruction success rates of the QR-CS method with those of the CS method for the reconstruction of NW, 
+WS, BA, and ER networks in Fig. 5. We select different three average sparsities (i.e. =k
+20, =k
+50, =k
+100) 
+for these four model networks to simulate, and =M 100, =N
+100. In the QR-CS method, = −
+nt
+(
+P N M
+) /
+(
+N
+1
+P
+2 2 ), but in the CS method (where state matrix X is replaced by the stochastic Gaussian matrix), 
+N
+=nt
+P N/
+(1
+P
+1 2 ). And other parameters are the same as those in Fig. 4. The average node sparsities of 
+N
+these four model networks are 20 in Fig. 5(a–d), from which we can see that the reconstruction success rates of 
+these four model networks with QR-CS method achieve 100% when ≥ .
+nt
+0 57, and they present stable trends. 
+However, the CS method requires larger nt to achieve 100% success rates of these networks, compared with the 
+QR-CS method. When nt approaches 1, the reconstruction success rate of the CS method increases. The average 
+node sparsities of these four model networks are 50 in Fig. 5(e–h). We can see from Fig. 5(e–h) that the success 
+rates of these four networks reconstructed by QR-CS method all reach 100% when ≥ .
+nt
+0 61, and they are in the 
+stable trends. While using the CS method, it needs >nt
+1 to reconstruct these networks. We select the dense NW, 
+WS, BA and ER networks to compare these two methods in Fig. 5(i–l), where =k
+100. It can be seen from 
+Fig. 5(i–l) that based on QR-CS method dense networks only require ≥ .
+nt
+0 5 to make the success rates of net-
+works reconstruction reach 100%, but using CS method we still needs >nt
+1 to reach 100% success rates of net-
+works reconstruction. The random initial state vector is selected in each experiment, so at the initial period the 
+curves of the success rates of network reconstruction present the jumps. In these three groups of experiments 
+with three different sparsities in Fig. 5, the success rates of networks reconstruction by QR-CS method are 
+
++ ≤ ≤ .
+ ≤ ≤ .
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+11.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+11.
+
+2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+11.
+
+2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1
+
+1.2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+nt
+
+0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+11.
+
+2
+
+S
+
+s
+s
+e
+c
+c
+u
+
+r
+
+e
+a
+
+t
+
+0
+
+0.5
+
+1
+
+QR-CS
+CS
+
+   NW
+<k>=20
+
+   NW
+<k>=50
+
+   NW
+<k>=100
+
+   WS
+<k>=20
+
+   WS
+<k>=100
+
+   WS
+<k>=50
+
+   BA
+<k>=20
+
+   BA
+<k>=50
+
+   BA
+<k>=100
+
+   ER
+<k>=20
+
+   ER
+<k>=50
+
+   ER
+<k>=100
+
+(a)
+
+(b)
+
+(c)
+
+(d)
+
+(e)
+
+(f)
+
+(g)
+
+(h)
+
+(i)
+
+(j)
+
+(k)
+
+(l)
+
+Figure 5. Reconstruction success rates as a fraction of nt for NW, WS, BA and ER networks to compare two 
+methods. The networks size N is 100. The elements of matrix B are randomly selected as 0 or 1, and the sparsity 
+of the controlled matrix B is 4 (namely 
+=İB
+4
+). The input vector u is the ×M P-dimensional standard 
+Gaussian noise. These experiments select measurement data from the time =t
+350, nt is the ratio between the 
+row and the column of the measurement matrix (in the QR-CS method, = −
+nt
+(
+P N M
+) /
+N
+1
+P
+2 2 , 
+N
+and in the CS method (where state matrix X is replaced by stochastic Gaussian matrix), =nt
+P N/
+, 
+1
+P
+1 2 ), and =M 100. The success rate is defined as the ratio between the simulation number of 
+N
+successful reconstruction α and the simulation number β . In these experiments, 20 simulations are performed, 
+and the error of each simulation is ε < −10 6. (a–d) For these four model networks, the average node sparsity is 
+=k
+20. (e–h) =k
+50. (i–l) =k
+100.
+
+T
+
+0
+
+, + ≤ ≤ .
+
+≤ ≤ .
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 6. Comparisons between these two methods (i.e. QR-CS and CS methods) on the reconstruction 
+success rates as function nt changes in Celegansneural, Dolphin, Football, ZK, Jazz and Polbooks networks. The 
+values of networks size N and their average sparsities are shown in Table 1. These experiments select the 
+measurement data from the time =t
+350, nt is the ratio between the row and the column of the measurement 
+matrix (in the QR-CS method, = −
+nt
+(
+P N M
+) /
+N
+1
+P
+2 , and in the CS method (where state matrix X 
+N
+is replaced by stochastic Gaussian matrix), =nt
+P N/
+, ≤ ≤P
+1
+N
+), and =M N . The input vector u is the 
+×M P-dimensional standard Gaussian noise. The success rate is defined as the ratio between the simulation 
+number of successful reconstruction α and the simulation number β . In these experiments, 20 simulations are 
+performed, and the error of each simulation is ε < −10 6.
+
+, + ≤ ≤
+
+basically stable when > .
+nt
+0 61. The comparison results for these three groups of experiments in Fig. 5 show that 
+the QR-CS reconstruction method is better than the CS reconstruction method.
+In order to further verify the performance of QR-CS method described in this paper for the reconstruction of 
+sparse networks, we give the curves of reconstruction success rates for six real networks (namely, Celegansneural, 
+Dolphins, Football, Jazz, ZK and Polbooks) by QR-CS method and CS method with the increment of nt in Fig. 6. 
+In the experiment, we choose =M N , where N is the size of the network. The values of the size N and the average 
+sparsities of the networks are shown in Table 1, and other parameters are selected the same as those in Fig. 5. In 
+this paper, when reconstructing the networks with the proposed QR-CS method, different sizes of the networks 
+require different nt so that the success rates of networks reconstruction can reach 100%. For the Celegansneural 
+and Jazz networks whose sizes are larger, nt is required to be about 0.25 so that the reconstruction success rates 
+can achieve 100%, but for the Dolphin and ZK networks whose sizes are smaller, nt is required to be about 0.8 so 
+that the reconstruction success rates can achieve 100%. For Football and Polbooks networks, when nt is about 0.4, 
+the reconstruction success rates can reach 100%. Compare with QR-CS method, relatively larger nt is required for 
+networks reconstruction by CS method. That is, compare with CS method, less measurement data are required by 
+the proposed QR-CS method to construct the networks after adding the noise as the control input. In Fig. 6, the 
+success rates of the reconstruction present the transitions, because the initial random state vector is chosen in 
+each experiment.
+In a word, it is clear that the QR-CS method proposed in this paper is more efficient than the CS method by the 
+comparisons of experimental results for the reconstructions of four model models and six real networks.
+
+Conclusions and Discussion
+
+In summary, we proposed a reconstruction method of complex networks from measurable time series. Different 
+with the existing methods that considered enough data were needed to achieve the reconstruction and the noise 
+often harmed the network reconstruction, we discovered that less measurement data were required by the pro-
+posed QR-CS method to reconstruct the network after adding the Gaussian noise, which would increase the 
+success rate of network reconstruction.
+By the discretization of the continuous variable, the model of complex networks generated by the linear sys-
+tem was transformed into a mathematical form that could be solved by the theory of compressed sensing. We 
+discovered that without the control input, the method of compressed sensing could not succeed in reconstructing 
+
+8
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3such complex networks in which the states of nodes were generated through the linear network system. We 
+took the simulation results for the reconstruction of six different real networks and four model networks as 
+examples and analyzed the reason why these networks without the control input could not be reconstructed 
+by only compressed sensing. The state of simple linear systems is stable and it has a strong correlation, which is 
+unfavourable to the reconstruction of complex networks generated by the linear system. However, the noise can 
+drive the dynamics between nodes to break the stability of the system state. In order to decrease the coherence 
+of the system states, the noise was introduced as the control input and it was beneficial for the reconstruction of 
+such complex networks whose node states were generated by the linear network system. We presented the curves 
+of coherence changes for four model networks and six real networks with Gaussian noise as the input to verify 
+that the noise could decrease the coherence of networks states generated by the linear network system. A new 
+method integrating QR decomposition and compressed sensing was proposed to solve the reconstruction prob-
+lem of complex networks under the assistance of the input noise. The state matrix of the system was decomposed 
+by QR decomposition. And we constructed the measurement matrix with the aid of Gaussian noise so that the 
+sparse input matrix could be reconstructed by compressed sensing. Furthermore, the structure of complex net-
+work could be reconstructed. Experiments were presented to show that the proposed method was more accurate 
+and more efficient to reconstruct four model networks and six real networks by the comparisons between the 
+proposed method and only compressed sensing. We found that the input matrix was vital to the reconstruction 
+process of complex networks, and we studied the influences of input matrix on the reconstruction of networks. 
+The proposed method is still more accurate and more efficient to reconstruct the dense networks. We compared 
+the success rates of the proposed QR-CS method with those of CS method for the reconstruction for four model 
+networks with different sparsities. Although some problems remain in this article, it is important for us to further 
+study complex networks reconstruction in a linear network system.
+There are many sparse networks in complex networks, and there are many dense networks correspondingly. 
+Complex networks reconstructed based on compressed sensing should be sparse in the existing studies, which 
+has some limitations on the reconstruction of dense complex networks. If the dense network is reconstructed 
+by compressed sensing, some measures must be taken to make it sparse. Some errors can occur in this process, 
+which leads to erroneous network reconstruction results. However, these important aspects have received little 
+attention in the existing studies. This paper breaks through the limitations of using compressed sensing to recon-
+struct sparse networks with smaller amount of measurement data. The proposed method can reconstruct not 
+only sparse complex networks, but also dense complex networks. In addition, we do not need to take measures to 
+make complex networks sparse. Obviously, our method provides a new way to solve the reconstruction of dense 
+complex networks which can be used to infer the dense subgraphs from the gene expression data in the biological 
+network or to infer the layout of the dense traffic network, and so on. Further, the relationship networks between 
+people become unprecedented dense by Facebook, Twitter and other social networking site, and our proposed 
+method can be used to better analyze the interpersonal relationships. At the same time, noise is also an unavoid-
+able factor in the reconstruction of complex networks. Previous works suggested that noise had influences on 
+the reconstruction of complex networks, which could disturb the measurement data or reduce the success rate of 
+networks reconstruction. However, we found that the linear network system that introduced noise was capable 
+of reconstructing complex networks, and the proposed method has a high success rate. It shows from a side view 
+that noise can build the bridge between the dynamics and the topological structure in order to realize complex 
+networks reconstruction.
+
+Methods
+
+Compressed sensing. As a theory of signal processing, compressed sensing was firstly proposed by Donoho 
+et al.34. Once it was put forward, compressed sensing has received highly concerns in many fields, such as infor-
+mation theory, image processing, network control, computer science, and wireless communication35. The main 
+idea of compressed sensing is to observe and compress an N-dimensional signal η (if this signal is sparse or can be 
+compressed), and thus obtain an M-dimensional observational value y, whose main form is
+
+ηΦ = y
+
+(7)
+where Φ is an ×M N -dimensional measurement matrix and <M N . From the theory of linear equations, we can 
+know that the above mentioned Eq. (7) is an ill-conditioned equation or an underdetermined equation. If the 
+signal η is k-sparse, k
+N , and the measurement matrix satisfies some conditions such as coherence35, RIP36, 
+zero space37 and etc., then the signal η can be recovered from the observational value y.
+The coherence of measurement matrix Φ, µ Φ(
+), is the largest absolute inner product between any two columns 
+Φi , Φj of Φ
+
+µ Φ =
+
+(
+
+)
+
+max
+
+1
+
+≤ ≤
+
+i j N
+,
+
+(8)
+The smaller the coherence of the measurement matrix is, the higher the accuracy of the reconstructed signal η 
+achieves. When the measurement matrix satisfies the coherence condition, since the signal η is sparse, Equation 
+(7) can be solved by l 0-norm
+
+2
+
+2
+
+i
+
+j
+
+Φ Φ
+
+,
+
+i
+
+j
+
+Φ
+
+Φ
+
+min
+
+η
+
+0
+
+subject to
+
+ηΦ = y
+
+(9)
+
+9
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-31 0
+
+However, finding the solution of l 0-norm is an NP-hard problem. So we use l1-norm optimization to approxi-
+mately solve the problem
+
+η
+
+ηΦ = y
+
+min
+subject to
+(10)
+Then, Equation (7) can be solved by OMP38, BP39 and other algorithms. Our goal is to reconstruct complex net-
+works in this paper. We transform the problem of network reconstruction into the solution problem of underde-
+termined equations. This underdetermined equation can be solved by the l1-norm, and then solved by the OMP 
+algorithm. Thus, we can reconstruct complex networks from the observational matrix and the measurement 
+matrix.
+Linear network system model. We consider the following linear network system
+X t
+( )
+AX t
+( )
+Bu t
+( )
+(11)
+where the vector 
+X t
+x t
+x t
+x t
+ is the state of N nodes for a network system at time t, and the 
+( )
+(
+( ) ,
+( ) ,
+,
+( ))
+×N
+N -dimensional matrix A is the network structure between nodes. The gene regulation network10,11, the 
+propagation network12 and etc. can be written in the form of Eq. (11). In this linear network system, B is an 
+×N M -d imens iona l input mat r ix . And the sy s tem is cont ro l led us ing a M -d imens iona l input ve c tor 
+u t
+( )
+(
+u t u t
+( ) ,
+( ) ,
+,
+u t
+( ))M
+ imposed by the controller, where in general the same signal u t( )
+ may drive 
+multiple nodes.
+For x t( )
+, we have
+
+1
+
+=
+
++
+
+=
+
+
+
+N
+
+T
+
+1
+
+2
+
+=
+
+
+
+T
+
+1
+
+2
+
+i
+
+i
+
+∑
+
+∑
+
+=
+
++
+
+=
+
+=
+
+x t
+( )
+
+a x t
+( )
+
+b u t
+( )
+
+(12)
+where aij represents the element of matrix A, bik represents the element of matrix B. If the continuous system (12) 
+is computed on a digital computer, it must be discretized40. Similar with the existing works40,41 about discretiza-
+tion, we have the following formula
+
+i
+
+j
+
+N
+
+ij
+
+j
+
+k
+
+M
+
+ik k
+
+1
+
+1
+
+=
+
+−
+∆
+
++
+
+ ( )
+
+(
+
+)
+
+( )
+
+x t
+
+x t
+
+x t
+
+t
+1
+, and q is an integer. Then, we have
+
+(13)
+
+i q
+
+i q
+
+i q
+
+1
+
+where ∆ =
+t
+
+−+ 
+
+t
+
+t
+
+q
+
+q
+
+1
+
+∑
+
+∑
+
+=
+
+∆ +
+
++
+
+∆
+
++
+
+=
+
+=
+
+(
+
+)
+
+(
+
+) ( )
+
+( )
+
+x t
+
+ta
+
+e x t
+
+tb u t
+
+(14)
+
+i q
+
+j
+
+N
+
+ij
+
+ij
+
+j q
+
+k
+
+M
+
+ik k q
+
+1
+
+1
+
+1
+
+1
+i
+j
+where =
+e
+.
+0
+i
+j
+The system is represented compactly in the matrix form as follows
+
+
+
+
+
+
+=
+≠
+
+ij
+
+=
+, = ∆ +
+
++ İ
+
+d
+
+Y
+
+X
+B U
+(15)
+, = ∆İB
+. U i( ) and Y i( ) represent the 
+where 
+Y
+X t
+1 , 
+X
+X t
+:
+tA
+E
+:
+tB
+, and 
+U
+U t
+input and output vectors and X i( ) is the state vector in the i th experiment. It is assumed that at each time a differ-
+ent vector U i( ) is selected for P experiments, but the rest vectors of X i( ) for the rest experiments are generated by 
+the system after selecting the vector X i( ) in the first experiment. The input matrix, the output matrix and the state 
+matrix for these P experiments are given as follows
+
+( )
+i
+
+( )
+i
+
+( )
+i
+
+=
+
++(
+
+)
+
+( )
+i
+
+i q
+
+= ( )
+
+( )
+i
+
+i q
+
+İA
+
+= ( )
+
+( )
+i
+
+i q
+
+=
+=
+=
+
+
+
+
+
+U
+Y
+X
+
+[
+U
+[
+Y
+[
+X
+
+U
+Y
+X
+
+U
+Y
+X
+
+:
+:
+:
+
+]
+]
+
+]
+
+( )
+P
+
+( )
+P
+
+( )
+P
+
+(1)
+
+(2)
+
+(1)
+
+(2)
+
+(1)
+
+(2)
+
+So =
+
++ İ
+
+dY
+
+X
+
+B U can be written as
+
+
+
+
+
+
+
+
+
+
+
+
+
+=
+
+X U
+
+A
+B
+(16)
+where X U
+[
+T is a ×
+]
+P
+(
+N M
+)-dimensional matrix. Thus, we convert the linear system model into the form of 
+Eq. (7), and assume that the dynamical structure 
+(
+,
+) can be estimated from Eq. (16) by the method of com-
+pressed sensing.
+Network reconstruction without control input. For the linear network system model, when there is no 
+external input, that is, the input vector =u
+0, the linear network system is
+
+Y
+
+[
+
+]
+
+T
+
+T
+
+T
+
+T
+
+T
+
+T
+
++
+
+d B
+
+=Y
+
+A X
+
+(17)
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3İ
+Then, Equation (17) can be written as
+
+T
+
+T T
+
+= d
+
+Y
+X
+(18)
+He re , we cons ide r the re cons t ruc t ion prob lem of s ix d i f fe rent re a l ne twork s , name ly, Po lbook s 12 , 
+Celegansneural25, Dolphins26, Football27, Jazz28, and ZK29 without control input. We also investigate on the recon-
+struction of four model networks, i.e. Newman-Watts small-world network (NW)30, Watts-Strogatz small-world 
+network (WS)31, Erdos-Renyi random network (ER)32, and Barabasi-Albert scale-free network (BA)33 without 
+control input. Numerical simulation results of Table 1, Fig. 1(a,c), and the corresponding detailed analyses in the 
+Results section show that the networks whose node states are generated by the linear network system can not be 
+reconstructed only by the method of compressed sensing when the input vector =u
+0.
+
+Network reconstruction with control input. A dynamical system is controllable if it has suitable inputs, 
+then its states can be driven from any initial states to any desired final states within a finite time42. At the same 
+time, the noise leads to a general, one-to-one correspondence between the dynamical coherence and the con-
+nections among oscillators for a variety of node dynamics and network structures21. Therefore, we can add the 
+noise to change the status of nodes in the linear networks system. There is a strong coherence between the states 
+of network nodes without input in Fig. 2(a) (please see the Results section), and the coherence between the states 
+of network nodes is reduced by adding the noise as the input in Fig. 2(b).
+When the input vector ≠u
+0, Equation (16) and Equation (7 ) are similar in the mathematical form, so 
+Equation (16) can be written as
+
+ηΦ = y
+
+(19)
+
+
+
+
+
+
+
+T
+
+T
+
+
+
+
+
+
+
+(
+
+:
+
+T
+
+T
+
+T
+
+T
+
+]
+
+[
+
+×
+
+∈
+
+∈
+
+∈
+
+R
+
+R
+
+R
+
+Y
+
+× +
+
++ ×
+
+P N M(
+
+N M N
+)
+
+X U
+
+), η =
+
+, and =
+y
+:
+
+where Φ =
+:
+
+P N . Here, Φ and y can be meas-
+
+A
+B
+ured by time series. So we choose the method of compressed sensing to reconstruct the matrix η . The input 
+matrix B can be controlled, assuming 
+=İB
+k
+ ( k M ), but dT
+0 is unknown. It is necessary to know the 
+sparsity of the matrix to reconstruct the network by compressed sensing43–45. Here, we can not directly apply 
+the compressed sensing into Eq. (19) to reconstruct the network structure A . So we should use the following 
+QR method.
+QR decomposition can decompose matrix XT into the product of an orthogonal matrix and an upper triangu-
+lar matrix, so that we can make full use of the sparse property of matrix B and the compressed sensing method to 
+solve matrix B. Take the QR decomposition of 
+X
+R
+P N , we get
+S R
+]
+0
+
+(20)
+
+=
+
+X
+
+∈
+
+S
+
+×
+
+[
+
+T
+
+T
+
+1
+
+2
+
+0
+
+1
+
+
+
+
+
+
+
+
+
+
+
+where 
+[
+S
+S
+]
+R
+ is an orthogonal matrix and ∈
+R
+Pre-multiply Eq. (16) by S
+[
+S
+]T
+, we have
+
+∈
+
+1
+
+1
+
+2
+
+1
+
+2
+
+P P
+
+×
+
+×
+
+RN N
+
+ is an upper triangular matrix.
+
+A
+B
+(21)
+According to the multiplication of the second row of the first matrix in Eq. (21) and the second matrix in Eq. (21), 
+we can get
+
+=
+
+T
+
+
+
+
+
+
+
+S y
+S y
+
+T
+1
+T
+2
+
+
+
+
+
+
+
+
+
+
+
+
+
+1
+
+R S U
+0
+S U
+
+T T
+1
+T T
+2
+
+
+
+
+
+
+
+
+
+
+
+
+
+T
+
+
+
+
+
+
+
+T T T
+2
+
+=İ
+
+T
+2
+
+(
+
+2
+
+0
+
+T
+
+∈
+
+− ×
+
+S y
+
+T T
+2
+
+P N M
+)
+
+S U B
+(22)
+=İB
+İB T according to Eq. (22). It is only 
+where 
+S U
+R
+ ( − P N M ), and 
+k
+ ( k M ). We solve 
+required to make sure that the measurement matrix S UT T
+ in Eq. (22) satisfies some conditions such as coherence, 
+RIP, zero space and etc., then we can accurately reconstruct matrix 
+İB T by the reconstruction algorithm of com-
+pressed sensing. Meanwhile, Candès et al.36 pointed out that if − ≥
+P N
+k2 and all the subsets of the k2 columns of 
+the measurement matrix were linearly independent, then the k-sparse signal could be reconstructed by com-
+pressed sensing. Gaussian noise is linearly independent46, which makes it is possible for the measurement matrix 
+S UT T
+ to meet the coherence condition. When the vector u uses the standard Gaussian noise, the coherence 
+changes of the measurement matrices constructed by Eq. (22) in six networks (Polbooks, Celegansneura l, 
+Dolphins, Football, Jazz and ZK) are studied by the proposed QR-CS method. We also investigate on the recon-
+struction of four model networks, i.e. Newman-Watts small-world network (NW)30, Watts-Strogatz small-world 
+network (WS)31, Erdos-Renyi random network (ER)32, and Barabasi-Albert scale-free network (BA)33 when the 
+control input is the standard Gaussian noise. From the experimental results of Fig. 1(b,d) and the corresponding 
+detailed analyses in the Results section, we find that it is possible to reconstruct matrix B by the reconstruction 
+algorithm of compressed sensing.
+If R1 is full rank which requires XT to be full column rank, we can solve the network dT according to the mul-
+tiplication of the first row of the first matrix in Eq. (21) and the second matrix in Eq. (21), we can get
+
+2
+
+1 1
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3×
+
+×
+
+×
+
+×
+
+×
+
+×
+
+R N M
+
+Algorithm 1 QR-CS reconstruction algorithm
+R N P , ∈
+R N P and ∈
+U R M P
+Require: ∈
+Y
+X
+Ensure: ∈
+A
+R N N and ∈
+B
+1: input ∈
+U R M P , set 
+=B
+2: for =i
+1 to +P
+1 do
+3: =
+X
+(
+x x
+,
+,
+
+,
+x
+)
+4: 
+Y
+(
+y y
+,
+
+,
+y
+5: end for
+
+=
+
+k
+
+N
+
+N
+
+)
+
+2
+
+,
+
+T
+
+T
+
+.
+
+i
+
+i
+
+1
+
+2
+
+.
+
+0
+
+1
+
+6: ∈
+X
+
+R
+
+×
+
+N P QR decomposition
+
+  
+→
+
+
+
+7: for =i
+
+1 to N do
+
+S S R
+[
+,
+]
+0
+
+1
+
+2
+
+
+
+
+
+
+1
+
+
+
+
+
+
+i CS reconstruction algori thm
+
+    
+
+
+T
+
+(S *
+
+2
+
+Y
+
+i
+
+, S
+
+T
+
+2
+
+*
+
+U
+
+T
+
+)
+
+.
+
+←
+
+8: B
+9: end for
+10: →B
+A
+11: =
+A
+[
+A A
+,
+12: return A.
+
+i
+1
+
+i
+
+2
+
+,
+
+
+,
+
+A
+]N
+
+∈
+
+N
+
+.
+
+R
+
+Table 2. Pseudocode of the QR-CS reconstruction algorithm.
+
+T T
+
+T
+
+d
+
+−
+
+1
+
+T
+1
+
+1
+
+−
+
+=
+
+R S
+(
+y U B
+)
+(23)
+From Equation (23), we understand that the noise can build the bridge between the dynamics and the topological 
+structure in order to realize the network reconstruction. In the derivation process of Eqs (19–23), not only the 
+reconstruction algorithm of compressed sensing but also the QR decomposition are used. With the assistance 
+of the noise, the network can be reconstructed accurately from the measurable time series. From the derivation 
+process of Eqs (19–23), it can be concluded that the network is not necessarily required to be sparse when recon-
+structing the network, and the dense networks also can be reconstructed.
+In summary, we have given a general method to solve the problem of complex networks generated through a linear 
+network system. However, besides the linear continuous system, for a linear discrete system + =
+x t
+(
+1)
+Ax t
+( )
+Bu t
+( ), 
+we can also consider using the proposed method to realize the reconstruction of complex networks.
+
++
+
+Reconstruction algorithm. The reconstruc t ion a lgor ithm based solely on compressed sensing (CS 
+method) can not solve the problem of network reconstruction in linear network systems. So we propose the 
+QR-CS reconstruction algorithm to solve the network reconstruction in linear network systems according to Eqs 
+(19–23). The pseudocode of this QR-CS algorithm is given in Table 2. The process of QR-CS algorithm is given as 
+follows. Input matrices U and B, set the sparsity of matrix B in the first step, and calculate X and Y in Steps 2–5. 
+Then X is resolved by QR decomposition in Step 6, and reconstruct B based on the reconstruction algorithm of 
+compressed sensing in Steps 7–9. Finally recover A in Steps 10–12. This algorithm is terminated.
+
+References
+
+ 1. Lü, L. & Zhou, T. Link prediction in complex networks: A survey. Phys. A: Stat. Mech. and its Appl. 390, 1150–1170 (2011).
+ 2. Barzel, B. & Barabási, A. L. Network link prediction by global silencing of indirect correlations. Nat. Biotechnol. 31, 720–725 (2013).
+ 3. Cannistraci, C. V., Alanis-Lobato, G. & Ravasi, T. From link-prediction in brain connectomes and protein interactomes to the local-
+community-paradigm in complex networks. Sci. Reports 3, 1613 (2013).
+ 4. Heuvel, V. D., Mandl, M. P., Stam, R . C., Kahn R . S, C. J. & Hulshoff Pol, H. E. Aberrant frontal and temporal complex network 
+structure in schizophrenia: a graph theoretical analysis. J. Neurosci. 30, 15915–15926 (2010).
+ 5. Boccaletti, S. et al. The structure and dynamics of multilayer networks. Phys. Rep. 544, 1–122 (2014).
+ 6. Henderson, J. A. & Robinson, P. Geometric effects on complex network structure in the cortex. Phys. Rev. Lett. 107, 018102 (2011).
+ 7. Vitevitch, M. S., Chan, K. Y. & Roodenrys, S. Complex network structure influences processing in long-term and short-term 
+memory. J. Mem. Lang. 67, 30–44 (2012).
+ 8. Nepusz, T. & Vicsek, T. Controlling edge dynamics in complex networks. Nat. Phys. 8, 568–573 (2012).
+ 9. Zhao, K., Stehlé, J., Bianconi, G. & Barrat, A. Social network dynamics of face-to-face interactions. Phys. Rev. E 83, 056109 (2011).
+ 10. Marbach, D. et al. Revealing strengths and weaknesses of methods for gene network inference. Proc. Natl. Acad. Sci. 107, 6286–6291 
+(2010).
+ 11. Michailidis, G. & d’Alché Buc, F. Autoregressive models for gene regulatory network inference: Sparsity, stability and causality issues. 
+Math. Biosci. 246, 326–334 (2013).
+ 12. Shen, Z., Wang, W. X., Fan, Y., Di, Z. & Lai, Y. C. Reconstructing propagation networks with natural diversity and identifying hidden 
+sources. Nat. Commun. 5, 4323 (2014).
+ 13. Dojer, N., Gambin, A., Mizera, A., Wilczyński, B. & Tiuryn, J. Applying dynamic bayesian networks to perturbed gene expression 
+data. BMC. Bioinformatics. 7, 249 (2006).
+ 14. Sontag, E. D. Network reconstruction based on steady-state data. Essays. Biochem. 45, 161–176 (2008).
+ 15. Han, X., Shen, Z., Wang, W. X. & Di, Z. Robust reconstruction of complex networks from sparse data. Phys. Rev. Lett. 114, 028701 
+(2015).
+ 16. Phan, M., Horta, L. G., Juang, J. N. & Longman, R. W. Linear system identification via an asymptotically stable observer. J. Optim. 
+Theory Appl. 79, 59–86 (1993).
+
+1 2
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3İ
+ 17. Gonçalves, J. & Warnick, S. Necessary and sufficient conditions for dynamical structure reconstruction of lti networks. IEEE 
+Transactions on Autom. Control. 53, 1670–1674 (2008).
+ 18. Materassi, D. & Innocenti, G. Topological identification in networks of dynamical systems. IEEE Transactions on Autom. Control. 
+55, 1860–1871 (2010).
+ 19. Chang, Y. H. & Tomlin, C. Inference of temporally evolving network dynamics with applications in biological systems. In Proceedings 
+of the 50th IEEE Conference on Decision and Control, 3706–3711 (IEEE, 2011).
+ 20. Madni, A. M. A systems perspective on compressed sensing and its use in reconstructing sparse networks. IEEE Syst. J. 8, 23–27 
+(2014).
+ 21. Ren, J., Wang, W. X., Li, B. & Lai, Y. C. Noise bridges dynamical correlation and topology in coupled oscillator networks. Phys. Rev. 
+Lett. 104, 058701 (2010).
+ 22. Wang, W. X., Lai, Y. C., Grebogi, C. & Ye, J. Network reconstruction based on evolutionary-game data via compressive sensing. Phys 
+Rev. X 1, 021021 (2011).
+ 23.  Sanandaji, B. M., Vincent, T. L. & Wakin, M. B. Exact topology identification of large-scale interconnected dynamical systems from 
+compressive observations. In American Control Conference (ACC), 2011, 649–656 (IEEE, 2011).
+ 24. Hayden, D., Chang, Y. H., Goncalves, J. & Tomlin, C. J. Sparse network identifiability via compressed sensing. Autom. 68, 9–17 
+(2016).
+ 25. Horvitz, H. R., Chalfie, M., Trent, C., Sulston, J. E. & Evans, P. D. Serotonin and octopamine in the nematode caenorhabditis elegans. 
+Sci. 216, 1012–1014 (1982).
+ 26. Lusseau, D. et al. The bottlenose dolphin community of doubtful sound features a large proportion of long-lasting associations. 
+Behav. Ecol. Sociobiol. 54, 396–405 (2003).
+ 27. Girvan, M. & Newman, M. E. Community structure in social and biological networks. Proc. Natl. Acad. Sci. 99, 7821–7826 (2002).
+ 28. Gleiser, P. M. & Danon, L. Community structure in jazz. Adv. Complex Syst. 6, 565–573 (2003).
+ 29. Zachary, W. W. An information flow model for conflict and fission in small groups. J. Anthropol. Res. 33, 452–473 (1977).
+ 30. Newman, M. E. & Watts, D. J. Renormalization group analysis of the small-world network model. Phys. Lett. A. 263, 341–346 (1999).
+ 31. Watts, D. J. & Strogatz, S. H. Collective dynamics of ‘small-world’ networks. Nat. 393, 440–442 (1998).
+ 32. Erdos, P. & Rényi, A. On the evolution of random graphs. Publ. Math. Inst. Hung. Acad. Sci 5, 17–60 (1960).
+ 33. Barabási, A. L. & Albert, R. Emergence of scaling in random networks. Sci. 286, 509–512 (1999).
+ 34. Donoho, D. L. Compressed sensing. IEEE Transactions on Inf. Theory 52, 1289–1306 (2006).
+ 35. Eldar, Y. C. & Kutyniok, G. Compressed sensing: Theory and applications (Cambridge University Press, 2012).
+ 36. Candès, E. J., Romberg, J. & Tao, T. Robust uncertainty principles: Exact signal reconstruction from highly incomplete frequency 
+information. IEEE Transactions on Inf. Theory 52, 489–509 (2006).
+ 37. Kashin, B. S. & Temlyakov, V. N. A remark on compressed sensing. Math. Notes 82, 748–755 (2007).
+ 38. Tropp, J. A. & Gilbert, A. C. Signal recovery from random measurements via orthogonal matching pursuit. IEEE Transactions on Inf. 
+Theory 53, 4655–4666 (2007).
+ 39. Chen, S. S., Donoho, D. L. & Saunders, M. A. Atomic decomposition by basis pursuit. SIAM Rev. 43, 129–159 (2001).
+ 40. Chen, C. T. Linear system theory and Design (Holt, Rinehart, and Winston, 1984).
+ 41. Insperger, T. & Stépán, G. Semi-discretization method for delayed systems. Int. J. Numer. Methods. Eng. 55, 503–518 (2002).
+ 42. Slotine, J. J. E. & Li, W. Applied nonlinear control (Prentice Hall Englewood Cliffs, 1991).
+ 43. Donoho, D. L., Tsaig, Y., Drori, I. & Starck, J. L. Sparse solution of underdetermined systems of linear equations by stagewise 
+orthogonal matching pursuit. IEEE Transactions on Inf. Theory 58, 1094–1121 (2012).
+ 44. Xie, D., Peng, H., Li, L. & Yang, Y. Semi-tensor compressed sensing. Digit. Signal Process. 58, 85–92 (2016).
+ 45. Peng, H. et al. Secure and energy-eff icient data transmission system based on chaotic compressive sensing in body-to-body 
+networks. IEEE Transactions on Biomed. Circuits Syst. 11, 558–573 (2017).
+ 46. Hyvärinen, A. Independent component analysis in the presence of gaussian noise by maximizing joint likelihood. Neurocomputing 
+22, 49–67 (1998).
+
+Acknowledgements
+
+This work was suppor ted by the Nat iona l Key Research and Development Program of China (Grant No. 
+2016YFB0800602), the National Natural Science Foundation of China (Grant Nos 61472045, 61573067, 61771071)  
+and the Beijing City Board of Education Science and Technology Key Project (Grant No. KZ201510015015).
+
+Author Contributions
+
+L.L. and D.X. conceived the study. L.L., D.X. and H.P. designed the research project. L.L., D.X., H.P. and J.K. 
+conducted the theoretical analysis, and D.X., H.P. and Y.Y. conducted the numeral simulation and verification. 
+L.L. wrote the initial draft of the paper. All authors interpreted the results and revised the paper.
+
+Additional Information
+
+Competing Interests: The authors declare that they have no competing interests.
+Publisher's note: Springer Nature remains neutral with regard to jurisdictional claims in published maps and 
+institutional affiliations.
+Open Access This article is licensed under a Creative Commons Attribution 4.0 International 
+License, which permits use, sharing, adaptation, distribution and reproduction in any medium or 
+format, as long as you give appropriate credit to the original author(s) and the source, provide a link to the Cre-
+ative Commons license, and indicate if changes were made. The images or other third party material in this 
+article are included in the article’s Creative Commons license, unless indicated otherwise in a credit line to the 
+material. If material is not included in the article’s Creative Commons license and your intended use is not per-
+mitted by statutory regulation or exceeds the permitted use, you will need to obtain permission directly from the 
+copyright holder. To view a copy of this license, visit http://creativecommons.org/licenses/by/4.0/.
+
+© The Author(s) 2017
+
+1 3
+
+www.nature.com/scientificreports/SCIENTIfIC REPORTS | 7: 15036  | DOI:10.1038/s41598-017-15181-3 
+

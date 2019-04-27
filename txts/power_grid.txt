@@ -1,0 +1,1964 @@
+BASIRI, CASADIEGO, TIMME, AND WITTHAUT
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+where x is the system state and hi is a function speciﬁc to the
+measured quantity zi . Assuming we take M measurements, all
+measurements may be written as
+z = h(x ),
+(2)
+where x ∈ RN ×1 is the system state, z ∈ RM ×1 is the vector of
+measured quantities, and h : RN → RM is a vector function
+acting on the measured quantities.
+Typically more measurements than the number of state
+variables to be determined are taken,
+i.e., M > N , such
+that Eq. (2) is overdetermined. It is then solved in a least-
+squares fashion, i.e., one calculates x such that the objective
+function
+J = (cid:4) z − h(x )(cid:4)2
+is minimized. For underdetermined equations (2), typically,
+many solutions exist.
+It is often helpful to work with a simpliﬁed dc approximation
+model when analyzing the inherent limitations of various meth-
+ods related solely to the measurement conﬁguration [33]. The
+dc approximation describes the power ﬂow in ac power grids
+in a linearized way [2,34–36]. Speciﬁcally, it approximates the
+real power ﬂow from node s to node r over a transmission line
+with reactance Xs r as
+
+(3)
+
+2
+
+Ps r = |Vs ||Vr |
+
+sin(ϕs − ϕr ) .= X
+where ϕs is the phase angle at bus s . This approximation is to
+ﬁrst order in the phase angle difference. Thus, the real power
+balance at the node s reads
+
+s r (ϕs − ϕr ),
+
+Xs r
+
+(4)
+
+−1
+
+Ps = N(cid:2)
+
+Ps r = N(cid:2)
+
+r =1
+
+r =1
+
+−1
+
+s r (ϕs − ϕr ).
+X
+
+(5)
+
+For notational convenience, we summarize these equations
+in matrix form. We deﬁne the vectors of all voltage an-
+gles and power injections, ϕ = (ϕ1 , . . . ,ϕN )T ∈ RN and P =
+(P1 , . . . ,PN )T ∈ RN , where N is the number of buses or
+nodes in the grid and the superscript T denotes the transpose
+operator.
+In particular,
+model
+
+the dc approximation yields the linear
+Bϕ = P ,
+where the nodal susceptance matrix B ∈ RN ×N
+if
+
+(cid:3)(cid:4)
+
+(6)
+
+−1
+
+N
+
+j =1 X
+
+nj
+
+(7)
+
+Bnk =
+
+−X
+
+−1
+
+nk
+
+k = n,
+k (cid:5)= n,
+
+if
+
+is a Laplacian matrix, which has one zero eigenvalue with
+eigenvector (1,1, . . . ,1)T [37]. This eigenvector represents a
+global shift of all voltage angles without physical signiﬁcance.
+Interestingly, equivalent ﬂow models are used to describe
+hydraulic networks [38] and vascular networks of plants [39].
+Thus in summary, the dc approximation links the state
+of the grid described by the voltage phase angles x = ϕ
+to real power ﬂows z = P via the linear function h = B .
+Several extensions of the basic concept of state estimation
+were developed to deal with missing or erroneous information
+about the network parameters (see [3] for a review). One
+branch of methods is based on residual sensitivity analysis.
+
+One solves the conventional least-squares problem (3) and
+then inspects the residuals z − h(x ) to reconstruct potential
+errors [4–7]. Alternatively, one can inspect the Lagrangian
+multipliers in constrained least-squares optimization [8,9] or
+minimize the 1-norm [10]. A second branch of methods is
+based on the augmentation of the state vector. One appends
+the unknown parameters to the state vector x and then solves
+a least-squares problem as the one given by Eq. (3) [11–15]
+or uses a Kalman ﬁlter instead [16,17]. Both methods can be
+combined in a two-stage process: First it is detected which
+network parameters are subject to errors and then the respective
+parameters are estimated by augmentation.
+The installation of new measurement devices and advanced
+signal processing algorithms enable new methods for power
+grid monitoring and optimization, see [40] for a review. Topol-
+ogy estimations from phasor measurement data or historical
+time series were discussed in [41,42], however, without making
+use of the inherent sparsity of the inference problem. More
+recently, algorithms were proposed to simultaneously recon-
+struct the state vector and the topology of a grid and demon-
+strated for small-scale networks [43,44]. These algorithms
+rely on power injection data only, but require longer input
+time series. Topology identiﬁcation from voltage time series
+in distribution grids was discussed in [45] and a sparsity-based
+algorithm for the localization of line outages was presented in
+[46].
+
+III. NETWORK RECONSTRUCTION
+
+In state estimation, one typically assumes that phase angles
+ϕ are difﬁcult to measure and shall be estimated from the
+knowledge of B and P in Eq. (6). But we may also reverse
+the problem and ask what happens if we do not know the
+nodal susceptance matrix B . In particular, can we efﬁciently
+reconstruct its entries from measurements of the two remaining
+quantities P and ϕ ? Such problems may appear hypothetical
+at ﬁrst, as the network structure and parameters are generally
+known. However, there are situations where at least parts of
+the network structure are unknown: Switches can be open or
+closed, transmission lines can undergo failures, or plans may
+be inaccurate. Even more, in times of war or terrorism we may
+be extremely unsure about the physical integrity of parts of the
+grid.
+To introduce the method, we start from the hypothetical
+situation where B is completely unknown, whereas P and
+ϕ are measured perfectly. Related reconstruction problems
+were pioneered for gene regulatory network [20], oscillator
+networks [22], and social networks [24]. These articles intro-
+duce methods to reconstruct the Laplacian or the adjacency
+matrix of a network using repeated sampling and exploiting the
+sparsity of matrices as we will do below. We extend these works
+by introducing an iterative algorithm that takes into account
+previous knowledge and can be combined with standard state
+estimation. The developed algorithms are thoroughly tested for
+various grids and different input data, including measurement
+noise. Furthermore, we benchmark the developed method with
+respect to other algorithms, comparing the amount of input data
+needed for a faithful reconstruction.
+So assume that repeated measurements of P and ϕ are taken
+at different times t1 ,t2 , . . . ,tM . These measurements yield a
+
+012305-2
+
+INFERRING POWER-GRID TOPOLOGY IN THE FACE OF …
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+(cid:2)
+
+large number of conditions on the entries of B ,
+
+Br k ϕk (tm ) = Pr (tm ),
+
+(8)
+which hold for all rows r = 1, . . . ,N of B and all measured
+time steps m = 1, . . . ,M (cf. [14]). Furthermore, we know that
+the row-sums of the nodal susceptance matrix (7) vanish,
+
+k
+
+(9)
+Thus, we have N (M + 1) conditions in total, which we can
+use to reconstruct the unknown entries of B .
+
+k
+
+(cid:2)
+
+Br k = 0.
+
+A. Row-wise reconstruction
+
+In a ﬁrst approach we aim to reconstruct the nodal ad-
+mittance matrix row by row (cf. [22,26,32,47]). To simplify
+notation we collect all measurement conditions (8) and the
+condition (9) for a given row r and rewrite them in matrix
+form⎛
+⎜⎜⎝ ϕ1 (t1 )
+⎜⎜⎝ Pr (t1 )
+...
+...
+1
+0
+
+⎛
+⎞
+⎟⎠
+(cid:11) (cid:12)(cid:13) (cid:14)
+
+⎜⎝ Br 1
+
+ϕN (tM )
+
+· · ·
+· · ·
+
+Pr (tM )
+
+ϕ1 (tM )
+
+ϕN (t1 )
+
+⎛
+
+· · ·
+
+(10)
+
+Br N
+
+=
+
+1
+
+...
+
+...
+
+⎞
+⎟⎟⎠.
+(cid:14)
+
+⎞
+⎟⎟⎠
+(cid:14)
+
+(cid:11)
+
+=: B r
+
+(cid:11)
+
+(cid:12)(cid:13)
+
+=:P r
+
+(cid:12)(cid:13)
+
+=:
+
+Here, B r ∈ RN ×1 denotes the transpose of the r th row of
+the nodal admittance matrix B . The matrix  ∈ R(M +1)×N
+summarizes all measured phase angles at all time steps, the
+vector P r ∈ R(M +1)×1 includes all power injections for node
+r only, and the last row of the matrix equation represents
+condition (9).
+If the system of equations (10) is overdetermined, M +
+1 > N , B r is easily reconstructed via least squares [32,47]
+minimizing
+
+(cid:4) B r − P r (cid:4)2
+
+2
+
+( B r − P r )2
+
+k .
+
+(11)
+
+= M +1(cid:2)
+
+k=1
+
+To efﬁciently reconstruct the grid topology, we want to rely
+on as few measurements as possible. If M + 1 < N , Eq. (10)
+is underdetermined, and thereby may admit several solutions
+[32]. So, is it possible to obtain the correct solution also in
+this case? Do we have more information about B r which we
+can exploit? Indeed, we know that a power grid is typically
+very sparse; a single substation is connected to only a few
+other substations. Thus we choose the one solution to Eq. (10)
+which minimizes
+(cid:4) B r (cid:4)0 = lim
+(12)
+We use the notation (cid:4) · (cid:4)0 for the sake of convenience, noting
+that this is not a vector norm in the strict sense. Unfortunately,
+the direct minimization is computationally hard in general.
+In 2006, Donoho [48] and Candes et al. [49] showed that an
+efﬁcient reconstruction is nevertheless possible using a convex
+surrogate for sparsity: the 1-norm. Under weak conditions,
+the correct sparse solution can be calculated efﬁciently by
+
+(cid:15)
+N(cid:2)
+
+(cid:16)1/p
+
+|Br k |p
+
+p→0
+
+k=1
+
+.
+
+minimizing the 1-norm
+
+(cid:4) B r (cid:4)1 = N(cid:2)
+
+k=1
+
+| B r k |
+
+(13)
+
+subject to the constraint (10).
+
+B. Partial reconstruction
+
+In a typical application we know the value of Br s of all
+transmission lines (s ,r ) in one part of the grid and have to
+reconstruct only the remaining entries of the matrix B ; for
+instance, we might want to monitor the position of manual
+switches at remote places of the grid.
+To keep track of our knowledge about the network, we
+deﬁne the matrix K ∈ RN ×N with entries
+1
+if the value of Br s is known for line (r,s ),
+0
+otherwise.
+
+Kr s :=
+
+(cid:17)
+
+For the r th row we reduce Eq. (10) to
+
+red
+r B red
+
+r
+
+= P red
+
+r
+
+where
+
+= P r − N(cid:2)
+
+c=1
+
+P red
+
+r
+
+Br cKr c
+
+,
+
+⎛
+
+⎜⎜⎝ ϕc (t1 )
+...
+1
+
+ϕc (tM )
+
+(14)
+
+(15)
+
+(16)
+
+⎞
+⎟⎟⎠,
+
+r
+
+and red
+
+columns c for which Kr c = 1 and B red
+is the submatrix of r obtained by deleting all
+is the submatrix of
+(cid:6) = 1. The
+B r obtained by deleting all rows r
+for which Kr,r
+dimension of the reduced linear system of equations (15) is
+smaller than in the original problem (10), such that the correct
+solution can typically be found from fewer measurements.
+
+(cid:6)
+
+r
+
+C. Positivity of line susceptances
+
+The reconstruction methods discussed above rely on the
+utilization of structural information about the matrix B , in
+particular its sparsity. For transmission lines we know that the
+reactance Xr s > 0 such that even more prior structural infor-
+mation is available. To boost the reconstruction algorithms we
+can thus add the constraint
+
+(17)
+
+Br s (cid:2) 0
+
+for all pairs r (cid:5)= s
+to the minimization of the 1-norm (cid:4) B r (cid:4)1 .
+However, care has to be taken as the sign constraint does not
+always hold. Branches with Xs r < 0 can occur in the modeling
+of two-winding tap-changing transformers and three-winding
+transformers. Hence the sign constraint (17) can be employed
+only if no such elements are present in the grid or if we know
+their location. In the following we consider both cases with
+and without imposing the sign constraint (17) when testing the
+proposed algorithms. In particular, one test grid (the IEEE 300
+bus test grid) contains one negative reactance branch, whose
+location is assumed to be known such that we never impose
+the constraint (17) for this branch.
+
+012305-3
+
+BASIRI, CASADIEGO, TIMME, AND WITTHAUT
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+D. Reconstruction from power ﬂow measurements
+
+The reconstruction scheme introduced above requires the
+knowledge of the voltage phase angle at all nodes of the
+grid. These data can in principle be obtained using phasor
+measurement units, but these are typically very expensive. The
+measurement of other quantities such as real power ﬂows is
+typically much simpler.
+Fortunately, we usually do not have to reconstruct the entire
+grid in most cases. In a typical application we know a lot about
+the grid and have to reconstruct only parts of the matrix B .
+Then the measurement of power injections and real power
+ﬂows of a certain subset of transmission lines can be enough
+to perform the reconstruction of the remaining data using
+the methods described above. Technically, this amounts to
+combining methods of classical state estimation and network
+reconstruction.
+So assume that we can measure the power injection Pn for
+all nodes n ∈ {1, . . . ,N } at the time steps t1 , . . . ,tM . In addition
+we have knowledge about the transmission line parameters, in
+particular Xs r , and measure the real power ﬂow
+
+−1
+
+Ps r (tm ) = X
+s r [ϕr (tm ) − ϕs (tm )]
+
+(18)
+for a subset L of all transmission lines at all time steps
+t1 , . . . ,tM . If this set of equations is fully determined or even
+overdetermined we reconstruct the state vector ϕ (tm ) as in
+the classical state estimation problem described in Sec. II. As
+before, the resulting estimates for the nodal phase angles for
+all time steps t1 , . . . ,tM are then summarized in the matrix
+. In addition we have partial knowledge about the nodal
+susceptance matrix, in particular we already know the entries
+
+Br s = Bs r = −X
+
+−1
+
+(19)
+for all (s ,r ) ∈ L. This information can then be used to recon-
+struct the remaining entries of B as described in the previous
+section.
+
+s r
+
+IV. IMPLEMENTATION
+
+A. Row-wise reconstruction
+
+The row-wise reconstruction problem introduced in
+Sec. III A is solved using the algorithm depicted in Fig. 1.
+Source code for the central part of the program code is listed
+in Fig. 2.
+First data are collected and the matrix  and the vectors
+P r are formed. Then the problem is solved depending on the
+rank of the matrix . If the system is (over)determined, we
+directly solve it for B using the MATLAB function mldivide.
+If the system is underdetermined we proceed row by row and
+reconstruct B r by solving min (cid:4) B r (cid:4)1 s.t.  B r = P r . This
+optimization problem can be mapped to a linear program as
+described in Appendix B and solved with the MATLAB function
+
+linprog.
+
+The code listed in Fig. 2 illustrates the reconstruction
+algorithm without utilizing the sign constraint (17). This
+constraint can easily be added to the code as described in
+Appendix B.
+
+FIG. 1. Flow chart for row-wise reconstruction without imple-
+menting the sign constraint (17). MATLAB code for the central part is
+listed in Fig. 2.
+
+B. Iterative reconstruction
+
+(cid:6)
+
+,r = Br,r
+
+The reconstruction problem with prior knowledge intro-
+duced in Sec. III B is solved using the algorithm depicted
+in Fig. 3. Most interestingly, we can also use this algorithm
+to greatly improve the convergence of the reconstruction
+algorithm. For intermediate values of M we typically face the
+situation that some rows are successfully reconstructed while
+others are not. If we have not reconstructed B successfully,
+but gained further knowledge, we may use it in the following.
+Having successfully reconstructed the r th row of B , we also
+know the entries Br
+(cid:6) for all other rows r
+due to
+the symmetry of the matrix. We thus propose to perform the
+reconstruction iteratively. In each step of the reconstruction
+process we use the initial knowledge about the entries of the
+matrix B and also the knowledge gained in previous steps.
+The algorithm shown in Fig. 3 starts with the input of the
+measurement results and the prior knowledge of the system
+which is encoded in the matrices B and K . It solves the
+reconstruction problem iteratively, processing row by row in
+each iteration. For each row, we calculate the reduced matrices
+and P red
+, see Eq. (15) and then attempt to reconstruct
+the vector B red
+as described above. If the reconstruction was
+successful, we add the results to the matrix B and update the
+
+red
+
+(cid:6)
+
+r
+
+r
+
+r
+
+012305-4
+
+INFERRING POWER-GRID TOPOLOGY IN THE FACE OF …
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+FIG. 2. MATLAB code for row-wise reconstruction.
+
+FIG. 3. Flow chart for the iterative reconstruction algorithm
+without implementing the sign constraint (17).
+
+r c
+
+knowledge matrix K . To facilitate the bookkeeping we deﬁne
+two matrices K and K new : We set K = K new at the beginning
+of each iteration and only modify K new during the step. The
+iteration stops when the reconstruction has been successfully
+= 1 for all r,c = {1 . . . ,N }, or when
+completed, i.e., K new
+no further progress has been made, i.e., K new has not been
+modiﬁed during the last step.
+One unsolved problem remains: If we do not know the
+matrix B a priori, how can we know if the reconstruction
+of the r th row has been successful? In the underdetermined
+case we cannot decide whether the reconstructed values Br c
+are deﬁnitely correct, but we can decide if they are reasonable
+in terms of the connectivity of the grid, i.e., if the number
+of nonzero entries in B r is as small as expected. This partly
+rules out undesired solutions, where minimization of the 1-
+norm (13) does not yield sufﬁciently sparse solutions. In the
+algorithm shown in Fig. 3 we thus adopt the deﬁnition that the
+reconstruction of the r th row is assumed to be successful if (a)
+the linear system is overdetermined or (b) the reconstructed row
+j H (|Brj |) (cid:2) dmax for some
+B r is sufﬁciently sparse, i.e.,
+upper limit dmax and H (x ) being the Heaviside step function.
+This upper limit is chosen the same for all rows and must be
+larger or equal to the maximum degree of any node in the grid.
+we use a value dmax = 15 in what follows.
+Based on experience and on typical degrees of real power grids,
+A slight adaption of this criterion is necessary if the
+measurements of the phases or power injections are subject
+to noise. Then the reconstructed vector B r will also be noisy;
+
+(cid:4)
+
+in particular, it will not be strictly but only approximately
+sparse. Thus we relax the above criterion for the acceptance
+of a reconstructed row counting only entries whose magnitude
+exceed a certain threshold
+number of entries =
+
+(cid:18)|Brj | − 
+
+(cid:2)
+
+(cid:6) (cid:19)
+
+(20)
+
+H
+
+j
+
+(cid:4)
+
+(cid:6)
+
+for some 
+> 0. The criterion (2) for the acceptance of a
+reconstructed row then reads
+
+j H (|Brj | − 
+
+) (cid:2) dmax .
+
+(cid:6)
+
+V. APPLICATIONS AND PERFORMANCE
+
+A. Reconstruction from time series
+
+We demonstrate the applicability of network reconstruction
+from time series measurements for a test grid taken from [50]
+illustrated in Fig. 4(a). This data set includes hourly data for
+demand and generation Pk (t ) for one year and all N = 117
+nodes. The nodal voltage angles ϕk (t ) are then obtained by
+solving the DC approximation (6) for all time steps. The
+resulting time series of the power injections and angles are
+shown in Fig. 4 (b) for two nodes as an example.
+The algorithm shown in Fig. 3 can now reconstruct the
+entire network topology, i.e., all entries of the nodal suscep-
+tance matrix B , from the time series data. To evaluate the
+performance of the algorithm we vary the amount of input
+data. For each value of M we run the algorithm and count the
+number of successfully reconstructed entries and the number
+of reconstruction errors (those entries that do not match the
+ground truth). To account for small numerical errors, we say
+
+012305-5
+
+BASIRI, CASADIEGO, TIMME, AND WITTHAUT
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+(a)
+
+0
+−100
+−200
+10
+−10
+0
+
+20
+40
+time tm  [hour]
+
+60
+
+2000
+1000
+0
+10
+−10
+0
+
+P
+
+t
+(
+k
+
+m
+
+)
+
+[
+
+M
+
+W
+
+]
+
+(b)
+
+20
+40
+time tm  [hour]
+
+60
+
+φ
+
+t
+(
+k
+
+m
+
+)
+
+[
+
+g
+e
+d
+
+r
+
+e
+e
+
+]
+
+0
+0
+
+10
+
+20
+30
+number of measurements M
+
+40
+
+50
+
+500
+
+1000
+
+1500
+
+2000
+
+(c)
+2500
+
+u
+n
+
+m
+
+e
+b
+
+r
+
+o
+
+f
+
+e
+
+r
+r
+
+o
+
+r
+
+s
+
+FIG. 4. Example of the complete grid reconstruction for a test grid
+with N = 117 nodes. (a) Test grid from [50]. It is assumed that the
+network topology, i.e., the location and parameters of the transmission
+lines (grey) are completely unknown. (b) The reconstruction is based
+on the time series of the nodal power injections Pk (t ) and voltage
+angles ϕk (t ). Two time series are shown. (c) Performance of the
+iterative algorithm shown in Fig. 3 taking into account the sign
+constraint (+) or discarding it (×). Perfect reconstruction is obtained
+with M (cid:3) 26 measurements when the sign constraint is implemented.
+We use the test grid and the load and generation time series of the
+scenario 2013 from [50]. For the sake of simplicity we have removed
+the import and export nodes and rescaled the generation to exactly
+match the load.
+
+that a link (r,k ) is successfully reconstructed if
+
+(cid:20)(cid:20)
+
+B recon
+
+r,k
+
+− B true
+
+r,k
+
+(cid:20)(cid:20)
+
+< 
+
+(cid:20)(cid:20)
+
+B true
+
+r,k
+
+(cid:20)(cid:20)
+
+.
+
+(21)
+
+The absence of a line between two nodes r and k is successfully
+reconstructed if
+
+(cid:20)(cid:20)
+
+B recon
+
+r,k
+
+(cid:20)(cid:20)
+
+<  min
+
+i (cid:5)=j
+
+(cid:20)(cid:20)
+
+B true
+
+i,j
+
+(cid:20)(cid:20)
+
+,
+
+(22)
+
+where the numerical tolerance is chosen as  = 10
+−3 .
+Figure 4(c) shows that Mmin = 26 measurements are suf-
+ﬁcient to faithfully reconstruct the entire nodal susceptance
+matrix B using the iterative algorithm and including the sign
+constraint (17). Most importantly, a faithful reconstruction is
+possible in the strongly underdetermined case: The minimum
+number of measurements Mmin = 26 is less than a quarter of
+the matrix dimension N = 117. This is possible because we
+can exploit the sparsity of matrix B as an additional structural
+information.
+
+101
+
+102
+
+0
+
+20
+
+40
+
+60
+
+M
+
+i
+
+n
+
+i
+
+m
+
+u
+
+m
+
+u
+n
+
+m
+
+e
+b
+
+r
+
+o
+
+f
+
+m
+
+u
+s
+a
+e
+
+r
+
+e
+
+m
+
+n
+e
+
+t
+
+s
+
+(a)
+
+101
+
+102
+
+Grid size N
+
+0
+
+20
+
+40
+
+60
+
+(b)
+400
+200
+0
+
+101
+
+102
+
+FIG. 5. Performance of the proposed algorithms for power grid
+reconstruction for various test grids taken from [51,52]. We use
+synthetic power injection data, choosing either (a) the ϕk randomly
+(type I) or (b) the Pk randomly (type II). Shown is the minimum
+for the row-wise reconstruction algorithm with ((cid:2)) and without (◦)
+number of measurements M needed to obtain a faithful reconstruction
+sign constraint and the iterative algorithm with (×) and without
+(+) sign constraint. Results have been averaged over 10 random
+realizations.
+
+B. Minimum measurement requirements and scaling
+
+The algorithms presented in Figs. 1 and 3 allow a reconstruc-
+tion of the network topology also in the underdetermined case.
+But how many measurements Mmin are needed for a faithful
+reconstruction and how does this number scale with the grid
+size N ?
+To systematically study the efﬁciency of the reconstruction
+algorithms, we consider various test grids of different sizes
+taken from [51,52] and use randomized synthetic data for the
+time series. We consider two different types of time series
+data. First we draw the voltage phase angles ϕk (t ) uniformly
+at random from the interval [−π /8, + π /8] (type I). This
+scenario is not realistic but close to the original mathematical
+work [48,49], where random Gaussian sampling vectors are
+considered. Second, we choose the power injections Pk (t )
+at random from a normal distribution with mean zero and
+standard deviation as in the original test grid (type II). For
+both types and both reconstruction algorithms (row-wise and
+iterative), we run the reconstruction algorithm as a function of
+the number of measurements M taken into account and deter-
+mine the minimum number of measurements Mmin for a faithful
+reconstruction, i.e., zero reconstruction errors. Each numerical
+experiment is repeated 10 times. Results are shown in Fig. 5.
+First we observe that an efﬁcient reconstruction is possible
+with both algorithms for the type I input data as shown in
+Fig. 5(a). The minimum number of measurements Mmin is
+much smaller than the grid size N in all cases. The simple
+
+012305-6
+
+ 
+ 
+ 
+ 
+ 
+INFERRING POWER-GRID TOPOLOGY IN THE FACE OF …
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+(a)
+
+0
+
+100
+
+200
+
+-7
+
+-5
+
+-3
+
+-1
+
+(b)
+
+0
+
+100
+
+200
+
+-7
+
+-5
+
+-3
+
+-1
+
+(c)
+
+0
+
+100
+
+200
+
+-7
+
+-5
+
+-3
+
+-1
+
+error E
+↓ 10 4
+2
+
+(d)
+
+0
+
+100
+
+200
+
+-7
+
+-5
+
+-3
+
+-1
+
+(e)
+
+0
+
+100
+
+200
+
+-7
+
+-5
+
+-3
+
+-1
+
+o
+n
+
+i
+
+s
+
+e
+
+s
+
+t
+
+r
+
+g
+n
+e
+
+t
+
+h
+
+l
+
+g
+o
+
+0
+1
+
+(
+
+)
+
+(f)
+
+0
+
+100
+200
+0
+100
+number of measurements M
+
+-7
+
+-5
+
+-3
+
+-1
+
+(g)
+
+200
+
+-7
+
+-5
+
+-3
+
+-1
+
+(h)
+
+0
+
+100
+
+200
+
+-7
+
+-5
+
+-3
+
+-1
+
+0
+
+0.5
+
+1
+
+1.5
+
+FIG. 6. Network reconstruction in the presence of measurement noise. The color map plots show the reconstruction error [Eq. (24)] as a
+function of the number of measurement snapshots M and the noise strength, assuming that the phase measurements are subject to independent
+Gaussian noise with standard deviation σ . The white and black lines indicate the minimum number of measurements Mmin reported in Fig. 5.
+Results are shown in (a)–(d) for the row-based algorithm and in (e)–(h) for the iterative algorithm. We run the reconstruction both without
+implementing the sign constraint (17), see panels (a), (c), (e), (g); and with the sign constraint (17), see panels (b), (d), (f), (h). The algorithms
+are tested for the IEEE 118 bus test grid taken from [51] for synthetic power injection data, choosing either the ϕk randomly [type I data, panels
+(a), (b), (e), (f)] or the Pk [type II data, panels (c), (d), (g), (h)] randomly. Results have been averaged over ﬁve random runs.
+
+row-wise algorithm performs less well because it does not
+exploit the symmetry of the matrix B , such that Mmin is larger
+by a factor of up to 3. Furthermore, implementing the sign
+constraint (17) only has a minor inﬂuence on the performance
+of the reconstruction for type I input data.
+The theory of compressed sensing shows that a reconstruc-
+tion of sparse vectors is possible with high probability from a
+number of measurements scaling only logarithmically with the
+problem dimension N if some conditions are satisﬁed [48,49].
+This logarithmic scaling is well conﬁrmed by the results of our
+numerical experiments as observed in Fig. 5(a). For the itera-
+tive algorithm, the scaling appears to be even more favorable.
+A different result emerges for type II input data as shown
+in Fig. 5(b). The proofs for the efﬁciency of compressed
+sensing depend on two features of the sampling vectors:
+isotropy and incoherence. Roughly speaking, isotropy means
+that all directions in the vector space are sampled equally well.
+Incoherence guarantees that the redundancy in the information
+gained by two measurements is small. Both features are no
+longer guaranteed for type II input data. In fact, we observe
+that the simple row-wise reconstruction algorithm without sign
+constraint does not perform well in this case. The minimum
+number of measurements Mmin is only slightly smaller than
+the problem dimension N . The logarithmic scaling is lost.
+Nevertheless we ﬁnd that an efﬁcient reconstruction is still
+possible if we utilize further structural information. Imple-
+menting the sign constraint (17) in the row-wise algorithm
+drastically reduces the minimum number of measurements
+Mmin . Exploiting the symmetry of matrix B in the iterative
+algorithm is even more effective. An efﬁcient reconstruction
+
+from few measurements is possible and the logarithmic scaling
+of Mmin with the problem size N appears to be restored. Adding
+the sign constraint further reduces Mmin by a factor of up to
+2.3.
+
+C. Robustness to noise
+
+Every real measurement is susceptible to noise. Hence, a
+reconstruction algorithm is applicable in reality only if it is
+robust at least for weak noise. We evaluate the performance
+of the two algorithms described above assuming that the
+measured phases differ from the true values
+
+ϕmeas
+
+j
+
+(tm ) = ϕ true
+
+j
+
+(tm ) + ej ,m ,
+
+(23)
+
+We assume that the measurement errors ej ,m are independent
+and follow a normal distribution with mean 0 and standard
+deviation σ . The quality of the reconstruction of the matrix B
+is evaluated by the sum of absolute deviations from the true
+value,
+
+E = N(cid:2)
+
+r,k=1
+
+(cid:20)(cid:20)
+
+B recon
+
+r k
+
+− B true
+
+r k
+
+(cid:20)(cid:20)
+
+.
+
+(24)
+
+We evaluate the impact of noise for the IEEE 118 bus test grid
+for different randomized input data (types I and II) comparing
+the row-wise and iterative algorithms both with and without
+implementing the sign constraint (17).
+Numerical results reported in Fig. 6 show that both algo-
+rithms are robust to weak noise if the sign constraint (17)
+is discarded. Signiﬁcant deviations from the noiseless case
+
+012305-7
+
+ 
+ 
+BASIRI, CASADIEGO, TIMME, AND WITTHAUT
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+are found only if the standard deviation exceeds a threshold
+σ (cid:3) 10
+−4 . In particular the measurement error E is close to
+zero if the number of measurement snapshots M exceeds the
+minimum number Mmin determined for the noiseless case (see
+Fig. 5) and σ (cid:2) 10
+−4 .
+In contrast, the sign constraint (17) can make the reconstruc-
+tion highly susceptible to measurement noise. In particular, the
+row-wise algorithm fails already for a very weak noise level
+σ = 10
+−7 regardless of the input data (types I or II). The itera-
+tive algorithm is less susceptible, because it implements a test
+of every reconstruction result in view of its sparsity. This test is
+capable of avoiding the massive failures present in the row-wise
+algorithm to a large extent. Still, the minimum number of
+measurements for a faithful reconstruction increases already
+for weak noise levels. We conclude that the implementation
+of the sign constraint (17) is not always beneﬁcial because it
+reduces the robustness of the algorithm.
+
+D. Comparison to other sparse signal recovery methods
+
+The proposed algorithms for network reconstruction are
+based on convex relaxation: A sparse solution to an under-
+determined system of equations is found by minimizing the
+1-norm [Eq. (13)]. Several alternatives have been proposed for
+this task; see [53] for an introductory review.
+We compare the efﬁciency of different methods for the
+network reconstruction to provide a benchmark for the two
+proposed algorithms. To this end, we replace the 1-norm
+minimization in the network reconstruction algorithm (lines
+11–20 in Fig. 2) by two other methods: the orthogonal matching
+pursuit (OMP) [54] and the orthogonal least squares (OLS)
+of a vector beforehand, which we choose as dmax + 1. We
+[55]. OLS requires us to specify a maximum target sparsity
+then repeat simulation for several test grids and evaluate
+the minimum number of measurements needed for a faithful
+reconstruction of matrix B . We discard the sign constraint (17)
+since it degrades the robustness as discussed above. The results
+are displayed in Fig. 7.
+For the row-wise reconstruction we observe no signiﬁcant
+difference between the minimization of the 1-norm, OMP, and
+OLS. In all cases the reconstruction remains rather inefﬁcient
+for type II input data, due to the lack of incoherence and
+isotropy of the sampling vectors discussed above. Vast dif-
+ferences between the methods are observed for the iterative
+reconstruction algorithm for both types of input data. The
+minimization of the 1-norm outperforms all alternatives by
+far: For the largest test grid (N = 300), the minimum number
+of measurements for a faithful reconstruction is smaller than
+for the alternative methods by a factor of more than 2.8 (type
+I) or 6.1 (type II).
+
+(a)
+
+50
+
+40
+
+30
+
+20
+
+10
+
+0
+100
+50
+
+(c)
+
+40
+
+30
+
+20
+
+10
+
+s
+
+t
+
+n
+e
+
+m
+
+e
+
+r
+
+u
+s
+a
+e
+
+m
+
+f
+
+o
+
+r
+
+e
+b
+
+m
+
+u
+n
+
+m
+
+u
+
+m
+
+i
+
+n
+
+i
+
+m
+
+101
+
+102
+
+0
+100
+
+101
+102
+Grid size N
+
+(b)
+
+300
+
+200
+
+100
+
+0
+103
+100
+300
+
+(d)
+
+200
+
+100
+
+103
+
+0
+100
+
+101
+
+102
+
+103
+
+101
+102
+Grid size N
+
+103
+
+1−norm minimization
+
+OMP
+
+OLS
+
+FIG. 7. Comparison of three different sparse signal recovery
+methods for network reconstruction: the 1-norm minimization, the
+orthogonal matching pursuit (OMP) [54], and the orthogonal least-
+squares (OLS) [55]. We evaluate the minimum number of measure-
+ments for a faithful reconstruction for several test grids of increasing
+size N and different input data (type I vs II). (a),(b) Using the
+row-wise reconstruction algorithm no signiﬁcant differences are
+observed. (c),(d) Using the iterative reconstruction algorithm, 1-norm
+minimization outperforms the alternative methods by far. In all cases,
+the reconstruction is performed without enforcing the sign constraint
+(17).
+
+do have information about the connections of all remaining
+nodes and we assume that we can measure the real power
+ﬂow along the colored solid lines. The prior knowledge of
+
+(a)
+
+(c)
+
+?
+
+?
+
+power
+flow
+[MW]
+37
+29.6
+22.2
+14.8
+7.4
+0
+
+k
+
+phase
+angles
+φ
+ [°]
+6
+4.8
+3.6
+2.4
+1.2
+0
+
+(b)
+
+1
+
+r
+
+e
+b
+
+m
+
+u
+n
+
+s
+u
+b
+
+10
+
+20
+
+30
+
+1
+
+(d)
+
+1
+
+10
+
+20
+
+r
+
+e
+b
+
+m
+
+u
+n
+s
+u
+b
+
+30
+
+1
+
+10
+20
+bus number
+
+30
+
+10
+20
+bus number
+
+30
+
+E. Reconstruction from ﬂow measurements
+
+The iterative algorithm allows us to take into account prior
+knowledge to efﬁciently reconstruct the missing information
+about the grid topology. Such a problem can arise in practice
+when a larger part of the grid is subject to damages or attacks.
+An example of such a situation is depicted in Fig. 8(a). It is
+assumed that we have no reliable information about the grid
+in two areas indicated by the question marks. However, we
+
+FIG. 8. Reconstruction of missing information from ﬂow mea-
+surements. (a) The IEEE 30-bus test grid. Real power ﬂows are
+measured on the colored lines. In two regions the grid topology is
+assumed to be unknown. (b) The prior knowledge matrix K . Grey
+shading indicates that the respective line parameter Bj k is known. The
+white region is completely unknown. (c) The voltage phase angles ϕk
+are reconstructed from the power ﬂow measurements using standard
+state estimation methods. (d) The complete grid topology is perfectly
+reconstructed using the algorithm shown in Fig. 3.
+
+012305-8
+
+ 
+ 
+ 
+ 
+ 
+INFERRING POWER-GRID TOPOLOGY IN THE FACE OF …
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+the grid topology is encoded in matrix K , which is illustrated
+in Fig. 8(b). White entries indicate where we do not know the
+entries of matrix B .
+The missing information is found by combining classical
+state estimation and network reconstruction. First, the voltage
+phase angles for all nodes of the network are reconstructed
+as described in Sec. II, the results being shown in Fig. 8(c).
+Second, the iterative reconstruction algorithm shown in Fig. 3
+is applied using the measured power injections, the prior
+knowledge B and K as well as the estimated voltage phase
+angles as input data. The algorithm then faithfully reconstructs
+all the missing information about the grid topology. The
+reconstructed values of the line susceptances X
+s r shown in
+Fig. 8(d) exactly match the true values. Most importantly, the
+full reconstruction is possible already for M = 1 in this case,
+i.e., with a single snapshot of the power injections P , making
+use of the prior knowledge.
+
+−1
+
+VI. CONCLUSION
+
+We have introduced two algorithms to reconstruct the
+structure of a power grid from nodal measurements only. One
+algorithm is straightforward and row-based, reconstructing the
+lines of the grid node by node. The second is iterative and
+takes into account both prior knowledge about the presence of
+absence of lines as well as the knowledge generated by that
+algorithm during previous steps. We have demonstrated how
+these algorithms can be used to reconstruct the entire network
+structure from time series or missing information on the grid
+topology from a single snapshot.
+The presented algorithms exploit several structural prop-
+erties of power grids to reduce the number of necessary
+measurements. Power grids are typically very sparse, i.e., each
+substation is connected to only a few other substations. Hence,
+methods from compressed sensing can be used to allow faithful
+reconstructions also in the underdetermined case. The iterative
+reconstruction algorithm makes use of the symmetry of the
+nodal susceptance matrix. Loosely speaking the algorithm
+solves the simple parts of the reconstruction problem ﬁrst
+and then uses the gained information for the remaining parts.
+We have shown that this trick leads to a vast reduction of
+measurement resources.
+
+ACKNOWLEDGMENTS
+
+We thank D. Gross and R. Kueng for inspiring discussions.
+We gratefully acknowledge support from the Helmholtz As-
+sociation (via the joint initiative “Energy System 2050 - A
+Contribution of the Research Field Energy” and the Grant No.
+VH-NG-1025 to D.W.), the Federal Ministry of Education and
+Research (BMBF Grant No. 03SF0472A-F to D.W. and M.T.),
+and the German Science Foundation (DFG) by a grant toward
+the Center of Excellence “Center for Advancing Electronics
+Dresden” (cfaed).
+
+APPENDIX A: LEAST-SQUARES SOLUTION
+
+If the system of equations (10) is overdetermined, it then
+must be solved in a least-squares fashion, i.e., we have to
+
+solve
+
+(cid:4) B r − P r (cid:4)2
+
+2 ,
+
+min
+
+B r
+
+(A1)
+
+which leads to [32]
+
+B r = (T )
+provided that  is full rank such that the inverse exists. Least-
+squares solutions are already implemented in many numerical
+solvers, for instance in the MATLAB function mldivide.
+
+−1 T P r
+
+(A2)
+
+APPENDIX B: MINIMIZING THE 1-NORM
+
+r
+
+The key to an efﬁcient reconstruction of B from an underde-
+termined system of equations is the minimization of the 1-norm
+[48,49]. This problem can be mapped to a linear program which
+can be solved efﬁciently, i.e., the computation time scales at
+most polynomially with the input length.
+So we consider the linear system of equations (10) and
+assume that it is solvable and underdetermined. The solutions
+span an afﬁne subspace of RN with dimension D = N −
+rank (). All solutions can be written as
++ W y,
+(B1)
+where the columns of the matrix W ∈ RN ×D form a basis
+for the kernel (null space) of  and y ∈ RD is a vector
+of parameters. B (sp)
+is a speciﬁc solution to Eq. (10); in
+the implementation it is obtained using the MATLAB function
+mldivide. We now search for the vector y such that the
+1-norm (13) assumes its minimum. This optimization problem
+is rewritten as a linear program [56]
+
+B r = B (sp)
+
+B (sp)
+B (sp)
+
++ W y (cid:8) s,
+min
+1T s
+such that
++ W y (cid:9) −s,
+(B2)
+where s ∈ RN is an auxiliary variable, 1 ∈ RN is a vector
+of ones, and (cid:8) and (cid:9) denote entry-wise comparison. In the
+standard form of many commercial solvers the optimization
+problem reads
+
+s
+
+r
+
+r
+
+r
+
+f T x such that Ax (cid:8) b,
+
+min
+
+x
+
+(B3)
+
+using the further auxiliary variables
+W −1
+, A =
+
+x =
+
+(cid:22)
+
+(cid:21)
+(cid:21)
+
+y
+s
+
+(cid:22)
+
+,
+
+(cid:21)
+
+(cid:22)
+
+(cid:22)
+
+(cid:21)
+
+−W −1
+f =
+
+,
+
+b =
+
+r
+
+,
+
+B (sp)
+r− B (sp)
+
+0
+1
+where 1 ∈ RN ×N is the identity matrix and 0 ∈ RD is a vector
+of zeros.
+Sign constraints of the form (17) can be imposed by adding
+additional rows to matrix A and vector b. For every element
+with sign constraint Br c (cid:2) 0 on row is added with the entries:
+badd = −(cid:23)
+Here W c,· denotes the cth row of matrix W and [ B (sp)
+cth entry of vector B
+.
+
+Aadd = (W c,· ,0, . . . ,0),
+
+]c is the
+
+B (sp)
+
+(B4)
+
+(B5)
+
+(cid:24)
+
+(sp)
+
+.
+
+c
+
+r
+
+r
+
+r
+
+012305-9
+
+BASIRI, CASADIEGO, TIMME, AND WITTHAUT
+
+PHYSICAL REVIEW E 98, 012305 (2018)
+
+[1] A. P. Sakis Meliopoulos, B. Fardanesh, and S. Zelingher, in Pro-
+ceedings of the 34th Annual Hawaii International Conference on
+System Sciences (HICSS-34) (IEEE, New York, 2001), p. 2012.
+[2] A. J. Wood, B. F. Wollenberg, and G. B. Sheblé, Power
+Generation, Operation and Control (Wiley, New York, 2014).
+[3] P. Zarco and A. G. Exposito, IEEE Trans. Power Syst. 15, 216
+(2000).
+[4] K. A. Clements, G. R. Krumpholz, and P. W. Davis, IEEE Trans.
+Power App. Syst. PAS-100, 1779 (1981).
+[5] F. F. Wu and W. H. E. Liu, IEEE Trans. Power Syst. 4, 176
+(1989).
+[6] D. L. Fletcher and W. O. Stadlin, IEEE Trans. Power App. Syst.
+PAS-102, 3680 (1983).
+[7] W. H. E. Liu, F. F. Wu, and S. M. Lun, IEEE Trans. Power Syst.
+7, 81 (1992).
+[8] J. Zhu and A. Abur, IEEE Trans. Power Syst. 21, 586 (2006).
+[9] L. Zhang and A. Abur, in Proceedings of the 17th Power System
+Computation Conference, Stockholm, Sweden, Vol. 2226 (2011),
+p. 788.
+[10] A. Abur, H. Kim, and M. K. Celik, IEEE Trans. Power Syst. 10,
+2029 (1995).
+[11] P. A. Teixeira, S. R. Brammer, W. L. Rutz, W. C. Merritt, and J.
+L. Salmonsen, IEEE Trans. Power Syst. 7, 1386 (1992).
+[12] W. H. E. Liu and S. L. Lim, IEEE Trans. Power Syst. 10, 200
+(1995).
+[13] O. Alsac, N. Vempati, B. Stott, and A. Monticelli, in Proceed-
+ings of the 20th International Conference on Power Industry
+Computer Applications (IEEE, New York, 1997), p. 90.
+[14] P. Zarco and A. Gomez, in Proceedings of the 12th Power System
+Computation Conference, 1996 (unpublished), p. 1207.
+[15] S. Zhong and A. Abur, IEEE Trans. Power Syst. 20, 458 (2005).
+[16] A. S. Debs, IEEE Trans. Power App. Syst. PAS-93, 1260 (1974).
+[17] I. W. Slutsker, S. Mokhtari, and K. A. Clements, IEEE Trans.
+Power Syst. 11, 1393 (1996).
+[18] M. Ferdowsi, A. Benigni, A. Lowen, B. Zargar, A. Monti, and
+F. Ponci, IEEE Trans. Instrum. Meas. 64, 1292 (2015).
+[19] A. Angioni, J. Shang, F. Ponci, and A. Monti, IEEE Trans.
+Instrum. Meas. 65, 2234 (2016).
+[20] M. K. Yeung, J. Tegner, and J. J. Collins, Proc. Natl. Acad. Sci.
+U.S.A. 99, 6163 (2002).
+[21] T. S. Gardner, D. di Bernardo, D. Lorenz, and J. J. Collins,
+Science 301, 102 (2003).
+[22] M. Timme, Phys. Rev. Lett. 98, 224101 (2007).
+[23] D. Napoletani and T. D. Sauer, Phys. Rev. E 77, 026103 (2008).
+[24] W.-X. Wang, Y.-C. Lai, C. Grebogi, and J. Ye, Phys. Rev. X 1,
+021021 (2011).
+[25] R.-Q. Su, W.-X. Wang, and Y.-C. Lai, Phys. Rev. E 85, 065201
+(2012).
+[26] X. Han, Z. Shen, W.-X. Wang, and Z. Di, Phys. Rev. Lett. 114,
+028701 (2015).
+[27] L. Ma, X. Han, Z. Shen, W.-X. Wang, and Z. Di, PLoS One 10,
+e0142837 (2015).
+[28] J. Runge, V. Petoukhov, J. F. Donges, J. Hlinka, N. Jajcay, M.
+Vejmelka, D. Hartman, N. Marwan, M. Paluš, and J. Kurths, Nat.
+Commun. 6, 8502 (2015).
+[29] M. Nitzan, J. Casadiego, and M. Timme, Sci. Adv. 3, 1600396
+(2017).
+[30] J. Casadiego, M. Nitzan, S. Hallerberg, and M. Timme, Nat.
+Commun. 8, 2192 (2017).
+
+[31] W. X. Wang, Y. C. Lai, and C. Grebogi, Phys. Rep. 644, 1
+(2016).
+[32] M. Timme and J. Casadiego, J. Phys. A: Math. Theor. 47, 343001
+(2014).
+[33] A. Abur and A. G. Exposito, Power System State Estimation:
+Theory and Implementation (CRC, Boca Raton, 2004).
+[34] J. J. Grainger and W. D. Stevenson Jr., Power System Analysis
+(McGraw-Hill, New York, 1994).
+[35] K. Purchala, L. Meeus, D. Van Dommelen, and R. Belmans, in
+IEEE Power Engineering Society General Meeting, 2005, Vol.
+1 (IEEE, New York, 2005), p. 454.
+[36] D. Van Hertem, J. Verboomen, K. Purchala, R. Belmans, and
+W. L. Kling, in 8th IEEE International Conference on AC DC
+Power Transmission (ACDC 2006) (IET, 2006), pp. 58–62.
+[37] M. Newman, Networks: An Introduction (Oxford University,
+Oxford, 2010), p. 784.
+[38] N. Hwang and R. Houghtalen, Fundamentals of Hydraulic
+Engineering Systems (Prentice-Hall, Upper Saddle River, NJ,
+1996).
+[39] E. Katifori, G. J. Szöllösi, and M. O. Magnasco, Phys. Rev. Lett.
+104, 048704 (2010).
+[40] G. B. Giannakis, V. Kekatos, N. Gatsis, S.-J. Kim, H. Zhu, and
+B. F. Wollenberg, IEEE Signal Process. Mag. 30, 107 (2013).
+[41] K. M. Rogers, R. D. Spadoni, and T. J. Overbye, in Power
+Systems Conference and Exposition (PSCE), 2011 IEEE/PES
+(IEEE, New York, 2011), p. 1.
+[42] K. R. Davis, S. Dutta, T. J. Overbye, and J. Gronquist, in
+Proceedings of the 46th Hawaii International Conference on
+System Sciences (HICSS) (IEEE, New York, 2013), p. 2151.
+[43] X. Li, H. V. Poor, and A. Scaglione, in Proceedings of the
+IEEE International Conference on Smart Grid Communications
+(SmartGridComm) (IEEE, New York, 2013), p. 91.
+[44] A. Anwar, A. Mahmood, and M. Pickering, in Proceedings of the
+IEEE International Conference on Smart Grid Communications
+(SmartGridComm) (IEEE, New York, 2016), p. 539.
+[45] S. Bolognani, N. Bof, D. Michelotti, R. Muraro, and L. Schenato,
+in Proceedings of the IEEE 52nd Annual Conference on Decision
+and Control (CDC) (IEEE, New York, 2013), p. 1659.
+[46] H. Zhu and G. B. Giannakis, IEEE Trans. Power Syst. 27, 2215
+(2012).
+[47] S. G. Shandilya and M. Timme, New J. Phys. 13, 013004
+(2011).
+[48] D. L. Donoho, IEEE Trans. Inf. Theory 52, 1289 (2006).
+[49] E. J. Candes, J. K. Romberg, and T. Tao, Commun. Pure Appl.
+Math. 59, 1207 (2006).
+[50] H. Barrios, A. Roehder, H. Natemeyer, and A. Schnettler, in
+Proceedings of the IEEE PowerTech 2015 Eindhoven (IEEE,
+New York, 2015), p. 1.
+[51] R. D. Zimmerman, C. E. Murillo-Sanchez, and R. J. Thomas,
+IEEE Trans. Power Syst. 26, 12 (2011).
+[52] S. Fliscounakis, P. Panciatici, F. Capitanescu, and L. Wehenkel,
+IEEE Trans. Power Syst. 28, 4909 (2013).
+[53] J. A. Tropp and S. J. Wright, Proc. IEEE 98, 948 (2010).
+[54] J. A. Tropp and A. C. Gilbert, IEEE Trans. Inf. Theory 53, 4655
+(2007).
+[55] C. Soussen, R. Gribonval, J. Idier, and C. Herzet, IEEE Trans.
+Inf. Theory 59, 3158 (2013).
+[56] S. Boyd and L. Vandenberghe, Convex Optimization (Cambridge
+University, Cambridge, England, 2004).
+
+012305-10
+
+

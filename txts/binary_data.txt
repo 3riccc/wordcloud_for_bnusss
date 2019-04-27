@@ -1,0 +1,1700 @@
+A statistical inference approach to structural reconstruction of complex networks
+from binary time series
+
+Chuang Ma,1 Han-Shuang Chen,2 Ying-Cheng Lai,3 and Hai-Feng Zhang1, 4, 5 , ∗
+
+1School of Mathematical Science, Anhui University, Hefei 230601, China
+2 School of Physics and Material Science, Anhui University, Hefei 230601, China
+3School of Electrical, Computer and Energy Engineering,
+Arizona State University, Tempe, Arizona 85287, USA
+4Center of Information Support &Assurance Technology, Anhui University, Hefei 230601, China
+5Department of Communication Engineering, North University of China, Taiyuan, Shan’xi 030051, China
+(Dated: January 30, 2018)
+
+Complex networks hosting binary-state dynamics arise in a variety of contexts. In spite of previous
+works, to fully reconstruct the network structure from observed binary data remains to be challeng-
+ing. We articulate a statistical inference based approach to this problem. In particular, exploiting
+the expectation-maximization (EM) algorithm, we develop a method to ascertain the neighbors of
+any node in the network based solely on binary data, thereby recovering the full topology of the
+network. A key ingredient of our method is the maximum likelihood estimation of the probabilities
+associated with actual or non-existent links, and we show that the EM algorithm can distinguish
+the two kinds of probability values without any ambiguity, insofar as the length of the available
+binary time series is reasonably long. Our method does not require any a priori knowledge of the
+detailed dynamical processes, is parameter free, and is capable of accurate reconstruction even in
+the presence of noise. We demonstrate the method using combinations of distinct types of binary
+dynamical processes and network topologies, and provide a physical understanding of the underly-
+ing reconstruction mechanism. Our statistical inference based reconstruction method contributes
+
+8
+1
+0
+2
+
+n
+
+a
+
+J
+
+8
+2
+
+]
+
+h
+p
+
+-
+
+c
+
+o
+
+s
+
+.
+
+s
+
+c
+
+i
+
+s
+
+y
+h
+p
+
+[
+
+1
+v
+3
+9
+1
+9
+0
+
+.
+
+1
+0
+8
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+the classical Ising model can be reconstructed from the
+polarized data to yield the network structure and nodal
+dynamics [57], but the computational demand is high,
+making the method eﬀective but only for relatively small
+networks. Quite recently, a linearization approach was
+proposed [43] to approximate the nodal dynamical equa-
+tions that generate the binary time series so as to convert
+network reconstruction into a sparse signal optimization
+problem, which can then be solved by the conventional
+lasso (least absolute shrinkage and selection operator)
+method from statistics and machine learning. The core
+of this linearization approach is to estimate the switch-
+ing probabilities for a node to change from one state to
+another based on properly selected and averaged strings
+of binary time series, a process that requires ﬁne adjust-
+ments of a number of algorithmic parameters to ensure
+that the selected strings are neither too special nor too
+similar to each other.
+
+In this paper, we develop a statistical inference based
+method to reconstruct complex network structure from
+binary time series. The principle of statistical infer-
+ence has recently been used in network science for tasks
+such as identifying the community structures for single-
+layer [58], multilayer [59], or signed [60] networks, and
+detecting the core-periphery structure for complex net-
+works [61]. In general, the statistical inference method
+has a solid mathematical support and often can lead to
+robust performance. The key to structural reconstruc-
+tion is to calculate the probability for an arbitrary pair
+of nodes to have a link. More importantly, it is neces-
+sary to distinguish the probability values associated with
+actual links and those with non-existent links. Accurate
+reconstruction demands that the two kinds of probability
+values be unequivocally distinguishable. Exploiting the
+expectation-maximization (EM) algorithm in statistical
+inference, we derive formulas for the probabilities with
+the ﬁnding of a generic feature: in all cases investigated
+there exists a ﬁnite gap between the two types of prob-
+ability values. Surprisingly, the appealing gap feature is
+robust as it holds for a large number of combinations of
+the binary state dynamics with model and real complex
+network structures, and it continues to exist even when
+there are stochastic perturbations to the binary time se-
+ries. As a result, a threshold probability value can be
+readily determined (and we provide a formula for it) to
+ascertain whether there is an actual link between any pair
+of nodes. The ﬁnal outcome is an unprecedented high
+accuracy of network structural reconstruction. Another
+appealing feature of our reconstruction methodology is
+that no parameters are a priori assumed - all parame-
+ters can be estimated based on the available binary data.
+Our reconstruction method adds a piece into the rapidly
+
+3
+
+To simplify notation, we let Θ denote the quantities
+Pi→j and εj . To derive analytically an EM estimation,
+we assume that the relevant probability distributions are
+Poisson [58, 59]. The reason is that Poisson distribution
+can be generally used to characterize the probability of
+a given number of events occurring in a ﬁxed interval
+of time.
+It is thus natural to use Poisson distribution
+to describe the times that node i being activated. As
+in Refs. [59, 62–64], using the Poisson distribution can
+make feasible mathematical analysis and computations
+with the EM algorithm (described below). We note that,
+with any assumption of the probability distribution, er-
+rors are inevitable. For example, the value of Pi→j may
+be slightly larger than zero even though node i is not a
+neighbor of node j . To reduce such errors, a remedy is to
+set a cutoﬀ threshold to determine if Pi→j > 0 indicates
+an actual link or it is simply an error.
+
+The probability Ψj can then be expressed as
+
+P (cid:16)(cid:8)Ψtm+1
+
+j
+
+Ym,Ψtm
+j =0
+
+(cid:9)m=1,··· ,M (cid:12)(cid:12)(cid:12)
+(cid:0)E tm+1
+j
+Ψtm+1
+j
+
+Θ, (cid:8)Ψtm
+!
+
+(cid:1)Ψtm +1
+j
+
+e−E tm+1
+j
+
+i (cid:9)m=1,··· ,M ;i=1,··· ,N (cid:17) =
+
+(3)
+
+Next, we exploit the EM method to maximize the like-
+lihood Eq. (3) so that the model parameters Θ can be
+estimated from the binary data. The EM algorithm is
+general for ﬁnding the maximum likelihood estimate in
+latent variable models, which contains two steps. For the
+
+i
+
+to infer the neighbors of node 33, we can extract some
+pairs of time strings, as shown in Fig. 1(b), where each
+pair includes the time string with s33 (t) = 0 and its next
+time strings (i.e., at t + 1). We see that four pairs of such
+time strings can be extracted: T and T + 1, T + 1 and
+T + 2, T + 5 and T + 6, T + 7 and T + 8, where each pair
+is highlighted by frames with a diﬀerent color. Based on
+these time strings, we can calculate P 33
+for all i 6= j . For
+example, we have P 33
+16 = 2/3, as shown in Fig. 1(b). Our
+goal is then to exploit statistical inference to estimate
+the posteriori probability Pi→j . Node i is a neighbor
+of node j if Pi→j > 0, otherwise, Pi→j = 0 if they are
+not connected. This analysis indicates that the values of
+P j
+i and Pi→j do not depend on time, so the probability
+P [sj (t + 1) = 1, i → j |si (t) = 1, sj (t) = 0] can simply be
+denoted as P 0→1
+i→j , which does not depend on time either.
+Remark 1. For the Markovian type of dynamical pro-
+cesses considered, the probability of each node’s being
+activated is aﬀected only by its active neighbors. Other
+scenarios require a generalization of our method to non-
+Markovian type of dynamics.
+Remark 2. To reconstruct the network structure from
+time series data, a necessary condition is that the network
+structure should have detectable eﬀects on the dynam-
+ics.
+If the dynamical processes are independent of the
+network structure, the reconstruction task is impossible.
+For the dynamical processes studied, the probability of
+each node’s being activated is aﬀected only by its active
+neighbors.
+A non-zero value of the probability P j
+indicates that
+node j is aﬀected by node i. Since the probability of each
+node’s being activated is determined solely by its active
+neighbors, a non-zero value of P j
+i indicates an actual con-
+nection between node i and j , which does not depend on
+time. The value of Pi→j can be estimated once the ma-
+trix S is given, which does not depend on time either.
+As a result, the probability in Eq. (1) can be denoted as
+i→j . From Eq. (1), we see that, if node j is not acti-
+vated at time tm , the expected number of node j being
+activated by its neighbors at tm + 1 is given by
+
+P 0→1
+
+i
+
+E tm+1
+j
+
+= Xi6=j
+= Xi6=j
+
+P 0→1
+i→j Ψtm
+
+i + εj
+
+Pi→j · P j
+i Ψtm
+
+i + εj ,
+
+(2)
+
+where Ψtm
+i = 1 when node i was activated at time tm ,
+otherwise, Ψtm
+i = 0. εj characterizes the stochastic inﬂu-
+ence (noise) on node j .
+Note that, due to the errors from the collected data and
+the assumptions used in the development of the method
+(e.g., the assumption of the Poisson distribution), it is
+necessary to consider the presence of noise perturbation
+in Eq. (2). While diﬀerent types of noise can be con-
+sidered, additive noise facilitates both computation and
+analysis, as done in previous works (e.g., Ref. [43]).
+
+Jensen’s inequality [66], we obtain
+log 
+i + εj 
+= log 
+
+Pi→j P j
+i Ψtm
+
+
+
+ρtm
+i
+
+Xi6=j
+Xi6=j
+ρtm
+i
+
+log
+
+Pi→j P j
+i Ψtm
+i
+ρtm
+i
+Pi→j P j
+i Ψtm
+i
+ρtm
+i
+
++ ρtm
+
+ε
+
+εj
+
+ε 
+
+
+ρtm
+
+εj
+
++ ρtm
+
+ε
+
+log
+
+≥ Xi6=j
+= Xi6=j
+− Xi6=j
+
+ρtm
+i
+
+log Pi→j P j
+
+i Ψtm
+i +ρtm
+ε
+
+log εj
+
+ρtm
+i
+
+log ρtm
+
+i −ρtm
+ε
+
+log ρtm
+ε ,
+
+Pi→j P j
+i Ψtm
+i
+Pi′→j P j
+i′ Ψtm
+i′ + εj
+
+ρtm
+ε
+
+(5)
+
+(6)
+
+where
+
+and
+
+ρtm
+
+i =
+
+ρtm
+
+ε =
+
+Pi′ 6=j
+
+Pi′ 6=j
+
+εj
+
+Pi′→j P j
+i′ Ψtm
+i′ + εj
+
+.
+
+(7)
+
+ρtm
+i
+
+i Ψtm
+i
+
+log Pi→j P j
+
+To ﬁnd a maximum likelihood solution of Eq. (4), we seek
+to maximize the following quantity:
+L (Θ, ρ) = Xm, Ψtm
+log ρtm
+
+−Ψtm+1
+ρtm
+j
+i
+Xm, Ψtm
+j =0 (cid:2)Ψtm+1
+j
+
+(8)
+log ρtm
+ε − εj (cid:3)
+with respect to Θ and ρ. Calculating the partial deriva-
+tive of L(Θ, ρ) with respect to Pi→j and εj and setting
+them to be zero, we have
+
+j =0 Xi6=j (cid:16)Ψtm+1
+j
+i − Pi→j P j
+i Ψtm
+ρtm
+ε
+
+i (cid:17) +
+log εj − Ψtm+1
+
+ρtm
+ε
+
+j
+
+∂L (Θ, ρ)
+
+∂Pi→j
+
+j =0 Ψtm+1
+ρtm
+= Xm, Ψtm
+j
+i
+Pi→j
+
+and
+
+− P j
+
+i Ψtm
+
+i ! = 0 (9)
+
+∂L (Θ, ρ)
+∂ εj
+
+j =0 Ψtm+1
+= Xm, Ψtm
+j
+
+εj
+
+ρtm
+ε
+
+− 1! = 0, (10)
+
+which give
+
+ρtm
+
+Pi→j = Pm, Ψtm
+j =0 (cid:0)Ψtm+1
+j
+j =0 (cid:16)P j
+i Ψtm
+Pm, Ψtm
+
+i (cid:1)
+i (cid:17)
+
+(11)
+
+and
+
+εj = Pm, Ψtm
+j =0 (cid:0)Ψtm+1
+j
+Pm, Ψtm
+j =0
+
+(1)
+
+ρtm
+
+i (cid:1)
+
+4
+
+,
+
+(12)
+
+respectively.
+Equations (6),
+(7),
+(11) and (12) constitute our
+method. From the initial conditions of Pi→j and εj , we
+can iterate these equations until convergence is achieved.
+Since a single iterative process does not ensure global
+optimization, we carry out the above iteration process
+several times and choose the relevant values that give
+the maximum of the quantity in Eq. (4). As an exam-
+ple, Fig. 1(c) shows the value of Pi→33 (only Pi→33 > 0
+is shown) calculated from the iterative process. Simi-
+larly, the values of Pi→j for all the nodal pairs can be
+calculated, as shown in Fig. 1(d), where the red and blue
+dots denote the actual and non-existent links, respec-
+tively. Theoretically, node i is a neighbor of node j if
+Pi→j > 0 with the threshold value ∆ = 0. However,
+the simple choice of ∆ = 0 will lead to error due to the
+uncertain factors. For example, as shown in Fig. 1(e),
+there are eight false links (represented by the red lines).
+In this case, it is necessary to choose a non-zero thresh-
+old for each node to eliminate reconstruction error. For
+instance, by setting ∆ = 1/N for all nodes in Fig. 1, we
+can reconstruct the original network with zero error.
+An explanation is
+in order.
+It
+is often diﬃ-
+cult to directly maximize the formula in Eq. (4).
+We
+can ﬁrst use Jensen’s
+inequality to get
+the
+lower bound of
+the formula at Θ, which is de-
+noted by L− (Θ) = Pi6=j
+log Pi→j P j
+log εj −
+log ρtm
+log ρtm
+We initialize the parameter Θ1 , e.g., by setting P1→j =
+Pj−1→j = Pj+1→j = . . . , PN→j = εj = 1/N . We can
+show that the equality conditions in Eq. (8) are satisﬁed
+when the conditions in Eqs. (6) and (7) are met. We thus
+have L−
+(Θ1 ) = L(Θ1 ), where L−
+(Θ) denotes the lower
+bound function of L(Θ) at Θ1 , so L−
+(Θ1 ) indicates the
+value of L−
+(Θ) at Θ = Θ1 . Further, by maximizing
+L−
+(Θ), we obtain a new maximum point Θ2 :
+
+- the last term of Eq. (5).
+
+i Ψtm
+i +ρtm
+ε
+
+i −ρtm
+ε
+
+Pi6=j
+
+ρtm
+i
+
+ρtm
+i
+
+Θ1
+
+Θ1
+
+Θ1
+
+Θ1
+
+ε
+
+Θ1
+
+L(Θ2 ) ≥ L−
+
+Θ1
+
+(Θ2 ) ≥ L−
+
+Θ1
+
+(Θ1 ) = L(Θ1),
+
+meaning that Θ2 is a better solution than Θ1 .
+We also note that the initial conditions of Pi→j and
+εj can be chosen in diﬀerent ways. For example, we can
+set P1→j = Pj−1→j = Pj+1→j = . . . , PN→j = εj = 1/N .
+The quantities ρtm
+i and ρtm
+in Eqs. (6) and (7) can be cal-
+culated, guaranteeing the equality condition in Eq. (8).
+Then, Eqs. (11) and (12) can be calculated.
+Iterating
+the above process leads to a local optimal solution. The
+value of the likelihood function at the next time step is
+better than that at the last step. Since the convergence of
+the EM algorithm has been conﬁrmed in many previous
+
+ε
+
+works, we can stop the iteration process when the value
+of the likelihood function is stable or the ﬂuctuations are
+smaller than a given threshold value. While one round of
+the iteration may yield a local rather than a global opti-
+mal solution, we can choose diﬀerent sets of initial values
+to carry out diﬀerent rounds of iteration and choose the
+best solution.
+We remark that errors in the collected data and un-
+certainties in the assumption of the Poisson distribution
+can be modeled by noise perturbation. The simple choice
+of ∆ will lead to small errors. While errors cannot be
+completely eliminated by increasing the value of M , the
+gap that is key to distinguishing actual from non-existent
+links will be enlarged. Figure 1 shows that the accuracy
+of reconstruction can be improved if we set ∆ = 1/N for
+all nodes.
+
+III. PERFORMANCE CHARACTERIZATION
+AND DEMONSTRATION
+
+A. Local and global performance indicators
+
+We use a number of indicators to characterize the local
+and global performance of our reconstruction methodol-
+ogy.
+AUROC and AUPR -
+local performance indica-
+tors. The AUROC (area under
+receiver operating
+characteristic,δAU ROC ) and AUPR (area under precision-
+recall,δAU P R ) curves are standard local (node-wise) per-
+formance indicators used widely in signal processing and
+computer science [67], which can be calculated for each
+node in the network. The average values over all the
+nodes can then be used to characterize the reconstruction
+performance for the whole network. To deﬁne AUROC
+and AUPR, it is necessary to calculate three basic quan-
+tities: TPR (true positive rate,RT P ), FPR (false positive
+rate,RF P ), and Recall. In particular, TPR is deﬁned as
+
+RT P (l) =
+
+PT (l)
+P
+where l is the cutoﬀ in the list of reconstructed links,
+PT (l) is the number of true positives in the top l predic-
+tions in the link list, and P is the number of positives.
+FPR is given by
+
+,
+
+(13)
+
+RF P (l) =
+
+PF (l)
+Q
+
+,
+
+(14)
+
+where PF (l) is the number of false positive in the top l
+predictions in the link list, and Q is the number of nega-
+tives in the gold standard. The reconstruction precision
+can be deﬁned as
+
+δP recision (l) =
+
+PT (l)
+PT (l) + PF (l)
+
+=
+
+PT (l)
+l
+
+.
+
+(15)
+
+The measure Recall is deﬁned as
+
+5
+
+Varying the value of l from 0 to N , we plot two sequences
+of points: [RF P (l), RT P (l)] and [δRecall (l), δP recision (l)].
+The areas under the two curves give the values of AU-
+ROC and AUPR, respectively. For the case of zero error
+in reconstruction where all the actual links have been
+predicted, we have δAU ROC = 1 and δAU P R = 1. In the
+worse case scenario where the predicted links are com-
+pletely random (so that the reconstruction tasks fails en-
+tirely), we have δAU ROC = 0.5 and δAU P R = P /2N .
+F1 score - a global performance indicator. Higher val-
+ues of AUROC and AUPR only demonstrate that the
+prediction of the actual links are better than that for
+the non-existent links, but do not give the number of
+actual links in the network. These local measures do
+not indicate whether a speciﬁc link has been correctly
+inferred. To determine whether a reconstructed prob-
+ability value (i.e., Pi→j ) corresponds to an actual or a
+null link, it is necessary to set a threshold ∆ for each
+node. Figure 2 shows, for each node, the value of Pi→j
+for i 6= j (i = 1, 2, · · · , N ) in three model networks:
+random network (ER) [68], scale-free network (BA or
+SF) [69], and small-world (SW) network [70]. The dy-
+namical processes are Voter dynamics in Fig. 2(a) and
+Kirman dynamics in Fig. 2(b)), respectively. (The de-
+tails of these two processes, together with other six other
+types, are given in Appendix.) We see that, for node j ,
+there exists a gap dividing the values of Pi→j for i 6= j
+(i = 1, 2, · · · , N ). It is thus reasonable to place a thresh-
+old ∆j in the gap for node j to determine whether a
+value of Pi→j can be regarded as representing an actual
+links (red points, Pi→j > ∆j ) or a non-existent link (blue
+points, Pi→j < ∆j ). In so doing, we obtain the nonzero
+values Pi→j > 0 for i 6= j and re-rank them in a descend-
+ing order, denoted as P ′
+l (l = 1, 2, · · · ).
+It is important to choose a proper threshold ∆j for
+each node j . From Fig. 2, we see that there is a gap,
+which can be used to separate the actual from the non-
+existent links. Computationally, it is necessary to set a
+threshold for the task. We consider two diﬀerent scenar-
+ios. First, suppose that a sequence of the values of Pi→j
+is 0.8, 0.7, 0.6, 0.01, and 0.0001. In this case, the thresh-
+old can be set between the values of 0.6 and 0.01 through
+the maximum value of P ′
+l − P ′
+l+1 . However, the thresh-
+old value is between 0.01 and 0.0001 when using P ′
+l /P ′
+For this scenario, the former choice of the threshold value
+is more reasonable than the latter. Second, for a diﬀer-
+ent sequence, such as 0.2, 0.1, 0.09 and 0.0001, through
+P ′
+l − P ′
+l+1 we ﬁnd a threshold value between 0.2 and 0.1.
+However, through P ′
+l /P ′
+l+1 , we get a threshold value be-
+tween 0.09 and 0.0001. For this scenario, the latter case
+is more reasonable. Combining the two cases, we deﬁne
+the threshold ∆j for node j as
+
+l+1 .
+
+∆j = arg max
+
+l
+
+[
+
+P ′
+
+l
+
+P ′
+l+1
+
+(P ′
+l − P ′
+l+1)].
+
+(17)
+
+δRecall (l) = RT P (l) =
+
+PT (l)
+P
+
+.
+
+(16)
+
+With the threshold value so determined, we can ascer-
+tain, for any pair of nodes in the network, whether there
+
+6
+
+16
+
+4 33
+
+(cid:51) (cid:32)
+
+(cid:22)(cid:22)
+(cid:20)(cid:25)
+
+(cid:21)
+(cid:22)
+
+(cid:11)(cid:70)(cid:12)
+
+(cid:39) (cid:32)
+
+(cid:20)
+(cid:49)
+
+(cid:19)(cid:39) (cid:32)
+
+(cid:76)
+
+(cid:22)(cid:22)
+
+(cid:76)
+(cid:51)(cid:111)
+(cid:3)(cid:3)(cid:3)(cid:3)(cid:22)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:24)(cid:21)(cid:20)
+(cid:3)(cid:3)(cid:3)(cid:3)(cid:28)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:20)(cid:25)(cid:19)
+(cid:3)(cid:3)(cid:3)(cid:20)(cid:24)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:19)(cid:26)(cid:27)(cid:28)
+(cid:3)(cid:3)(cid:3)(cid:20)(cid:25)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:25)(cid:26)(cid:22)
+(cid:3)(cid:3)(cid:3)(cid:20)(cid:28)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:25)(cid:27)(cid:28)
+(cid:3)(cid:3)(cid:3)(cid:21)(cid:20)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:19)(cid:21)(cid:22)
+(cid:3)(cid:3)(cid:3)(cid:21)(cid:22)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:19)(cid:27)(cid:23)(cid:27)
+(cid:3)(cid:3)(cid:3)(cid:21)(cid:23)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:21)(cid:27)(cid:27)
+(cid:3)(cid:3)(cid:3)(cid:22)(cid:19)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:23)(cid:25)(cid:22)
+(cid:3)(cid:3)(cid:3)(cid:22)(cid:20)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:20)(cid:24)(cid:21)(cid:25)
+(cid:3)(cid:3)(cid:3)(cid:22)(cid:21)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)
+(cid:19)(cid:17)(cid:20)(cid:23)(cid:20)(cid:28)
+(cid:3)(cid:3)(cid:3)(cid:22)(cid:23)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:3)(cid:19)(cid:17)(cid:19)(cid:27)(cid:22)(cid:26)
+
+Schematic illustration of our binary-state network reconstruction methodology based on statistical
+
+FIG. 1.
+inference. In this example, the data are collected by implementing the voter model on an empirical network - the Zachary
+karate-club network, where initially 30% of the nodes are randomly set to state 1. (a) The actual structure of the network. (b)
+The data matrix, where each row is a time string representing all nodes’ states at that time step and each column is a node’s
+state at diﬀerent time steps. The black and blank squares denote the 1 and 0 state, respectively. Say we wish to ascertain all
+neighbors of node 33 (highlighted by the red frame), so only the strings with Ψt
+33 = 0 and its next string at t + 1 are used.
+Each pair of useful strings are highlighted by a frame with a diﬀerent color. The quantity P 33
+16 is the probability of the event
+s33 (t + 1) = 1 under the prior conditions of s16 (t) = 1 and s33 (t) = 0. We have P 33
+16 = 2/3 for this example (highlighted by the
+blue frame). (c) The values of Pi→33 are obtained through the EM algorithm, where only the non-zero values of the probability
+are shown. The neighbors of node 33 in the network are shown in the lower right corner (marked by light red color). (d) The
+values of Pi→j for each node j , where the red nodes and blue points denote the actual and non-existent links, respectively.
+The red dashed line represents the threshold ∆ = 1/N for determining whether a reconstructed value Pi→j can be regarded as
+representing an actual link or a null link. (e) If we choose ∆ = 0, there are eight false links as predicted (marked by the red
+links in the network). However, for ∆ = 1/N , all actual links are correctly inferred.
+
+is an actual link. The F1 score is given by [71];
+
+F1 =
+
+2δP recision δRecall
+δP recision + δRecall
+
+,
+
+(18)
+
+where δP recision = PT /(PT +PF ) and δRecall = PT /(PT +
+NF ) respectively. The quantities PT , NF , PF and NT
+denote the true positive, false negative, false positive
+and true negative. The condition F1 = 1 indicates that
+the reconstructed links perfectly match with those in the
+
+original network.
+Another global indicator, denoted by ERR(RER ), is
+deﬁned as the ratio of the number of erroneous links (false
+positive and false negative) to the number of links of the
+true network. Namely,
+
+RER =
+
+NF + PF
+PT + NF
+
+.
+
+(19)
+
+(cid:11)(cid:68)(cid:12)
+
+(cid:11)(cid:69)(cid:12)
+
+(cid:11)(cid:68)(cid:12)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:27)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:38)
+(cid:50)
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:23)
+
+(cid:11)(cid:71)(cid:12)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:11)(cid:69)(cid:12)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:27)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:11)(cid:70)(cid:12)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:27)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:23)
+
+(cid:11)(cid:72)(cid:12)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:20)
+
+(cid:21)
+
+(cid:22)
+
+(cid:23)
+
+(cid:24)
+
+(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:23)
+·(cid:20)(cid:19)(cid:23)
+
+(cid:11)(cid:73)(cid:12)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:3)(cid:57)(cid:82)(cid:87)(cid:72)(cid:85)
+(cid:3)(cid:46)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)
+(cid:3)(cid:44)(cid:86)(cid:76)(cid:81)(cid:74)
+(cid:3)(cid:54)(cid:44)(cid:54)
+(cid:3)(cid:42)(cid:68)(cid:80)(cid:72)
+(cid:3)(cid:47)(cid:68)(cid:81)(cid:74)(cid:88)(cid:68)(cid:74)(cid:72)
+(cid:3)(cid:55)(cid:75)(cid:85)(cid:72)(cid:86)(cid:75)(cid:82)(cid:79)(cid:71)
+
+(cid:20)
+
+(cid:21)
+
+(cid:22)
+
+(cid:23)
+
+(cid:24)
+
+7
+
+(cid:20)
+
+(cid:21)
+
+(cid:22)
+
+(cid:23)
+
+·(cid:20)(cid:19)(cid:23)
+
+(cid:24)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:19)(cid:17)(cid:28)(cid:21)
+
+(cid:19)(cid:17)(cid:27)(cid:27)
+
+(cid:19)(cid:17)(cid:27)(cid:23)
+
+(cid:19)(cid:17)(cid:27)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:19)(cid:17)(cid:28)(cid:21)
+
+(cid:19)(cid:17)(cid:27)(cid:27)
+
+(cid:19)(cid:17)(cid:27)(cid:23)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:19)(cid:17)(cid:28)(cid:21)
+
+(cid:19)(cid:17)(cid:27)(cid:27)
+
+(cid:19)(cid:17)(cid:27)(cid:23)
+
+(cid:19)
+
+(cid:20)
+
+(cid:21)
+
+(cid:22)
+
+(cid:23)
+
+(cid:19)(cid:17)(cid:27)(cid:19)
+·(cid:20)(cid:19)(cid:23)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)
+
+(cid:21)
+
+(cid:22)
+
+(cid:23)
+
+(cid:19)(cid:17)(cid:27)(cid:19)
+·(cid:20)(cid:19)(cid:23)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)
+
+(cid:21)
+
+(cid:22)
+
+(cid:23)
+
+(cid:24)
+
+·(cid:20)(cid:19)(cid:23)
+
+(cid:77)
+
+ﬁ
+
+(cid:76)
+
+(cid:51)
+
+FIG. 2.
+
+Demonstration of placement of threshold
+probability value for calculating the global perfor-
+
+mance indicator F1. For combinations of two types of
+binary-state dynamics [voter dynamics in (a) and Kirman
+dynamics in (b)] and three complex network topologies, the
+values of Pi→j for i 6= j (i = 1, 2, · · · , N ) for each node in
+the network are shown. The result for a node corresponds
+to a column above the x-axis consisting of N − 1 number of
+points. The red nodes and blue points denote the actual and
+non-existent links, respectively. Three model networks (ER,
+SW and SF networks) are used. All networks have N = 100
+nodes and average degree hki = 6. The length of the binary
+time series is M = 15000.
+
+B. Reconstruction performance with model and
+real networks
+
+We consider eight types of binary-state dynamical pro-
+cesses as studied recently in Ref.
+[43] with the lasso
+method. For the network structures, we use three types
+of model complex networks (ER, SF, and WS) and a
+number of empirical networks as described in Appendix.
+In Tab. I, we compare the performance of our EM al-
+gorithm with that of the lasso method under the same
+setting. We see that the performances of the two meth-
+ods for the threshold dynamics are almost identical as
+both exhibit nearly perfect values of AUROC and AUPR
+(almost 100%). However, for the other seven types of
+binary-state dynamics in combination with diﬀerent net-
+work structures (model or empirical networks), our EM
+based reconstruction method yields results that are more
+accurate than those with the lasso method. The value of
+F1 scores from our method for various combinations of
+network structures and binary-state dynamics are sum-
+marized in Tab. II, where we see that the values of F1
+score in most cases are close to unity, indicating accurate
+reconstruction performance. Since the lasso method does
+not rely on any threshold value for each node [43], it is
+not feasible to compare performance in terms of the F1
+score.
+Figure 3 shows, for the model networks, the depen-
+dence of the values of AUROC and F1 score on M , the
+length of the binary time series, where we see that, in
+all cases, AUROC approaches a stable and large (e.g.,
+> 0.97) value for M ≈ 25000. The values of F1 score are
+also large (e.g., > 0.92). In terms of the network topol-
+
+TABLE I. Local reconstruction performance with model and real networks. Values of AUROC and AUPR for
+
+various dynamics on a variety of model and empirical (real) networks. The parameters in the dynamical models are described
+in Appendix. The size and average degree of the three types of model complex networks (ER, BA, and SW) are N = 500 and
+hki = 6. The length of the binary data string is M = 50000 for N = 500, M = 15000 for N < 500, and M = 100000 for
+N > 1000. The largest values AUROC and AUPR for each case is highlighted in bold. For comparison, the corresponding
+AUROC and AUPR values from the recent lasso method [43] are also shown.
+
+8
+
+Karate
+
+Football
+
+Dolphins
+
+Polbooks
+
+AUROC/AUPR
+Voter
+Kirman
+Ising
+SIS
+Game
+Language
+Threshold
+Ma jority
+lasso
+0.980/0.971
+0.990/0.959
+0.997/0.997
+0.954/0.946
+0.993/0.992
+0.961/0.926
+0.995/0.996
+0.997/0.996
+EM 0.999/0.999 1.000/1.000 1.000/1.000 0.983/0.982 1.000/1.000 0.998/0.998 1.000/1.000 1.000/1.000
+lasso
+0.974/0.917
+0.996/0.984
+0.999/0.997
+0.981/0.941
+0.996/0.988
+0.987/0.945 1.000/1.000 0.998/0.992
+EM 1.000/1.000 1.000/1.000 1.000/1.000 0.998/0.993 1.000/1.000 1.000/0.999 1.000/0.999 1.000/1.000
+lasso
+0.967/0.865
+0.984/0.912
+0.989/0.968
+0.896/0.801
+0.974/0.926
+0.951/0.851 1.000/0.999 0.983/0.943
+EM 1.000/0.999 1.000/1.000 1.000/0.999 0.940/0.864 0.994/0.991 0.991/0.975 0.998/0.998 0.999/0.997
+lasso
+0.959/0.812
+0.991/0.949
+0.991/0.950
+0.928/0.711
+0.986/0.920
+0.927/0.703 1.000/1.000 0.987/0.927
+EM 1.000/1.000 1.000/1.000 1.000/1.000 0.996/0.973 0.999/0.998 0.999/0.994 1.000/1.000 1.000/0.999
+lasso
+0.943/0.781
+0.655/0.331
+0.971/0.808
+0.789/0.607
+0.968/0.860
+0.923/0.622
+1.000/0.998
+0.965/0.723
+EM 1.000/1.000 0.955/0.799 1.000/1.000 0.977/0.893 0.999/0.997 0.999/0.990 1.000/1.000 1.000/1.000
+lasso
+0.999/0.975
+0.988/0.784
+0.998/0.974
+0.994/0.972
+0.999/0.979
+0.977/0.751 1.000/1.000 0.996/0.929
+EM 1.000/1.000 1.000/1.000 1.000/1.000 1.000/0.997 1.000/1.000 1.000/1.000 1.000/1.000 1.000/1.000
+lasso 1.000/1.000 0.992/0.838
+1.000/0.998 1.000/1.000 1.000/0.998
+0.997/0.930 1.000/1.000 0.998/0.937
+EM 1.000/1.000 1.000/1.000 1.000/1.000 1.000/1.000 1.000/1.000 1.000/1.000 1.000/1.000 1.000/1.000
+lasso
+0.996/0.953
+0.940/0.697
+0.994/0.963
+0.968/0.926
+0.989/0.946
+0.978/0.861
+1.000/0.998
+0.994/0.944
+EM 1.000/0.999 0.992/0.971 1.000/1.000 0.983/0.949 0.998/0.997 0.998/0.992 1.000/1.000 1.000/1.000
+
+Email
+
+ER(500)
+
+SW(500)
+
+BA(500)
+
+TABLE II. Characterization of global performance of proposed statistical inference based reconstruction
+
+method. Listed are the values of F1 score and ERR for various combinations of binary dynamics and networks (model
+and empirical), where the threshold ∆j for each node is determined according to Eq. (17). Other parameters are the same as
+in Tab. I.
+F1/ERR
+Voter
+Kirman
+Ising
+SIS
+Game
+Language Threshold Ma jority
+Karate 0.994/0.013 1.000/0.000 1.000/0.000 0.981/0.039 0.994/0.013 1.000/0.000 0.947/0.103 1.000/0.000
+Dolphins 1.000/0.000 1.000/0.000 0.997/0.006 0.984/0.031 0.994/0.013 1.000/0.000 1.000/0.000 0.994/0.013
+polbooks 0.986/0.027 1.000/0.000 0.990/0.020 0.867/0.254 0.972/0.054 0.960/0.077 0.986/0.027 0.972/0.057
+Football 1.000/0.000 0.999/0.002 0.999/0.002 0.844/0.277 0.992/0.015 0.941/0.116 0.963/0.072 0.992/0.016
+Email
+0.998/0.004 0.712/0.531 0.998/0.004 0.853/0.265 0.984/0.031 0.943/0.108 0.995/0.010 1.000/0.001
+ER(500) 1.000/0.000 1.000/0.000 1.000/0.000 0.998/0.005 1.000/0.000 1.000/0.000 1.000/0.000 1.000/0.000
+SW(500) 1.000/0.000 1.000/0.000 1.000/0.000 1.000/0.000 1.000/0.000 1.000/0.000 1.000/0.000 1.000/0.000
+BA(500) 0.998/0.006 0.930/0.142 0.997/0.008 0.968/0.064 0.993 /0.016 0.984/0.033 0.995/0.011 0.999/0.003
+
+types of dynamical processes. A possible reason is that,
+in the game dynamics, each node’s payoﬀ depends sen-
+sitively on the neighbors’ states. If one neighbor’s state
+is ﬂipped, there can be a dramatic change in the payoﬀ,
+aﬀecting directly its strategy (cooperation or defection)
+and consequently the reconstruction accuracy.
+
+IV. DISCUSSION
+
+In physics and mathematics, the various inverse prob-
+
+one can reduce the transmission rate λ in the SIS process
+and the transmission rate c1 + md in the Kirman dynam-
+ics. On the contrary, for other six types of binary-state
+dynamics, for a large average degree value, the probabil-
+ity of being activated is not signiﬁcantly increased due to
+its dependence on the density m/k (not on m itself ), so
+the slow pace of the dynamical evolution on the networks
+persists and, consequently, there is still suﬃcient amount
+of information required for the reconstruction task.
+Finally, we demonstrate the robustness of our EM al-
+gorithm against stochastic disturbance. Speciﬁcally, we
+randomly ﬂip a fraction ρ of the binary states among the
+total number M N of states and calculate the values of
+AUROC and F1 score versus ρ for various combinations
+of the dynamics and network topology. The results are
+shown in Fig. 5. From the top panel, we see that the
+values of AUROC are larger than 0.96 even when 20% of
+the states are ﬂipped, which are more robust than those
+with the lasso method (e.g., Tab. 3 in Ref. [43]). We
+also see that the reconstruction performances with the
+voter and threshold dynamics are relatively more robust
+to stochastic perturbations than those with the other six
+
+9
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:19)(cid:17)(cid:28)(cid:21)
+
+(cid:19)(cid:17)(cid:27)(cid:27)
+
+(cid:19)(cid:17)(cid:27)(cid:23)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:23)
+
+(cid:19)(cid:17)(cid:21)
+
+(cid:3)(cid:57)(cid:82)(cid:87)(cid:72)(cid:85)
+(cid:3)(cid:46)(cid:76)(cid:85)(cid:80)(cid:68)(cid:81)
+(cid:3)(cid:44)(cid:86)(cid:76)(cid:81)(cid:74)
+(cid:3)(cid:54)(cid:44)(cid:54)
+(cid:3)(cid:42)(cid:68)(cid:80)(cid:72)
+(cid:3)(cid:47)(cid:68)(cid:81)(cid:74)(cid:88)(cid:68)(cid:74)(cid:72)
+(cid:3)(cid:55)(cid:75)(cid:85)(cid:72)(cid:86)(cid:75)(cid:82)(cid:79)(cid:71)
+
+(cid:25)
+
+(cid:27) (cid:20)(cid:19) (cid:20)(cid:21) (cid:20)(cid:23) (cid:20)(cid:25)
+
+(cid:25)
+
+(cid:27) (cid:20)(cid:19) (cid:20)(cid:21) (cid:20)(cid:23) (cid:20)(cid:25)
+
+(cid:25)
+
+(cid:27) (cid:20)(cid:19) (cid:20)(cid:21) (cid:20)(cid:23) (cid:20)(cid:25)
+
+(cid:25)
+
+(cid:27) (cid:20)(cid:19) (cid:20)(cid:21) (cid:20)(cid:23) (cid:20)(cid:25)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:19)(cid:17)(cid:28)(cid:21)
+
+(cid:19)(cid:17)(cid:27)(cid:27)
+
+(cid:19)(cid:17)(cid:27)(cid:23)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:23)
+
+(cid:19)(cid:17)(cid:21)
+
+(cid:25)
+
+(cid:27) (cid:20)(cid:19) (cid:20)(cid:21) (cid:20)(cid:23) (cid:20)(cid:25)
+
+(cid:25)
+
+(cid:27) (cid:20)(cid:19) (cid:20)(cid:21) (cid:20)(cid:23) (cid:20)(cid:25)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:25)
+
+(cid:19)(cid:17)(cid:28)(cid:21)
+
+(cid:38)
+(cid:50)
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:27)(cid:27)
+
+(cid:19)(cid:17)(cid:27)(cid:23)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:23)
+
+(cid:19)(cid:17)(cid:21)
+
+TABLE III. Structural parameters of the ﬁve empiri-
+cal networks used in our numerical simulations. The
+
+parameters N and E are the total numbers of nodes and links,
+respectively, C and r are the clustering and assortative coef-
+ﬁcients, respectively, H is the degree heterogeneity deﬁned as
+H = hk2 i/hki2 .
+Network N
+E
+hki
+C
+r
+H
+Karate
+34
+78
+4.5882 0.5879 -0.4756 1.6933
+Dolphins 62
+159
+5.129 0.2901 -0.0718 1.3255
+Polbooks 105 441
+8.40
+0.4875 -0.1279 1.4207
+Football 115 613 10.6609 0.4032 0.1624 1.0069
+Email
+1133 5451 9.6222 0.2540 0.0782 1.9421
+
+nodal states to converge into a stable state, we randomly
+initialize the states of all nodes after each 100 time steps.
+
+(2) Kirman model.
+In this model, each node changes
+its state from 0 to 1 with the probability c1 + dm and
+the probability associated with the opposite change is
+c2 + d(k − m), where the parameters c1 and c2 quantify
+the individual action that is independent of the states of
+the neighbors and d characterizes the action of copying
+from neighbors’ state [73]. In our computations, we set
+c1 = 0.1, c2 = 0.1 and d = 0.08.
+
+(3) Ising model. This is the classic paradigm for un-
+derstanding ferromagnetism at the microscopic level of
+spins. Each node switches its state from 0 to 1 with
+the probability [1 + eβ (k−2m)/k ]−1 and from state 1 to 0
+with the probability [eβ (k−2m)/k ]/[1 + eβ (k−2m)/k ], where
+β = 2 characterizes the combining eﬀect of temperature
+and ferromagnetic interaction [74].
+
+(4) SIS model. This model describes the epidemic
+process of disease spreading with infection and recovery.
+A susceptible individual can be infected with probability
+1 − (1 − λ)m (from state 0 to 1) at each time step, and an
+infected node can recover to the susceptible state at the
+recovery rate µ, where λ is the transmission rate [52]. In
+our simulations, we set λ = 0.5 and µ = 0.5 if the average
+degree is smaller than 10; otherwise we choose λ = 0.35
+and µ = 0.5.
+
+10
+
+β
+
+β
+
+k ([(a−c)(k−m)+(b−d)m]) ]−1 and from state 1 to
+k ([(c−a)(k−m)+(d−b)m]) ]−1 ,
+
+(5) Game model. For evolutionary game dynamics on
+complex networks [54], a player (a node) can be a co-
+operator (active - the 1 state) or a defector (inactive -
+the 0 state). A player plays with each of his/her neigh-
+bors using one chosen strategy at every time step. The
+players obtain payoﬀ a (d) if both choose to cooper-
+ate (defect).
+If one player cooperates while the other
+defects, the cooperator will obtain low payoﬀ b, while
+the defector will gain higher payoﬀ c. The payoﬀ of
+a player is the sum of payoﬀs from playing game with
+all its neighbors. A player switches the strategy with a
+probability that depends on the payoﬀ it may gain in
+the next round under the current circumstance. Each
+player switches its state from 0 to 1 with the probabil-
+ity [α + e
+0 with the probability [α + e
+where α qualiﬁes the willingness for a player to change
+its strategy according to those of its neighbors, and β
+is associated with the eﬀect of the expected payoﬀ. We
+choose a = b = 5, c = d = 0, α = 0.1, and β = 1 in our
+simulations.
+(6) Language model.
+In this model, the two states
+denote two diﬀerent language choices of a person. The
+transition probability from the primary to the secondary
+language is proportional to the fraction of speakers in the
+neighbors with the power α, multiplied by the parameter
+s (or 1 − s) according to the respective language [75],
+where α = 0.7 and s = 0.5. Because of the problem of
+converging to a stable state, we randomly initialize the
+states of all nodes after every 100 time steps.
+(7) Threshold model. This is a deterministic model,
+where a node becomes active if the fraction of active
+neighbors m/k is larger than the threshold 1/2, and no
+recovery transformation is permitted [76]. Due to the
+problem of fast convergence to a stable state from any
+initial condition, we randomly initialize the states of all
+nodes after every 5 time steps.
+(8) Majority-voter model.
+In this model, a node tends
+to align with the ma jority state of its neighbors, with
+Q being the probability of misalignment [77]. We set
+Q = 0.3 and randomly initialize the states of all nodes
+after every 10 time steps to overcome the diﬃculty of fast
+convergence to a stable state.
+
+[1] S. Gruen, M. Diesmann, and A. Aertsen, Neu. Comp.
+14, 43 (2002).
+[2] R. G¨utig, A. Aertsen, and S. Rotter, Neu. Comp. 14,
+121 (2002).
+[3] T. S. Gardner, D. di Bernardo, D. Lorenz, and J. J.
+Collins, Science 301, 102 (2003).
+[4] G. Pipa and S. Gr¨un, Neurocomp. 52, 31 (2003).
+[5] A. Brovelli, M. Ding, A. Ledberg, Y. Chen, R. Nakamura,
+and S. L. Bressler, Proc. Nat. Acad. Sci. (USA) 101, 9849
+(2004).
+[6] V. M. Eguiluz, D. R. Chialvo, G. A. Cecchi, M. Baliki,
+and A. V. Apkarian, Phys. Rev. Lett. 94, 018102 (2005).
+
+[7] D. S. Bassett, A. Meyer-Lindenberg, S. Achard, T. Duke,
+and E. Bullmore, Proc. Nat. Acad. Sci. (USA) 103, 19518
+(2006).
+[8] D. Yu, M. Righero, and L. Kocarev, Phys. Rev. Lett.
+97, 188701 (2006).
+[9] J. Bongard and H. Lipson, Proc. Natl. Acad. Sci. (USA)
+104, 9943 (2007).
+[10] M. Timme, Phys. Rev. Lett. 98, 224101 (2007).
+[11] W. K.-S. Tang, M. Yu, and L. Kocarev, in Circuits and
+Systems, ISCAS 2007. IEEE Inter. Symp. (IEEE, 2007)
+pp. 2646–2649.
+
+and
+
+and
+
+[12] D. Napoletani and T. D. Sauer, Phys. Rev. E 77, 026103
+(2008).
+[13] E. Sontag, Essays Biochem. 45, 161 (2008).
+[14] A. Clauset, C. Moore, and M. E. J. Newman, Nature
+453, 98 (2008).
+[15] W.-X. Wang, Q.-F. Chen, L. Huang, Y.-C. Lai,
+M. Harrison, Phys. Rev. E 80, 016116 (2009).
+[16] J. Donges, Y. Zou, N. Marwan, and J. Kurths, EPL
+(Europhys. Lett.) 87, 48007 (2009).
+[17] J. Ren, W.-X. Wang, B. Li, and Y.-C. Lai, Phys. Rev.
+Lett. 104, 058701 (2010).
+[18] J. Chan, A. Holmes, and R. Rabadan, PLoS Comp. Bio.
+6, e1001005 (2010).
+[19] Y. Yuan, G.-B. Stan, S. Warnick, and J. Goncalves, in
+Decision and Control (CDC), 2010 49th IEEE Confer-
+ence (IEEE, 2010) pp. 810–815.
+[20] Z. Levna ji´c and A. Pikovsky, Phys. Rev. Lett. 107,
+034101 (2011).
+[21] S. Hempel, A. Koseska, J. Kurths, and Z. Nikoloski,
+Phys. Rev. Lett. 107, 054101 (2011).
+[22] S. G. Shandilya and M. Timme, New J. Phys. 13, 013004
+(2011).
+[23] D. Yu and U. Parlitz, PLOS ONE 6, e24333 (2011).
+[24] W.-X. Wang, Y.-C. Lai, C. Grebogi, and J.-P. Ye, Phys.
+Rev. X 1, 021021 (2011).
+[25] W.-X. Wang, R. Yang, Y.-C. Lai, V. Kovanis,
+C. Grebogi, Phys. Rev. Lett. 106, 154101 (2011).
+[26] W.-X. Wang, R. Yang, Y.-C. Lai, V. Kovanis,
+and
+M. A. F. Harrison, EPL (Europhys. Lett.) 94, 48006
+(2011).
+[27] R. Yang, Y.-C. Lai, and C. Grebogi, Chaos 22, 033119
+(2012).
+[28] W. Pan, Y. Yuan, and G.-B. Stan, in Decision and Con-
+trol (CDC), 2012 IEEE 51st Annu. Conf. (IEEE, 2012)
+pp. 2334–2339.
+[29] W.-X. Wang, J. Ren, Y.-C. Lai, and B. Li, Chaos 22,
+033131 (2012).
+[30] T. Berry, F. Hamilton, N. Peixoto,
+Neurosci. Meth. 209, 388 (2012).
+[31] O. Stetter, D. Battaglia, J. Soriano, and T. Geisel, PLoS
+Comp. Biol. 8, e1002653 (2012).
+[32] R.-Q. Su, X. Ni, W.-X. Wang, and Y.-C. Lai, Phys. Rev.
+E 85, 056220 (2012).
+[33] R.-Q. Su, W.-X. Wang, and Y.-C. Lai, Phys. Rev. E 85,
+065201 (2012).
+[34] F. Hamilton, T. Berry, N. Peixoto, and T. Sauer, Phys.
+Rev. E 88, 052715 (2013).
+[35] D. Zhou, Y. Xiao, Y. Zhang, Z. Xu, and D. Cai, Phys.
+Rev. Lett. 111, 054102 (2013).
+[36] E. S. C. Ching, P.-Y. Lai,
+Phys. Rev. E 88, 042817 (2013).
+[37] M. Timme and J. Casadiego, J. Phys. A. Math. Theo.
+47, 343001 (2014).
+[38] R.-Q. Su, Y.-C. Lai, and X. Wang, Entropy 16, 3889
+(2014).
+[39] R.-Q. Su, Y.-C. Lai, X. Wang, and Y.-H. Do, Sci. Rep.
+4, 3944 (2014).
+[40] Z.-S. Shen, W.-X. Wang, Y. Fan, Z. Di, and Y.-C. Lai,
+Nat. Commun. 5, 4323 (2014).
+[41] E. S. C. Ching, P.-Y. Lai,
+Phys. Rev. E 91, 030801 (2015).
+[42] R.-Q. Su, W.-W. Wang, X. Wang, and Y.-C. Lai, R.
+Soc. Open Sci. 3, 150577 (2016).
+
+and C. Y. Leung,
+
+and C. Y. Leung,
+
+and T. Sauer, J.
+
+11
+
+Lai,
+
+[43] J.-W. Li, Z.-S. Shen, W.-X. Wang, C. Grebogi, and Y.-
+C. Lai, Phys. Rev. E 95, 032303 (2017) .
+[44] C. Ma,
+H.-F.
+Zhang,
+and Y.-C.
+Phys. Rev. E 96, 022320 (2017) .
+[45] O. Feinerman, A. Rotem, and E. Moses, Nat. Phys. 4,
+967 (2008).
+[46] J. Soriano, M. R. Mart´ınez, T. Tlusty, and E. Moses,
+Proc. Nat. Acad. Sci. (USA) 105, 13758 (2008).
+[47] K. J. Friston, NeuroImage 16, 513 (2002).
+[48] S. Pa jevic and D. Plenz, PLoS Comp. Biol. 5, e1000271
+(2009).
+[49] S. Foucart and H. Rauhut, A Mathematical Introduction
+to Compressive Sensing (Birkh¨auser, New York, 2013).
+[50] X. Han, Z.-S. Shen, W.-X. Wang,
+and Z.-R. Di,
+Phys. Rev. Lett. 114, 028701 (2015) .
+[51] W.-X. Wang, Y.-C. Lai, and C. Grebogi, Phys. Rep.
+644, 1 (2016).
+[52] R. Pastor-Satorras, C. Castellano, P. Van Mieghem, and
+A. Vespignani, Rev. Mod. Phys. 87, 925 (2015).
+[53] A. Kumar, S. Rotter, and A. Aertsen, Nat. Rev. Neu-
+rosci. 11, 615 (2010).
+[54] G. Szab´o and G. Fath, Phys. Rep. 446, 97 (2007).
+[55] W.-B. Du, X.-B. Cao, M.-B. Hu, and W.-X. Wang, EPL
+(Europhys. Lett.) 87, 60004 (2009).
+[56] Y. Wang, G. Xiao, and J. Liu, New J. Phys. 14, 013015
+(2012).
+[57] Y.-Z. Chen and Y.-C. Lai, arXiv 1611:01849 (2016).
+[58] B. Ball, B. Karrer, and M. E. Newman, Phys. Rev. E
+84, 036103 (2011).
+[59] C. De Bacco, E. A. Power, D. B. Larremore,
+C. Moore, Phys. Rev. E 95, 042317 (2017).
+[60] X. Zhao, B. Yang, X. Liu, and H. Chen, Phys. Rev. E
+95, 042313 (2017).
+[61] X. Zhang, T. Martin, and M. E. Newman, Phys. Rev. E
+91, 032803 (2015).
+[62] M. E. J. Newman, Phys. Rev. E 94, 052315 (2016) .
+[63] M.
+E.
+J.
+Newman
+and
+G.
+Reinert,
+Phys. Rev. Lett. 117, 078301 (2016) .
+[64] B.
+Karrer
+and
+M.
+E.
+Phys. Rev. E 83, 016107 (2011) .
+[65] A. P. Dempster, N. M. Laird, and D. B. Rubin, J. Royal
+Stat. Soc. Ser. B (Meth.) 39, 1 (1977).
+[66] T. Needham, Ame. Math. Monthly 100, 768 (1993).
+[67] J. Davis and M. Goadrich, in Proceedings of the 23rd in-
+ternational conference on Machine learning (ACM, 2006)
+pp. 233–240.
+[68] P. Erdos and A. R´enyi, Publ. Math. Inst. Hung. Acad.
+Sci 5, 17 (1960).
+[69] A.-L. Barab´asi and R. Albert, Science 286, 509 (1999).
+[70] D. J. Watts and S. H. Strogatz, Nature 393, 440 (1998).
+[71] D. M. Powers, J. Mach. Learning Tech. 2, 37 (2011).
+[72] V. Sood and S. Redner, Phys. Rev. Lett. 94, 178701
+(2005).
+[73] A. Kirman, Quar. J. Econ. 108, 137 (1993).
+[74] P. L. Krapivsky, S. Redner, and E. Ben-Naim, A Kinetic
+View of Statistical Physics (Cambridge University Press,
+2010).
+[75] D. M. Abrams and S. H. Strogatz, Nature 424, 900
+(2003).
+[76] M. Granovetter, Ame. J. Sociol. 83, 1420 (1978).
+[77] M. J. de Oliveira, J. Stat. Phys. 66, 273 (1992).
+
+Newman,
+
+and
+
+J.
+
+

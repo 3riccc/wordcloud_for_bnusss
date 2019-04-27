@@ -1,0 +1,729 @@
+9
+1
+0
+2
+
+r
+
+a
+
+M
+
+7
+
+]
+
+G
+
+L
+
+.
+
+s
+
+c
+
+[
+
+2
+v
+8
+2
+4
+2
+0
+
+.
+
+3
+0
+9
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+FAST GRAPH REPRESENTATION LEARN ING W ITH
+PYTORCH GEOMETRIC
+
+Matthias Fey & Jan E. Lenssen
+
+Department of Computer Graphics
+TU Dortmund University
+44227 Dortmund, Germany
+
+{matthias.fey,janeric.lenssen}@udo.edu
+
+ABSTRACT
+
+We introduce PyTorch Geometric, a library for deep learning on irregularly struc-
+tured input data such as graphs, point clouds and manifolds, built upon PyTorch. In
+addition to general graph data structures and processing methods, it contains a va-
+riety of recently published methods from the domains of relational learning and 3D
+data processing. PyTorch Geometric achieves high data throughput by leveraging
+sparse GPU acceleration, by providing dedicated CUDA kernels and by introduc-
+ing eﬃcient mini-batch handling for input examples of diﬀerent size. In this work,
+we present the library in detail and perform a comprehensive comparative study of
+the implemented methods in homogeneous evaluation scenarios.
+
+1
+
+INTRODUCTION
+
+Graph Neural Networks (GNNs) recently emerged as a powerful approach for representation learning
+on graphs, point clouds and manifolds (Bronstein et al., 2017; Kipf & Welling, 2017). Similar to the
+concepts of convolutional and pooling layers on regular domains, GNNs are able to (hierarchically)
+extract localized embeddings by passing, transforming, and aggregating information (Bronstein et al.,
+2017; Gilmer et al., 2017; Battaglia et al., 2018; Ying et al., 2018).
+However, implementing GNNs is challenging, as high GPU throughput needs to be achieved on
+highly sparse and irregular data of varying size. Here, we introduce PyTorch Geometric (PyG), a
+geometric deep learning extension library for PyTorch (Paszke et al., 2017) which achieves high
+performance by leveraging dedicated CUDA kernels. Following a simple message passing API, it
+bundles most of the recently proposed convolutional and pooling layers into a single and uniﬁed
+framework. All implemented methods support both CPU and GPU computations and follow an
+immutable data ﬂow paradigm that enables dynamic changes in graph structures through time. PyG
+is released under the MIT license and is available on GitHub.1 It is thoroughly documented and
+provides accompanying tutorials and examples as a ﬁrst starting point.2
+
+2 OVERV IEW
+
+In PyG, we represent a graph é = (X , (I , E )) by a node feature matrix X ࢠ Ó × and a sparse
+adjacency tuple (I , E ), where I ࢠ ࡃ2× encodes edge indices in coordinate (COO) format and
+E ࢠ Ó× (optionally) holds -dimensional edge features. All user facing APIs, e.g., data load-
+ing routines, multi-GPU support, data augmentation or model instantiations are heavily inspired by
+PyTorch to keep them as familiar as possible.
+Neighborhood Aggregation. Generalizing the convolutional operator to irregular domains is typ-
+ically expressed as a neighborhood aggregation or message passing scheme (Gilmer et al., 2017)
+(1)
+
+,  (−1)
+
+
+
+
+1GitHub repository: https://github.com/rusty1s/pytorch_geometric
+2Documentation: https://rusty1s.github.io/pytorch_geometric
+
+, , 
+
+ =  ()   (−1)
+ ()
+
+, 
+
+ࢠ ()
+
+()   (−1)
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+Figure 1: Computation scheme of a GNN layer by leveraging gather and scatter methods based on
+edge indices I , hence alternating between node parallel space and edge parallel space.
+
+where  denotes a diﬀerentiable, permutation invariant function, e.g., sum, mean or max, and  and
+ denote diﬀerentiable functions, e.g., MLPs. In practice, this can be achieved by gathering and
+scattering of node features and making use of broadcasting for element-wise computation of  and
+, as visualized in Figure 1. Although working on irregularly structured input, this scheme can be
+heavily accelerated by the GPU.
+We provide the user with a general MessagePassing interface to allow for rapid and clean pro-
+totyping of new research ideas. To use, users only need to deﬁne the methods () , i.e., message,
+and  () , i.e., update, as well as chosing an aggregation scheme . For implementing () , node
+features are automatically mapped to the respective source and target nodes.
+Almost all recently proposed neighborhood aggregation functions can be lifted to this interface, in-
+cluding (but not limited to) the methods already integrated into PyG: For learning on arbitrary graphs
+we have already implemented GCN (Kipf & Welling, 2017) and its simpliﬁed version (SGC) from Wu
+et al. (2019), the spectral chebyshev and ARMA ﬁlter convolutions (Deﬀerrard et al., 2016; Bianchi
+et al., 2019), GraphSAGE (Hamilton et al., 2017), the attention-based operators GAT (Veli
+kovik
+et al., 2018) and AGNN (Thekumparampil et al., 2018), the Graph Isomorphism Network (GIN)
+from Xu et al. (2019), and the Approximate Personalized Propagation of Neural Predictions (APPNP)
+operator (Klicpera et al., 2019). For learning on point clouds, manifolds and graphs with multi-
+dimensional edge features, we provide the relational GCN operator from Schlichtkrull et al. (2018),
+PointNet++ (Qi et al., 2017), PointCNN (Li et al., 2018), and the continuous kernel-based methods
+MPNN (Gilmer et al., 2017), MoNet (Monti et al., 2017), SplineCNN (Fey et al., 2018) and the edge
+convolution operator (EdgeCNN) from Wang et al. (2018b).
+Global Pooling. PyG also supports graph-level outputs as opposed to node-level outputs by pro-
+viding a variety of readout functions such as global add, mean or max pooling. We additionaly oﬀer
+more sophisticated methods such as set-to-set (Vinyals et al., 2016), sort pooling (Zhang et al., 2018)
+or the global soft attention layer from Li et al. (2016).
+Hierarchical Pooling. To further extract hierarchical information and to allow deeper GNN mod-
+els, various pooling approaches can be applied in a spatial or data-dependent manner. We currently
+provide implementation examples for Graclus (Dhillon et al., 2007; Fagginger Auer & Bisseling,
+2011) and voxel grid pooling (Simonovsky & Komodakis, 2017), the iterative farthest point sam-
+pling algorithm (Qi et al., 2017) followed by -NN or query ball graph generation (Qi et al., 2017;
+Wang et al., 2018b), and diﬀerentiable pooling mechanisms such as DiﬀPool (Ying et al., 2018) and
+t op pooling (Gao & Ji, 2018; Cangea et al., 2018).
+Mini-batch Handling. Our framework supports batches of multiple graph instances (of potentially
+diﬀerent size) by automatically creating a single (sparse) block-diagonal adjacency matrix and con-
+catenating feature matrices in the node dimension. Therefore, neighborhood aggregation methods
+can be applied without modiﬁcation, since no messages are exchanged between disconnected graphs.
+In addition, an automatically generated assignment vector ensures that node-level information is not
+aggregated across graphs, e.g., when executing global aggregation operators.
+Processing of Datasets. We provide a consistent data format and an easy-to-use interface for the
+creation and processing of datasets, both for large datasets and for datasets that can be kept in memory
+
+2
+
+12341,2,1,21,3,1,31,4,1,4gather(,)1scatter_(,)Cora
+
+CiteSeer
+
+PubMed
+
+Table 1: Semi-supervised node classiﬁcation with both ﬁxed and random splits.
+Fixed
+Random
+Fixed
+Random
+Fixed
+Random
+81.4 ± 0.7
+77.8 ± 2.2
+70.2 ± 1.0
+67.7 ± 1.7
+78.4 ± 0.4
+75.8 ± 2.2
+81.5 ± 0.6
+79.4 ± 1.9
+71.1 ± 0.7
+68.1 ± 1.7
+79.0 ± 0.6
+77.4 ± 2.4
+83.1 ± 0.4
+81.0 ± 1.4
+70.8 ± 0.5
+69.2 ± 1.9
+78.5 ± 0.3
+78.3 ± 2.3
+81.7 ± 0.1
+80.2 ± 1.6
+71.3 ± 0.2
+68.7 ± 1.6
+78.9 ± 0.1
+76.5 ± 2.4
+82.8 ± 0.6
+80.7 ± 1.4
+68.9 ± 1.6
+78.8 ± 0.3
+77.7 ± 2.6
+71.8 ± 0.5
+
+72.3 ± 1.1
+
+80.1 ± 0.2
+
+83.3 ± 0.5
+
+82.2 ± 1.5
+
+Method
+
+Cheby
+GCN
+GAT
+SGC
+ARMA
+APPNP
+
+70.0 ± 1.4
+
+79.4 ± 2.2
+
+during training. In order to create new datasets, users just need to read/download their data and
+convert it to the PyG data format in the respective process method. In addition, datasets can
+be modiﬁed by the use of transforms, which take in separate graphs and transform them, e.g.,
+for data augmentation, for enhancing node features with synthetic structural graph properties, to
+automatically generate graphs from point clouds or to sample point clouds from meshes.
+PyG already supports a lot of common benchmark datasets often found in literature which are au-
+tomatically downloaded and processed on ﬁrst instantiation. In detail, we provide over 60 graph
+kernel benchmark datasets3 (Kersting et al., 2016), e.g., PROTEINS or IMDB-BINARY, the cita-
+tion graphs Cora, CiteSeer, PubMed and Cora-Full (Sen et al., 2008; Bojchevski & Günnemann,
+2018), the Coauthor CS/Physics and Amazon Computers/Photo datasets from Shchur et al. (2018),
+the molecule datasets QM7b (Montavon et al., 2013) and QM9 (Ramakrishnan et al., 2014), and the
+protein-protein interaction graphs from Hamilton et al. (2017). In addition, we provide embedded
+datasets like MNIST superpixels (Monti et al., 2017), FAUST (Bogo et al., 2014), ModelNet10/40
+(Wu et al., 2015), ShapeNet (Chang et al., 2015), COMA (Ranjan et al., 2018), and the PCPNet
+dataset from Guerrero et al. (2018).
+
+3 EMPIRICAL EVALUATION
+
+We evaluate the correctness of the implemented methods by performing a comprehensive compara-
+tive study in homogeneous evaluation scenarios. Descriptions and statistics of all used datasets can
+be found in Appendix A. For all experiments, we tried to follow the hyperparameter setup of the
+respective papers as closely as possible. The individual experimental setups can be derived and all
+experiments can be replicated from the code provided at our GitHub repository.4
+Semi-supervised Node Classiﬁcation. We perform semi-supervised node classiﬁcation (cf. Ta-
+ble 1) by reporting average accuracies of (a) 100 runs for the ﬁxed train/val/test split from Kipf &
+Welling (2017), and (b) 100 runs of randomly initialized train/val/test splits as suggested by Shchur
+et al. (2018), where we additionally ensure uniform class distribution on the train split.
+Nearly all experiments show a high reproducibility of the results reported in the respective papers.
+However, test performance is worse for all models when using random data splits. Among the exper-
+iments, the APPNP operator (Klicpera et al., 2019) generally performs best, with ARMA (Bianchi
+et al., 2019), SGC (Wu et al., 2019), GCN (Kipf & Welling, 2017) and GAT (Veli
+kovik et al., 2018)
+following closely behind.
+Graph Classiﬁcation. We report the average accuracy of 10-fold cross validation on a number of
+common benchmark datasets (cf. Table 2) where we randomly sample a training fold to serve as a
+validation set. We only make use of discrete node features. In case they are not given, we use one-hot
+encodings of node degrees as feature input. For all experiments, we use the global mean operator
+to obtain graph-level outputs. Inspired by the Jumping Knowledge framework (Xu et al., 2018), we
+compute graph-level outputs after each convolutional layer and combine them via concatenation.
+For evaluating the (global) pooling operators, we use the GraphSAGE operator as our baseline. We
+omit Jumping Knowledge when comparing global pooling operators, and hence report an additional
+
+3Kernel datasets: http://graphkernels.cs.tu-dortmund.de
+4https://github.com/rusty1s/pytorch_geometric/tree/master/benchmark
+
+3
+
+Method
+
+MUTAG
+
+t
+
+a
+
+l
+
+F
+
+r
+
+GCN
+SAGE
+GIN-0
+GIN-
+. Graclus
+DiﬀPool
+l SAGE w/o JK
+GlobalAttention
+Set2Set
+SortPool
+
+t op
+
+b
+o
+
+H
+
+G
+
+e
+
+i
+
+a
+
+l
+
+85.7 ± 7.7
+
+74.6 ± 7.7
+74.9 ± 8.7
+83.4 ± 7.5
+77.1 ± 7.2
+76.3 ± 7.5
+73.7 ± 7.8
+74.6 ± 8.0
+73.7 ± 6.9
+
+77.3 ± 8.9
+
+85.0 ± 10.3
+
+Table 2: Graph classiﬁcation.
+
+PROTEINS COLLAB
+80.6 ± 2.1
+
+73.8 ± 3.6
+
+73.1 ± 3.8
+72.1 ± 5.1
+72.6 ± 4.9
+73.0 ± 4.1
+72.7 ± 4.1
+72.7 ± 3.6
+72.5 ± 4.5
+72.4 ± 4.1
+
+73.6 ± 3.7
+
+75.1 ± 3.5
+
+79.7 ± 2.2
+
+79.7 ± 1.7
+79.3 ± 2.7
+79.8 ± 2.4
+79.6 ± 2.0
+78.9 ± 2.3
+79.6 ± 2.4
+79.6 ± 2.3
+77.7 ± 3.1
+
+79.6 ± 2.2
+
+IMDB-
+BINARY
+
+72.8 ± 4.5
+
+72.6 ± 4.5
+72.4 ± 3.6
+72.1 ± 5.1
+72.2 ± 4.2
+72.5 ± 4.6
+72.1 ± 4.4
+72.3 ± 3.8
+72.2 ± 4.2
+
+72.6 ± 3.9
+
+72.4 ± 3.8
+
+REDDIT-
+BINARY
+
+90.3 ± 3.0
+
+89.3 ± 3.3
+89.1 ± 1.9
+89.6 ± 2.6
+88.8 ± 3.2
+87.6 ± 2.4
+87.9 ± 1.9
+87.4 ± 2.5
+74.9 ± 6.7
+
+92.1 ± 2.6
+
+89.6 ± 2.4
+
+Table 3: Point cloud classiﬁcation.
+
+ModelNet10
+
+Method
+
+MPNN
+PointNet++
+EdgeCNN
+SplineCNN
+PointCNN
+
+92.07
+92.51
+92.62
+92.65
+
+93.28
+
+Table 4: Training runtime comparison.
+
+Dataset
+
+Epochs Method DGL
+
+Cora
+CiteSeer
+PubMed
+MUTAG
+
+200
+200
+200
+50
+
+GCN
+GAT
+GCN
+GAT
+GCN
+GAT
+R-GCN
+
+4.2s
+33.4s
+3.9s
+28.9s
+12.7s
+87.7s
+3.3s
+
+PyG
+0.7s
+2.2s
+0.8s
+2.4s
+2.0s
+12.3s
+2.4s
+
+baseline based on global mean pooling. For each dataset, we tune (1) the number of hidden units
+ࢠ {16, 32, 64, 128} and (2) the number of layers ࢠ {2, 3, 4, 5} with respect to the validation set.
+Except for DiﬀPool (Ying et al., 2018), (global) pooling operators do not perform as beneﬁcally as
+expected to their respective (ﬂat) counterparts, especially when baselines are enhanced by Jump-
+ing Knowledge (Xu et al., 2018). However, the potential of more sophisticated approaches may
+not be well-reﬂected on these simple benchmark tasks (Cai & Wang, 2018). Among the ﬂat GNN
+approaches, the GIN layer (Xu et al., 2019) generally achieves the best results.
+
+Point Cloud Classiﬁcation. We evaluate various point cloud methods on ModelNet10 (Wu et al.,
+2015) where we uniformly sample 1,024 points from mesh surfaces based on face area (cf. Table 3).
+As hierarchical pooling layers, we use the iterative farthest point sampling algorithm followed by a
+new graph generation based on a larger query ball (PointNet++ (Qi et al., 2017), MPNN (Gilmer
+et al., 2017) and SplineCNN (Fey et al., 2018)) or based on a ﬁxed number of nearest neighbors
+(EdgeCNN (Wang et al., 2018b) and PointCNN (Li et al., 2018)). We have taken care to use approx-
+imately the same number of parameters for each model.
+All approaches perform nearly identically with PointCNN (Li et al., 2018) taking a slight lead. We
+attribute this to the fact that all operators are based on similar principles and might have the same
+expressive power for the given task.
+
+Runtime Experiments. We conduct several experiments on a number of dataset-model pairs to
+report the runtime of a whole training procedure obtained on a single NVIDIA GTX 1080 Ti (cf. Ta-
+ble 4). As it shows, PyG is very fast despite working on sparse data. Compared to the Deep Graph
+Library (DGL) 0.1.3 (Wang et al., 2018a), PyG trains models up to 15 times faster.
+
+4
+
+4 ROADMAP AND CONCLUSION
+
+We presented the PyTorch Geometric framework for fast representation learning on graphs, point
+clouds and manifolds. We are actively working to further integrate existing methods and plan to
+quickly integrate future methods into our framework. All researchers and software engineers are
+invited to collaborate with us in extending its scope.
+
+ACKNOWLEDGMENTS
+
+Research Center SFB 876, Providing Information by Resource-Constrained Analysis, projects A6 and
+
+This work has been supported by the German Research Association (DFG) within the Collaborative
+B2. We thank Moritz Ludolph for his contribution to PyTorch Geometric and Christopher Morris
+for proofreading and helpful advice.
+
+REFERENCES
+
+P. W. Battaglia, J. B. Hamrick, V. Bapst, A. Sanchez-Gonzalez, V. F. Zambaldi, M. Malinowski,
+A. Tacchetti, D. Raposo, A. Santoro, R. Faulkner, Ç. Gülçehre, F. Song, A. J. Ballard, J. Gilmer,
+G. E. Dahl, A. Vaswani, K. Allen, C. Nash, V. Langston, C. Dyer, N. Heess, D. Wierstra, P. Kohli,
+M. Botvinick, O. Vinyals, Y. Li, and R. Pascanu. Relational inductive biases, deep learning, and
+graph networks. CoRR, abs/1806.01261, 2018.
+F. M. Bianchi, D. Grattarola, L. Livi, and C. Alippi. Graph neural networks with convolutional
+ARMA ﬁlters. CoRR, abs/1901.01343, 2019.
+F. Bogo, J. Romero, M. Loper, and M. J. Black. FAUST: Dataset and evaluation for 3D mesh regis-
+tration. In CVPR, 2014.
+A. Bojchevski and S. Günnemann. Deep gaussian embedding of attributed graphs: Unsupervised
+inductive learning via ranking. In ICLR, 2018.
+M. M. Bronstein, J. Bruna, Y. LeCun, A. Szlam, and P. Vandergheynst. Geometric deep learning:
+Going beyond euclidean data. In Signal Processing Magazine, 2017.
+C. Cai and Y. Wang. A simple yet eﬀective baseline for non-attribute graph classiﬁcation. CoRR,
+abs/1811.03508, 2018.
+C. Cangea, P. Veli
+kovik, N. Jovanovik, T. N. Kipf, and P. Liò. Towards sparse hierarchical graph
+classiﬁers. In NeurIPS-W, 2018.
+A. X. Chang, T. Funkhouser, L. J. Guibas, P. Hanrahan, Q. Huang, Z. Li, S. Savarese, M. Savva,
+S. Song, H. Su, J. Xiao, L. Yi, and F. Yu. ShapeNet: An information-rich 3D model repository.
+CoRR, abs/1512.03012, 2015.
+M. Deﬀerrard, X. Bresson, and P. Vandergheynst. Convolutional neural networks on graphs with
+fast localized spectral ﬁltering. In NIPS, 2016.
+I. S. Dhillon, Y. Guan, and B. Kulis. Weighted graph cuts without eigenvectors: A multilevel ap-
+proach. In TPAMI, 2007.
+B. O. Fagginger Auer and R. H. Bisseling. A GPU algorithm for greedy graph matching. In Facing
+2011.
+M. Fey, J. E. Lenssen, F. Weichert, and H. Müller. SplineCNN: Fast geometric deep learning with
+continuous B-spline kernels. In CVPR, 2018.
+
+the Multicore - Challenge II - Aspects of New Paradigms and Technologies in Parallel Computing,
+
+H. Gao and S. Ji. Graph U-Net. https://openreview.net/forum?id=HJePRoAct7,
+
+2018. Submitted to ICLR.
+J. Gilmer, S. S. Schoenholz, P. F. Riley, O. Vinyals, and G. E. Dahl. Neural message passing for
+quantum chemistry. In ICML, 2017.
+
+5
+
+P. Guerrero, Y. Kleiman, M. Ovsjanikov, and N. J. Mitra. PCPNet: Learning local shape properties
+from raw point clouds. Computer Graphics Forum, 37, 2018.
+W. L. Hamilton, R. Ying, and J. Leskovec. Inductive representation learning on large graphs. In
+NIPS, 2017.
+K. Kersting, N. M. Kriege, C. Morris, P. Mutzel, and M. Neumann. Benchmark data sets for graph
+
+kernels. http://graphkernels.cs.tu-dortmund.de, 2016.
+
+T. N. Kipf and M. Welling. Semi-supervised classiﬁcation with graph convolutional networks. In
+ICLR, 2017.
+J. Klicpera, A. Bojchevski, and S. Günnemann. Predict then propagate: Graph neural networks meet
+personalized PageRank. In ICLR, 2019.
+Y. Li, D. Tarlow, M. Brockschmidt, and R. Zemel. Gated graph sequence neural networks. In ICLR,
+2016.
+Y. Li, R. Bu, M. Sun, W. Wu, X. Di, and B. Chen. PointCNN: Convolution on ô -transformed points.
+In NeurIPS, 2018.
+G. Montavon, M. Rupp, V. Gobre, A. Vazquez-Mayagoitia, K. Hansen, A. Tkatchenko, K. Müller,
+and O. A. von Lilienfeld. Machine learning of molecular electronic properties in chemical com-
+
+pound space. New Journal of Physics, 2013.
+
+F. Monti, D. Boscaini, J. Masci, E. Rodolà, J. Svoboda, and M. M. Bronstein. Geometric deep
+learning on graphs and manifolds using mixture model CNNs. In CVPR, 2017.
+A. Paszke, S. Gross, S. Chintala, G. Chanan, E. Yang, Z. DeVito, Z. Lin, A. Desmaison, L. Antiga,
+and A. Lerer. Automatic diﬀerentiation in PyTorch. In NIPS-W, 2017.
+C. R. Qi, L. Yi, H. Su, and L. J. Guibas. PointNet++: Deep hierarchical feature learning on point
+sets in a metric space. In NIPS, 2017.
+R. Ramakrishnan, P. O. Dral, M. Rupp, and O. A. von Lilienfeld. Quantum chemistry structures and
+properties of 134 kilo molecules. Scientiﬁc Data, 2014.
+A. Ranjan, T. Bolkart, S. Sanyal, and M. J. Black. Generating 3D faces using convolutional mesh
+autoencoders. In ECCV, 2018.
+M. S. Schlichtkrull, T. N. Kipf, P. Bloem, R. van den Berg, I. Titov, and M. Welling. Modeling
+relational data with graph convolutional networks. In ESWC, 2018.
+G. Sen, G. Namata, M. Bilgic, and L. Getoor. Collective classiﬁcation in network data. AI Magazine,
+29, 2008.
+O. Shchur, M. Mumme, A. Bojchevski, and S. Günnemann. Pitfalls of graph neural network evalu-
+ation. In NeurIPS-W, 2018.
+M. Simonovsky and N. Komodakis. Dynamic edge-conditioned ﬁlters in convolutional neural net-
+works on graphs. In CVPR, 2017.
+K. K. Thekumparampil, C. Wang, S. Oh, and L. Li. Attention-based graph neural network for semi-
+supervised learning. CoRR, abs/1803.03735, 2018.
+P. Veli
+kovik, G. Cucurull, A. Casanova, A. Romero, P. Liò, and Y. Bengio. Graph attention net-
+works. In ICLR, 2018.
+O. Vinyals, S. Bengio, and M. Kudlur. Order matters: Sequence to sequence for sets. In ICLR, 2016.
+M. Wang, L. Yu, A. Gan, D. Zheng, Y. Gai, Z. Ye, M. Li, J. Zhou, Q. Huang, J. Zhao, H. Lin,
+C. Ma, D. Deng, Q. Guo, H. Zhang, J. Li, A. J. Smola, and Z. Zhang. Deep graph library. http:
+
+//dgl.ai, 2018a.
+
+6
+
+Y. Wang, Y. Sun, Z. Liu, S. E. Sarma, M. M. Bronstein, and J. M. Solomon. Dynamic graph CNN
+for learning on point clouds. CoRR, abs/1801.07829, 2018b.
+F. Wu, T. Zhang, A. H. de Souza Jr., C. Fifty, T. Yu, and K. Q. Weinberger. Simplifying graph
+convolutional networks. CoRR, abs/1902.07153, 2019.
+Z. Wu, S. Song, A. Khosla, F. Yu, L. Zhang, X. Tang, and J. Xiao. 3D ShapeNets: A deep represen-
+tation for volumetric shapes. In CVPR, 2015.
+K. Xu, C. Li, Y. Tian, T. Sonobe, K. Kawarabayashi, and S. Jegelka. Representation learning on
+graphs with jumping knowledge networks. In ICML, 2018.
+K. Xu, W. Hu, J. Leskovec, and S. Jegelka. How powerful are graph neural networks? In ICLR,
+2019.
+R. Ying, J. You, C. Morris, X. Ren, W. Hamilton, and J. Leskovec. Hierarchical graph representation
+learning with diﬀerentiable pooling. In NeurIPS, 2018.
+M. Zhang, Z. Cui, M. Neumann, and Y. Chen. An end-to-end deep learning architecture for graph
+classiﬁcation. In AAAI, 2018.
+
+7
+
+A DATASETS
+
+Dataset
+
+Table 5: Statistics of the datasets used in the experiments.
+
+Graphs Nodes
+
+Edges Features Classes Label rate
+
+Citation Networks.
+
+Cora
+1
+2,708
+5,278
+1,433
+7
+0.052
+CiteSeer
+1
+3,327
+4,552
+3,703
+6
+0.036
+PubMed
+1
+19,717
+44,324
+500
+3
+0.003
+MUTAG
+188
+17.93
+19.79
+7
+2
+0.800
+PROTEINS
+1,113
+39.06
+72.82
+3
+2
+0.800
+COLLAB
+5,000
+74.49
+2,457.22
+—
+3
+0.800
+IMDB-BINARY
+1,000
+19.77
+96.53
+—
+2
+0.800
+REDDIT-BINARY
+2,00
+429.63
+497.754
+—
+2
+0.800
+ModelNet10
+4,899
+1,024 ß19,440
+—
+10
+0.815
+We give detailed descriptions and statistics (cf. Table 5) of the datasets used in our experiments:
+In the citation network datasets Cora, Citeseer and Pubmed nodes represent
+documents and edges represent citation links. The networks contain bag-of-words feature vectors for
+each document. We treat the citation links as (undirected) edges. For training, we use 20 labels per
+class.
+Social Network Datasets. COLLAB is derived from three public scientiﬁc collaboration datasets.
+Each graph corresponds to an ego-network of diﬀerent researchers from each ﬁeld with the task to
+classify each graph to the ﬁeld the corresponding researcher belongs to. IMDB-BINARY is a movie
+collaboration dataset where each graph corresponds to an ego-network of actors/actresses. An edge
+is drawn between two actors/actresses if they appear in the same movie. The task is to classify the
+genre of the graph. REDDIT-BINARY is a online discussion dataset where each graph corresponds
+to a thread. An edge is drawn between two users if one of them responded to another’s comment.
+The task is to classify each graph to the community/subreddit it belongs to.
+Bioinformatic Datasets. MUTAG is a dataset consisting of mutagenetic aromatic and heteroaro-
+matic nitro compounds. PROTEINS holds a set of proteins represented by graphs. Nodes represent
+secondary structure elements (SSEs) which are connected whenever there are neighbors either in the
+amino acid sequence or in 3D space.
+3D Object Datasets. ModelNet10 is an orientation-aligned dataset of CAD models. Each model
+corresponds to exactly one out of 10 object categories. Categories were chosen based on a list of the
+most common object categories in the world.
+
+8
+
+

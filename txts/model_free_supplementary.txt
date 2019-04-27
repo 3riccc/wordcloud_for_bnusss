@@ -1,0 +1,1057 @@
+Supplementary Figure 1: Sparsity diﬀers from block sparsity. A sparse vector contains only few entries
+diﬀerent that zero distributed along the vector. Instead, a block sparse vector is composed by few blocks of non-zero
+entries.
+
+1
+
+Supplementary Figure 2: ARNI reveals connections by projecting dynamics onto spaces spanned by
+basis functions. a, ARNI projects dynamical vectors ˙xi onto spaces spanned by Hs , where H †
+s Hs ˙xi is the projection
+and ˙xi − H †
+s Hs ˙xi the error of the projection. b, ARNI selects the Hs yielding the largest projection, or conversely,
+the smallest error. c, ARNI iteratively constructs ˆLi by means of ˆLi,l . At l = 1, ˙xi is projected on all spaces and one
+incoming interaction n∗ (red) is selected according to (12). At l = 2, ˙xi is now projected on the composite spaces
+formed by the inferred incoming connection in ˆLi,1 and the rest of possible incoming interactions in C1 . Then, one
+incoming interaction n∗ (green) is selected according to (12). At l = 3, ˙xi is projected in the composite spaces
+formed by the inferred incoming interactions in ˆLi,2 and the rest of possible incoming interactions in C2 . Then, an
+incoming interaction n∗ (blue) is selected according to (12). This process is repeated until the stopping criterion
+σl ≤ θ is reached.
+
+2
+
+Supplementary Figure 3: ARNI iteratively arrives at the right solution. Reconstruction of a selected unit
+of a Kuramoto-like oscillators (17) of N = 30 and ni = 15. a, Error function ( ˆLn
+) versus iteration index l. Each
+column represents the distribution of ( ˆLn
+) : ∀ n ∈ N \ ˆLi,(l−1) . b, Standard deviation σl of error vectors i (l)
+versus l. Red lines indicate when the connectivity is completely revealed.
+
+i,l
+
+i,l
+
+3
+
+Supplementary Figure 4: Schematics of ROC curves and AUC scores. a, Generic example of a ROC
+curve. The ROC space may be divided in two elemental regions separated by the line TPR = FPR. Classiﬁers
+above the diagonal line behave better than random-guessing whereas classiﬁers below the line behave worse than
+random-guessing. This curve indicates that the classiﬁer correctly predicts true positives while having few false
+positives. b, AUC score for the classiﬁer shown in a. The AUC score measures the area under the ROC curve,
+thus, it reaches a maximum at AUC score = 1 for a perfect classiﬁer.
+
+4
+
+Supplementary Figure 5: Appropriate basis functions reveal network interactions. AUC score for
+reconstruction of networks of N = 60 and n = 20 Kuramoto-like oscillators (17) employing distinct basis functions,
+Basis ∈ [A, B , C, D , E ]. Choosing a set of basis functions that do not capture the nature of interactions leads to
+erroneous results.
+
+5
+
+Parameter
+
+Values
+2.50 mM min−1
+100.00 mM−1min−1
+6.00 mM−1min−1
+16.00 mM−1min−1
+100.00 mM−1min−1
+1.28 min−1
+12.00 mM−1min−1
+1.80 min−1
+13.00 min−1
+4.00
+0.52 mM
+0.10 mM
+1.00 mM
+4.00 mM
+Supplementary Table I: Parameters for glycolytic oscillator.
+
+J0
+k1
+k2
+k3
+k4
+k5
+k6
+k
+κ
+q
+K1
+ψ
+N
+A
+
+6
+
+Supplementary Note 1 Algorithm for revealing network interactions
+ARNI
+
+We decompose units’ dynamics into interaction terms with other units in the network as
+
+˙xi = fi (Λix) =
+
+NX
+
+j=1
+
+Λi
+
+j j g i
+j
+
+(xj ) +
+
+NX
+
+j=1
+
+NX
+
+s=1
+
+Λi
+
+j j
+
+Λi
+
+ss g i
+j s
+
+(xj , xs ) +
+
+NX
+
+j=1
+
+NX
+
+s=1
+
+NX
+
+w=1
+
+Λi
+
+j j
+
+Λi
+
+ss
+
+Λi
+
+ww g i
+j sw
+
+(xj , xs , xw ) + . . .
+
+(1)
+
+where g i
+: R3 → R and, in general g i
+: RK → R, represent interactions from
+units jk to unit i up to the K -th order, such that k ∈ {1, 2, . . . , K }.
+Speciﬁcally, decomposition (1) separates contributions to units’ dynamics arising from diﬀerent orders, e.g. pairwise
+and higher order interactions with other units in the system. Thus, it may be employed to infer network connectivity.
+Here reconstructing the network connectivity implies identifying which interactions in (1) capture the network
+dynamics the best. So, given that fi and Λi are unknown, functions g i
+are not directly accessible. Still, one
+may expand these functions in terms of basis functions as
+
+j
+
+: R → R, g i
+
+j s
+
+: R2 → R, g i
+
+j sw
+
+j1 j2 ...jK
+
+j1 j2 ...jK
+
+˙xi =
+
+NX
+
+j=1
+
+Λi
+
+j j
+
+P1X
+
+p=1
+
+ci
+
+j,phj,p (xj ) +
+
+NX
+
+j=1
+
+NX
+
+s=1
+
+Λi
+
+j j
+
+Λi
+
+ss
+
+P2X
+
+p=1
+
+ci
+
+j s,phj s,p (xj , xs )+
+
+NX
+
+j=1
+
+NX
+
+s=1
+
+NX
+
+w=1
+
+Λi
+
+j j
+
+Λi
+
+ss
+
+Λi
+
+ww
+
+P3X
+
+p=1
+
+j sw,phj sw,p (xj , xs , xw ) + . . . ,
+ci
+
+(2)
+
+where Pk indicates the number of basis functions employed in the expansion. The rationale behind (2) is to express
+the unknown functions g i
+in terms of linear combinations of simpler and known functions [1].
+Hence, deﬁning
+:= (cid:2)ci
+(cid:3) ∈ RP1 , and analogously for all expansions in Supplementary Equation (2), we may
+(3)
+and ci
+rewrite (2) as
+
+j1 j2 ...jK
+
+hj (xj ) := [hj,1 (xj ), hj,2 (xj ), . . . , hj,P1 (xj )]T ∈ RP1
+
+j
+
+j,1 , ci
+j,2 , . . . , ci
+
+j,P1
+
+˙xi =
+
+NX
+
+j=1
+
+Λi
+
+j j ci
+
+j hj (xj ) +
+
+NX
+
+j=1
+
+NX
+
+s=1
+
+Λi
+
+j j
+
+Λi
+
+ssci
+
+j shj s (xj , xs ) +
+
+NX
+
+j=1
+
+NX
+
+s=1
+
+NX
+
+w=1
+
+Λi
+
+j j
+
+Λi
+
+ss
+
+Λi
+
+ww ci
+
+j sw hj sw (xj , xs , xw ) + . . . .
+
+(4)
+
+Now, let us assume that we are given a high dimensional time series of a network xi,m = xi (tm ) for all i ∈
+{1, 2, . . . , N }, where tm = m∆t + t0 is the sampling time for m ∈ {1, 2, . . . , M } and ˙xi,m = ˙xi (tm ) is the time
+derivative of i computed (e.g. through ﬁnite diﬀerences) at tm . We may rewrite Supplementary Equation (4) as
+
+˙xi =
+
+NX
+
+j=1
+j=1
+where ˙xi := [ ˙xi,1 , ˙xi,2 , . . . , ˙xi,M ] ∈ RM ,
+Hj := [hj (xj,1 ), hj (xj,2 ), . . . , hj (xj,M )] ∈ RP1×M ,
+
+Λi
+
+j j ci
+
+j Hj +
+
+NX
+
+NX
+
+s=1
+
+Λi
+
+j j
+
+Λi
+
+j sHj s +
+ssci
+
+NX
+
+j=1
+
+NX
+
+s=1
+
+NX
+
+w=1
+
+Λi
+
+j j
+
+Λi
+
+ss
+
+Λi
+
+ww ci
+
+j swHj sw + . . . ,
+
+(5)
+
+(6)
+
+and matrices Hj s and Hj sw are constructed in a similar manner to (6).
+The reconstruction problem then becomes identifying the non-zero interaction terms in Supplementary Equation
+(5) that best capture the unit’s dynamics. Yet, the vector of coeﬃcients ci
+(and so on) are unknown,
+thereby, hindering the retrieval of Λi from (5).
+Solving linear systems (5) consist of ﬁnding block structures for ci . These structured solutions are composed by
+blocks ci
+of non-zero entries (representing the non-zero interactions acting on unit i) distributed along ci , cf.
+1. However, such solutions cannot be retrieved in standard manners (e.g. Moore-Penrose pseudo-inversion or
+minimization of L1 -norm, cf. [2]). Thus, solving this kind of systems requires more sophisticated methods.
+Speciﬁcally, given a linear system
+
+j , ci
+
+j s , ci
+j sw
+
+s
+
+y = cD ,
+
+(7)
+
+7
+
+where y ∈ R1×M is a vector of M measurements and D ∈ RN d×M is a matrix divided into N matrix blocks
+Dj ∈ Rd×M for all j ∈ {1, 2, . . . , N }, we may deﬁne a structured solution in blocks for c as [3, 4, 5, 6, 7]
+
+, cd+1 , cd+2 , . . . , c2d
+
+, . . . , c(N −1)d+1 , c(N −1)d+2 , . . . , cN d
+
+(8)
+
+(cid:3),
+
+}
+
+c = (cid:2)c1 , c2 , . . . , cd
+
+|
+
+{z
+
+c1
+
+}
+
+|
+
+{z
+
+c2
+
+}
+
+|
+
+{z
+
+cN
+
+where cj ∈ Rd for all j ∈ {1, 2, . . . , N } represent the blocks.
+Recent eﬀorts on solving systems (7) subjected to solutions (8) in blocks have been mainly focused on block sparse1
+solutions on under-determined systems (N d (cid:29) M ) [3, 4, 5, 6, 7], cf. 1. Such approaches (e.g. group lasso [3], sparse
+regression using mixed norms [5], block orthogonal matching pursuit [6]) take advantage of the indeterminacy of
+systems (7) to iteratively construct a block sparse solution from a family of solutions for (7) employing speciﬁc
+heuristics (e.g. minimizing kcj k2 for j ∈ {1, 2, . . . , N } while maximizing the number of zero blocks [4]).
+Here, we developed the Algorithm for Revealing Network Interactions (ARNI) that reverse-engineers the non-zero
+interactions in Supplementary Equation (5) while solely relying on measured time series of x. Speciﬁcally, ARNI: (i)
+constructs function spaces for each interaction using the known basis functions and measured time series, (ii) ﬁnds
+the best suited set of interactions that reproduces the measured ˙xi under a squared error-minimization scheme and
+(iii) returns the explicit connections Λi of the unit. Formally, ARNI is based on the Block Orthogonal Least Squares
+(BOLS) [9] algorithm.
+Opposite to methods described in [3, 4, 5, 6, 7], ARNI recovers connections by minimizing orthogonal projections on
+sequential ly-enlarged function spaces generated by the basis functions, cf. Supplementary Figures 2 and 3. Thus,
+ARNI iteratively ﬁnds the composite function space that captures the recorded dynamics the best.
+Conceptually, the algorithm consists of the following steps:
+1. Select a generic model for interactions by choosing orders K , P1 , P2 , P3 and so on, in (2).
+2. Select models for basis functions hj,p (xj ), hj s,p (xj , xs ), hj sw,p (xj , xs , xw ) and so on, cf. Supplementary Note
+6.
+3. Compute vectors ˙xi = [ ˙xi,1 , ˙xi,2 , . . . , ˙xi,M ] ∈ RM for all i and construct the set of matrices H up to chosen
+K , where H is deﬁned as
+where HN +j := Hj j , HN +N 2+j := Hj j j and so on, and Q = PK
+(9)
+4. Deﬁne the set N := {1, 2, . . . , S } that contains all s indices of H.
+5. Deﬁne the set of incoming interactions of unit i at the l-th iteration as ˆLi,l , and initialize ˆLi0 = ∅.
+6. Compute ∀ n ∈ N \ ˆLi,(l−1) the projection-error function
+(cid:17) := σ
+where σ (y) stands for the standard deviation of entries of y , † indicates the Moore-Penrose pseudo-inverse,
+ˆLn
+= ˆLi,(l−1) ∪ {n} and
+
+H := {Hq |q = 1, 2, . . . , Q},
+k=1 N k .
+
+˙xi − H
+˙xi
+
+ˆLn
+H ˆLn
+,
+:= (cid:2)Hj1 , Hj2 , . . . , Hjl−1 , Hn
+(cid:3)T ∈ RlP ×M ,
+
+(cid:16) ˆLn
+
+(cid:18)
+
+(cid:19)
+
+(10)
+
+(11)
+
+i,l
+
+i,l
+
+†
+
+i,l
+
+i,l
+
+H ˆLn
+
+i,l
+
+where jp ∈ ˆLi,(l−1) and p = {1, 2, . . . , l − 1}.
+(cid:16) ˆLnr
+7. Store results in i (l) ∈ RL where [i (l)]
+= 
+8. If the standard deviation σl := σ(i (l)) ≤ θ , STOP algorithm and RETURN ˆLi,(l−1) as set of incoming
+interactions.
+9. Else, UPDATE ˆLi,l = ˆLi,(l−1) ∪ {n∗ } where
+n∗ = arg
+
+(cid:17), nr ∈ N \ ˆLi,(l−1) , r ∈ {1, 2, . . . , L} and L = (cid:12)(cid:12)(cid:12)N \ ˆLi,(l−1)
+
+(cid:16) ˆLn
+
+(cid:17)(cid:17)
+
+(cid:12)(cid:12)(cid:12).
+
+(12)
+
+min
+
+(cid:16)
+
+i,l
+
+
+
+r
+
+n∈N \ ˆLi,(l−1)
+
+i,l
+
+and REPEAT from steps 6 and 7 until the condition in step 8 is satisﬁed or N \ ˆLi,(l−1) = ∅.
+
+1 In the weak deﬁnition we follow in this work, a sparse vector consist of an array containing only few entries diﬀerent from zero
+[3, 8, 4, 5, 6, 7].
+
+8
+
+the condition N \ ˆLi,(l−1) = ∅, the algorithm has a complexity of O (cid:0)Q2 (cid:1).
+The projection-error function in step 6 diﬀers from the cost function introduced in the main manuscript. Also, for
+
+Supplementary Note 2 Summary of Scaling Behavior
+
+In what follows, we brieﬂy summarize how the approach scales with respect to diﬀerent intrinsic features of the
+networked systems, speciﬁcally, the system size, the number of incoming connections per unit, and the noise level in
+the time series. We also provide an explanation about a key aspect of the algorithmic complexity of our approach.
+As shown in the main manuscript, the number M0.95 of required measurements to achieve reconstructions of
+AUC > 0.95 scales ...
+• sublinearly, likely logarithmically ~ log(N ) (see Figure 3a in main manuscript), with number N of dynamical
+variables in the network (that equals the number of units if they exhibit one-dimensional dynamics). Similar
+results have been reported in [10, 2].
+• linearly,∼ ni (see Figure 3b in main manuscript), with the number ni of incoming connections per unit.
+• supralinearly (see Figure 3c in main manuscript) with the noise strength η .
+Concerning the algorithmic complexity of our approach, if Q is the total number of proposed expansions in the
+right hand side of Supplementary Equation (5), it follows that the total number of projections for the worst-case
+condition N \ ˆLi,(l−1) = ∅ is given by
+# Projections = Q|{z}
+= Q(1 + Q)
++ (Q − 1)
++ (Q − 2)
+2
+Equation (5) or the threshold θ is too small, our algorithm has a complexity of O (cid:0)Q2 (cid:1).
+Therefore, in the worst case where all Q expansions are needed to approximate the right hand side of Supplementary
+
+∼ O (cid:0)Q2 (cid:1) .
+
+| {z }
+
+| {z }
+
+2nd iter.
+
+1|{z}
+
+1st iter.
+
+3rd iter.
+
+Q-th iter.
+
++ . . . +
+
+(13)
+
+Supplementary Note 3 Quantifying quality of reconstruction
+
+Our reconstruction problem may be seen as a binary classiﬁcation problem where one has to identify whether
+network interactions are active or not. Thus, if an interaction is active and it is classiﬁed as active, it is counted
+as a true positive, yet if it is classiﬁed as inactive, it is counted as a false negative. Conversely, if the interaction is
+inactive and it is classiﬁed as inactive, it is counted as a true negative, but if it is classiﬁed as active, it is counted
+as a false positive.
+
+True positives and false positives rates
+
+We measure the predictive power of our approach using the true positives (TPR) and false positives (FPR) rates.
+Basically, the TPR quantiﬁes the fraction of active interactions which were correctly identiﬁed as active from all
+active interactions (actual interactions) present in the dynamics. Analogously, the FPR quantiﬁes the fraction
+of inactive interactions which were incorrectly identiﬁed as active from all inactive interactions available. Both
+quantities are deﬁned as
+
+TPR =
+
+FPR =
+
+True positives
+Total number of positives ,
+False positives
+Total number of negatives .
+
+(14)
+
+(15)
+
+Receiver Operating Characteristics (ROC) curve
+
+A ROC curve is a two-dimensional graph in which TPR is plotted against FPR. Its purpose is to depict the trade-oﬀ
+between true positives and false positives of a given classiﬁer [11].
+Depending on its internal parameters, the classiﬁer may yield better or worse results. Thus, ROC curves provide
+a graphical way to assess the predictive power of such classiﬁers with respect to their internal parameters, cf. 4a.
+Ideally, one seeks to have points in the ROC space as close to the upper-left corner as possible. Points there
+
+9
+
+represent classiﬁers with high TPR and low FPR. Thus, classiﬁers with ROC-scores close to the upper left corner
+are more likely to correctly predict true positives and those close to the diagonal, given that they are applied to a
+test data set that has similar dynamical properties (stationarity) and is comparable in length to the data set which
+was used to evaluate the ROC score.
+The diagonal line TPR = FPR represents a random-guessing classiﬁer, cf. 4a. Thus, any classiﬁer that appears
+below this line performs worse than random-guessing. Conversely, any classiﬁer that appears above performs better
+than random-guessing.
+
+Area Under the Curve (AUC) score
+
+Still, one may want to characterize the predictive power of a classiﬁer in terms of a single scalar variable rather
+than interpreting a two-dimensional graph. A broadly used method is to measure the Area Under the ROC Curve,
+also known as the AUC score [11]. As its name indicates, the AUC score quantiﬁes the area below the ROC curve
+of a given classiﬁer, and thereby, AUC score ∈ [0, 1], cf. 4b.
+The AUC score provides an easy way to compare the predictive power of diﬀerent classiﬁers. The higher the AUC
+score of a classiﬁer is, the higher its predictive power. Also, the AUC score is equivalent to the probability that
+the classiﬁer will rank (in a list of probable interactions) a randomly-selected active interaction higher than a
+(cid:17)(cid:17), for each l-
+randomly-selected inactive interaction [11].
+In our implementation, we track the evolution of the minimal projection-error minn∈N
+iteration, Supplementary Figure 3. Then, we compute the ROC curve by (i) systematically varying a threshold
+β on the sequence of minimal projection-errors, and (ii) calculating the TPR and FPR for each β . In particular,
+given a speciﬁc β , we consider as correct interactions those inferred in all iterations whose minimal projection-error
+is above β . Finally, we compute the AUC score of the resulting curve.
+
+(cid:16) ˆLn
+
+(cid:16)
+
+i,l
+
+
+
+Supplementary Note 4 Random network model systems
+
+To test our framework, we generated high dimensional time series simulating directionally coupled networks of
+dynamical systems. The resulting time series were used as inputs for reconstructing network structural connections
+by means of ARNI. To mimic real-world recordings, we sampled time series with sampling rates of ∆t = 1 for all
+simulations (except where stated). Nonetheless, we note that simulations were computed with time steps δ t (cid:28) ∆t.
+
+Ensembles inspired by gene regulatory circuits
+
+To test the predictive power of our approach on systems mimicking gene regulation, we simulated networks of
+dynamical systems having Michaelis-Menten kinetics [12, 13]
+˙xi = −xi + 1
+
+1 + xj
+having ni randomly-selected incoming connections per node. Here, the entries of Jij of J ∈ RN ×N are given by
+J = R (cid:12) A, where (cid:12) stands for entry-wise-matrix product, A ∈ {0, 1}N ×N is a randomly generated adjacency
+matrix with a ﬁxed number ni of non-zero entries per row and R ∈ RN ×N with Rij randomly drawn from a uniform
+distribution Rij ∈ [1, 5].
+
+NX
+
+(16)
+
+j=1
+
+Jij
+
+xj
+
+ni
+
+,
+
+Networks and Hypernetworks of Kuramoto-like oscillators
+
+To introduce functional complexity in the coupling functions, we selected a model of Kuramoto-like oscillators with
+coupling functions having two Fourier modes [14]
+˙xi = ωi + 1
+
+Jij [sin (xj − xi − 1.05) + 0.33 sin (2 (xj − xi ))] + ξi ,
+
+NX
+
+(17)
+
+ni
+
+j=1
+
+having ni randomly-selected incoming connections per node. Here, the entries of Jij of J ∈ RN ×N are given by
+J = R (cid:12) A, A ∈ {0, 1}N ×N is a randomly generated adjacency matrix with a ﬁxed number ni of non-zero entries per
+row and R ∈ RN ×N with Rij randomly drawn from a uniform distribution Rij ∈ [0.5, 1]. The natural frequencies
+
+10
+
+ωi are randomly selected from a uniform distribution ωi ∈ [−2, 2] and ξi represents external white noise aﬀecting
+the dynamics of unit i.
+To characterize the selectivity of ARNI against network and hypernetwork interactions, we simulated extended
+models of (17) where
+˙xi = ωi + 1
+
+[sin (xj − xk − 1.05) + 0.33 sin (2 (xj − xk ))] + ξi ,
+
+NX
+
+NX
+
+(18)
+
+E i
+
+ni
+
+j=1
+
+k=1
+
+jk
+
+jk
+
+Networks of Rössler oscillators
+
+with ni randomly-selected incoming interactions per node. Diﬀerently to (17), here we introduce the second order
+interaction matrix E i ∈ RN ×N for all i = {1, 2, . . . , N }. Speciﬁcally, the element E i
+weighs how units j and k
+directly inﬂuence unit i together. Thus, it follows that the elements E i
+for all k = {1, 2, . . . , N } represent regular
+network interactions. The entries of E i are set by E i = R (cid:12) C , where C ∈ {0, 1}N ×N is a randomly generated
+matrix with a ﬁxed number ni of 1’s across the matrix. The Rij entries of R ∈ RN ×N are randomly drawn from a
+uniform distribution Rij ∈ [0.5, 1].
+[15]. The dynamics of each oscillator xi = (cid:2)x1
+(cid:3) ∈ R3 is set by three diﬀerential equations
+To test the robustness of our approach against chaotic dynamics, we simulated networks of coupled Rössler oscillators
++ 1
+= −x2
+) + ξ 1
+i − 18.0(cid:1) + ξ 3
++ 0.1x2
+(20)
+= 0.1 + x3
+(21)
+where ni is the number of incoming connections to unit i. As before, the entries of J are given by J = R (cid:12) A, where
+Rij ∈ [0.5, 1]. Similarly, ξ k
+with k ∈ {1, 2, 3} represent external noisy signals acting on the unit’s components.
+
+i − x3
+(cid:0)x1
+ni
+j=1
++ ξ 2
+i ,
+
+Jij sin(x1
+
+NX
+
+i , x2
+i , x3
+
+= x1
+
+˙x2
+˙x3
+
+(19)
+
+˙x1
+
+i
+
+i ,
+
+i
+
+i
+
+i ,
+
+i
+
+i
+
+i
+
+i
+
+ik
+
+j
+
+i
+
+i
+
+Supplementary Note 5 Biological model systems
+
+To test performance on biological model systems, we simulated the glycolytic oscillator in yeast [16] and circadian
+clock in Drosophila [17] and inferred their interactions from their collective dynamics.
+
+Glycolytic oscillator model
+
+Glycolytic oscillations is one of the best-studied examples for oscillations at the cellular level. All its factors
+oscillate at diﬀerent phases with a shared relatively short period. In yeast cells, these oscillations were also shown
+to synchronize across cell population [18]. Here we use a single-cell model for anaerobic glycolytic oscillations in
+yeast, containing the inﬂux of glucose and outﬂux of pyruvate and/or acetaldehyde, resulting in coupled ODE
+equations for seven species [16]
+
+˙S2 = 2
+
+˙S1 = J0 −
+k1S1S6
+1 + (S6/K1 )q
+1 + (S6/K1 )q − k2S2 (N − S5 ) − k6S2S5
+k1S1S6
+˙S3 = k2S2 (N − S5 ) − k3S3 (A − S6 )
+˙S4 = k3S3 (A − S6 ) − k4S4S5 − κ(S4 − S7 )
+˙S5 = k2S2 (N − S5 ) − k4S4S5 − k6S2S5
+1 + (S6/K1 )q + 2k3S3 (A − S6 ) − k5S6
+k1S1S6
+˙S7 = ψκ(S4 − S7 ) − kS7
+
+˙S6 = −2
+
+11
+
+(22)
+
+(23)
+
+(24)
+(25)
+(26)
+
+(27)
+
+(28)
+
+where S1 represents glucose, S2 represents glyceraldehydes-3-phosphate and dihydroxyacetone phosphate pool, S2
+represents 1,3-bisphosphoglycerate, S2 represents cytosolic pyruvate and acetaldehyde pool, S2 represents NADH,
+S2 represents ATP, and S7 represents extracellular pyruvate and acetaldehyde pool. Parameters were set according
+to [19] and are shown in Supplementary Table I. Initial conditions were randomly selected from the uniform
+distribution Si (0) ∈ [1.2, 2.0] and employed ∆T = 0.01 min.
+
+Circadian Clock
+
+Circadian clocks underly the response to the day-night cycle. Speciﬁcally, we simulated a model of the circadian
+clock in Drosophila [17], where oscillations are driven by a negative feedback between per and tim genes, which
+code for PER and TIM proteins, and the PER-TIM complex. The rate equations for the 10-species circadian clock
+are:
+
+I P
+
+I P
+
+N
+
+− vmP
+
+˙Mp = vsP
+K n
+MP
+− kdMP
++ C n
+KmP + MP
+K n
+˙P0 = ksP MP − V1p
+P0
++ V2p
+P1
+− kdP0
+K1P + P0
+K2P + P1
+˙P1 = V1p
+P0
+− V2p
+P1
+− V3p
+P1
++ V4p
+P2
+K1P + P0
+K2P + P1
+K3P + P1
+K4P + P2
+˙P2 = V3P
+P1
+− V4p
+P2
+− k3P2T2 + k4C − vdP
+P2
+K3P + P1
+K4P + P2
+KdP + P2
+˙MT = vsT
+K n
+− vmT
+MT
+− kdMT
+K n
++ C n
+KmT + MT
+˙T0 = ksT MT − V1T
+T0
++ V2T
+T1
+− kdTo
+K1T + T0
+K2T + T1
+˙T1 = V1T
+T0
+− V2T
+T1
+− V3T
+T1
+K1T + T0
+K2T + T1
+K3T + T1
++ V4T
+˙T2 = V3T
+T1
+− V4T
+T2
+− k3P2T2 + k4C − VdT
+K3T + T1
+K4T + T2
+˙C = k3P2T2 − k4C − k1C − k2CN − kdC C
+˙CN = k1C − k2CN − kdN CN
+
+T2
+K4T + T2
+T2
+KdT + T2
+
+I T
+
+I T
+
+N
+
+− kdP1
+− kdP2
+
+− kdT1
+− kdT2
+
+(29)
+
+(30)
+
+(31)
+
+(32)
+
+(33)
+
+(34)
+
+(35)
+
+(36)
+(37)
+(38)
+where MT and MP are tim and per mRNAs, respectively. T0 , T1 and T2 are forms of TIM protein, P0 , P1 and
+P2 are forms of PER protein, and C and CN are forms of PER-TIM complex. The parameter values used for the
+simulations are based on [17]. The total levels of PER and TIM proteins, Pt and Tt , respectively, are given by:
+
+Pt = P0 + P1 + P2 + C + CN
+Tt = T0 + T1 + T2 + C + CN
+
+(39)
+(40)
+
+Supplementary Note 6 Choosing a proper family of basis functions
+
+Selecting an appropriate class of basis functions to represent the network interactions is vital step of our approach.
+Choosing basis functions that capture the intrinsic nature of interactions (e.g. single h(xi ), pairwise h(xi , xj ), triplet
+h(xi , xj , xw ), and so on) will lead to optimal results. However, ﬁnding an appropriate class of basis functions should
+not be confused with ﬁnding a speciﬁc set of basis functions. While the former implies ﬁnding basis functions of
+correct order k ∈ {1, 2, . . . , K }, Supplementary Figure 5, the latter implies ﬁnding a unique set of basis functions
+capable of representing the network dynamics.
+Reconstruction of networks of Kuramoto-like oscillators (17) using diﬀerent sets of basis functions reveal that
+employing bases resembling the intrinsic nature of interactions (e.g. pairwise) lead to optimal results, Supplementary
+Figure 5. The rationale is that expansions in basis functions seek to span functional spaces, thus, functions involving
+xi and xj together, h(xi , xj ), are more suitable to represent the dependencies induced by pairwise interactions in
+(17) than functions just involving single interactions, h(xi ) and h(xj ).
+
+12
+
+Supplementary References
+
+[1] Hastie, T., Tibshirani, R., and Friedman, J. The Elements of Statistical Learning. Springer Series in Statistics.
+Springer New York, New York, NY, (2009).
+[2] Timme, M. and Casadiego, J. J. Phys. A Math. Theor. 47(34), 343001 aug (2014).
+[3] Yuan, M. and Lin, Y. J. R. Stat. Soc. Ser. B Stat. Methodol. 68(1), 49–67 feb (2006).
+[4] Eldar, Y. C. and Mishali, M. IEEE Trans. Inf. Theory 55(11), 5302–5316 nov (2009).
+[5] Kowalski, M. Appl. Comput. Harmon. Anal. 27(3), 303–324 nov (2009).
+[6] Eldar, Y. C., Kuppinger, P., and Bölcskei, H. IEEE Trans. Signal Process. 58(6), 3042–3054 jun (2010).
+[7] Duarte, M. F. and Eldar, Y. C. IEEE Trans. Signal Process. 59(9), 4053–4085 sep (2011).
+[8] Napoletani, D. and Sauer, T. D. Phys. Rev. E 77(2), 26103 feb (2008).
+[9] Majumdar, A. and Ward, R. K. Can. J. Electr. Comput. Eng. 34(4), 136–144 (2009).
+[10] Timme, M. Phys. Rev. Lett. 98(22), 224101 (2007).
+[11] Fawcett, T. Pattern Recognit. Lett. 27(8), 861–874 (2006).
+[12] Karlebach, G. and Shamir, R. Nat. Rev. Mol. Cel l Biol. 9(10), 770–780 oct (2008).
+[13] Barzel, B. and Barabási, A.-L. Nat. Biotechnol. 31(8), 720–5 aug (2013).
+[14] Hansel, D., Mato, G., and Meunier, C. Phys. Rev. E 48(5), 3470–3477 nov (1993).
+[15] Rössler, O. E. Phys. Lett. A 57(5), 397–398 jan (1976).
+[16] Wolf, J. and Heinrich, R. Biochem. J. 345, 321–34 jan (2000).
+[17] Leloup, J.-C. and Goldbeter, A. J. Theor. Biol. 198(3), 445–459 jun (1999).
+[18] Richard, P. FEMS Microbiol. Rev. 27(4), 547–557 oct (2003).
+[19] Daniels, B. C. and Nemenman, I. Nat. Commun. 6, 38 (2014).
+
+13
+
+

@@ -1,0 +1,4078 @@
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+rstb.royalsocietypublishing.org
+
+Research
+
+Cite this article: Liu H, Kim J, Shlizerman E.
+2018 Functional connectomics from neural
+dynamics: probabilistic graphical models for
+neuronal network of Caenorhabditis elegans.
+Phil. Trans. R. Soc. B 373: 20170377.
+http://dx.doi.org/10.1098/rstb.2017.0377
+
+Accepted: 16 August 2018
+
+One contribution of 15 to a discussion meeting
+issue ‘Connectome to behaviour: modelling
+C. elegans at cellular resolution’.
+
+Subject Areas:
+bioinformatics, computational biology,
+neuroscience, theoretical biology
+
+Keywords:
+Caenorhabditis elegans, functional connectome,
+neuronal networks, probabilistic graphical
+models
+
+Author for correspondence:
+Eli Shlizerman
+e-mail: shlizee@uw.edu
+
+Functional connectomics from neural
+dynamics: probabilistic graphical models
+for neuronal network of Caenorhabditis
+elegans
+
+Hexuan Liu1, Jimin Kim2 and Eli Shlizerman1, 2
+
+1Department of Applied Mathematics, and 2Department of Electrical Engineering, University of Washington,
+Seattle, WA 98195, USA
+
+HL, 0000-0003-0944-8867; JK, 0000-0002-5597-5142; ES, 0000-0002-3136-4531
+
+We propose an approach to represent neuronal network dynamics as a prob-
+abilistic graphical model (PGM). To construct the PGM, we collect time series
+of neuronal responses produced by the neuronal network and use singular
+value decomposition to obtain a low-dimensional projection of the time-
+series data. We then extract dominant patterns from the projections to get
+pairwise dependency information and create a graphical model for the full
+network. The outcome model is a functional connectome that captures how
+stimuli propagate through the network and thus represents causal dependen-
+cies between neurons and stimuli. We apply our methodology to a model of
+the Caenorhabditis elegans somatic nervous system to validate and show an
+example of our approach. The structure and dynamics of the C. elegans ner-
+vous system are well studied and a model
+that generates neuronal
+responses is available. The resulting PGM enables us to obtain and verify
+underlying neuronal pathways for known behavioural scenarios and detect
+possible pathways for novel scenarios.
+This article is part of a discussion meeting issue ‘Connectome to
+behaviour: modelling C. elegans at cellular resolution’.
+
+1. Introduction
+
+A probabilistic graphical model (PGM) is a statistical model in which a graph
+maps the conditional dependence structure between multiple random variables
+[1 – 3]. Construction of a PGM has been shown as an effective methodology
+for retrieving dominant trends and analysing events with very large numbers
+of dependent variables. Applications of graphical models has revolutionized
+a number of fields such as medical diagnosis, natural language processing
+and computer vision. The nodes of the PGM correspond to variables in a
+domain, and edges correspond to probabilistic interactions (conditional depen-
+dencies) between the variables. The most commonly used graphical models are
+Bayesian networks and Markov random fields. Bayesian networks are directed
+graphs parameterized by conditional probability distributions (CPDs), whereas
+Markov random fields are non-directed graphs parameterized by factors.
+PGMs were successfully applied to problems for which direct inference is
+intractable [2]. It is thereby appealing to apply them in the context of neuronal net-
+work functionality. However, classical approaches for learning PGM structure are
+designed for discrete variables and are not compatible with neuronal networks
+consisting of dynamic neurons interacting through dynamic connections. Both
+neurons and their connections are typically modelled as nonlinear processes.
+A possible adaptation of a neuronal network to a statistical model, which captures
+functionality, is to consider each neuron as a random variable that takes values
+representing the states of the neuron. For simplicity it is often assumed, and here
+we assume it as well, that each neuron activity is binary-valued, with 0 being the
+inactive state and 1 being the active state. The PGM of a neuronal network is thereby
+
+& 2018 The Author(s) Published by the Royal Society. All rights reserved.
+
+2
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+a graph with neurons being the nodes and their dependencies
+being the edges (as demonstrated in figure 1).
+There are two main difficulties in learning a graphical model
+from dynamics. (i) Difficulty in estimating input – output corre-
+lations for a network whose responses are time-dependent.
+(ii) High dimensionality and complexity of neuronal networks
+typically incorporating recurrent structures. These factors
+make statistical inference hard to realize. Relevant work has
+been done in dynamic networks using either experimental
+data, such as [4 – 6], or simulated data, such as [7]. In both
+cases, ‘snapshots’ that record network dynamics are used to
+analyse time-series data. For estimating input – output corre-
+lations, statistical methods are applied to measure pairwise
+node correlation. For example, Honey et al. [7] proposed to
+use transfer entropy to capture patterns of directed interaction
+and information flow between pairs of nodes. Butte & Kohane
+[8] used entropy of gene expression patterns and the mutual
+information between RNA expression patterns for each pair
+of genes to compute pairwise mutual information. To address
+the problem that the network responses are time-dependent,
+works assuming that the underlying network is time-invariant,
+such as [4,9], or that estimate a sequence of graph structures
+such as [5,6], have been proposed.
+It is also possible to use a machine learning approach,
+such as to sample the neuronal network multiple times as
+training data, and to evaluate candidate models according
+to a scoring function and search for the optimal model [1].
+One of the drawbacks of score-based approaches is that in
+high-dimensional and cyclic neuronal networks, the problem
+of finding an optimal solution becomes NP-hard. Additional
+approaches have been employed for Bayesian network model-
+ling for human functional network analysis. Zhang L. et al.
+and Zhang J. et al. introduced Dynamic Bayesian Networks,
+the Dynamic Bayesian Variable Partition Model and Dynamic
+Causal Modelling for fMRI time-series snapshots [10,11]. In
+these models, an underlying assumption for the time series
+is a Gaussian model, which does not apply for attractor
+neural dynamics generically appearing in the neuronal net-
+works and require extensive computational cost. While more
+efficient approaches have been introduced, they still incorpor-
+ate non-generic assumptions such as low-rank and sparsity of
+the responses [12].
+Here, we propose a different approach that circumvents
+these complexities. As neurons are random variables, math-
+ematically our approach is based on the concept that if we
+stimulate them using independently and identically distribu-
+ted process, then the construction of the dependencies would
+be based on measuring how network response deviates from
+the stimuli distribution. Here, we use a simple distribution,
+the delta distribution, which is single neuron excitation,
+and record network response to each stimulus. Such an
+approach is simple to implement with simulated neural
+dynamics and potentially realizable with the rapid advance
+of optogenetic technologies to record and stimulate networks
+at a single neuron resolution [13]. While we employ a single
+excitation in our proposed algorithm,
+theoretically the
+approach is not limited to this stimulation and other distri-
+butions of
+the
+stimuli
+can be used. The
+required
+assumption is that stimulation of each neuron is independent
+and the outcome PGM superimposes response dynamics to
+independent experiments into a model.
+To construct the graph, our key idea is to learn the depen-
+dencies from low-dimensional projections of
+time series
+
+instead of learning from sampled data directly. The low-
+dimensional representations capture the dominant dynamics
+of the network and thus reduce the complexity of the learning
+algorithm and the computational cost. To be able to capture
+the dominant patterns, we sample the network over a suffi-
+ciently long period such that we have captured the typical
+and dominant dynamics, i.e. the network converged to attrac-
+tor dynamics, if such dynamics exist. Using this approach, we
+construct a PGM (a Bayesian network) that maps the func-
+tional connectivity between the neurons. The model can be
+used to ‘query’ the system given evidence regarding activity
+of some neurons or infer typical relation between activity
+of neurons. We define these concepts and explain the
+procedures for these tasks in §2 ( figure 1).
+We apply our method to the neuronal network of Caenor-
+habditis elegans to validate the PGM. Caenorhabditis elegans
+is a well-studied organism; the somatic nervous system of
+C. elegans consists of 279 neurons and the wiring diagram
+between these neurons was compiled by Varshney et al. con-
+sisting of 6393 chemical synapses, 890 gap junctions and 1410
+neuro-muscular junctions [14]. In addition, experimental elec-
+trophysiological and optogenetic techniques for stimulating
+and recording neural activity in vivo and in situ have been
+introduced for C. elegans [15 – 17]. The connectome repre-
+senting weights of dynamic interactions between neurons
+combined with a biophysical model of neural dynamics
+and their interactions enables us to simulate the full nervous
+system model [18 – 21]. In the following sections, we construct
+a Bayesian network that represents the functional connec-
+tivity of the neuronal network of C. elegans and verify the
+results with experimental data.
+
+2. Construction of probabilistic graphical model
+from neuronal network dynamics
+
+We first introduce the components of the Bayesian network
+in the context of neuronal networks. We then illustrate how
+conditional probabilities are assigned from the simulated
+neural dynamics. Finally, we show how computed proba-
+bilistic dependencies are used for the construction of a
+Bayesian network.
+
+(a) Representing neuronal distributions with Bayesian
+networks
+
+A Bayesian network is a representation of a joint probability
+distribution using a graph structure G ¼ (V, E) and CPDs u.
+The graph structure G is a directed acyclic graph whose ver-
+tices, V, correspond to random variables fX1, X2, . . .Xng, and
+edges, E, correspond to connections between random variables,
+i.e. conditional dependencies. For each variable, u describes the
+CPD given its parents in G. By applying the probability chain
+rule and using properties of conditional
+independence,
+joint probability distribution can be decomposed into the
+product form
+P(X1 , . . . ,Xn ) ¼ Pn
+i¼1P(Xi j PaG (Xi )),
+where Pa G(Xi) is the set of parents ofX i in G.
+PGM is based on this property and graphically reformats
+probability distributions into a graph with parent and children
+nodes. For neuronal networks, each Xi corresponds to an indi-
+vidual neuron where each of them takes discrete values. Thus,
+
+3
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+(a)
+
+B
+
+A
+
+D
+
+(b)
+
+chemical synapses:
+excitatory
+inhibitory
+
+C
+
+B
+
+gap
+junctions
+
+A
+
+D
+
+conditional
+dependencies
+
+C
+
+structural connectivity
+
+functional connectivity
+
+Figure 1. Representation of a neuronal network as a graphical model. (a) Example of structural/anatomical connectivity map in which nodes denote neurons and
+edges map connections, e.g. chemical synapses and electrical gap junctions. Interactions between neurons produce a nonlinear network that dynamically transports
+stimuli to neuronal behaviours. (b) Example of PGM constructed from the neuronal network governed by the structural connectivity map and nonlinear dynamics. In
+the PGM, nodes are random variables corresponding to neuronal states and edges are conditional probabilities. PGM structure captures functionality of the network
+and hence is typically different from the anatomical connectivity map. (Online version in colour.)
+
+we can represent P(XijU1, . . ., Uk) as a table that specifies the
+probability of values for a neuron Xi for each joint assignment
+to its parent neurons U1, . . ., Uk [4]. In the simplest case, we
+only consider pairwise conditional probability P(Xi ¼ sl j Xj ¼
+sk), where neuron Xj receives input that drives it to a neural
+state sk out of a set of states s ¼ fs1, .., sk, .., smg, and we would
+like to estimate the probability of neuron Xi being in state sl sub-
+ject to evidence that Xj is in state sk.
+The structure of the PGM is designed to conveniently map
+the statistical dependencies to allow us to ‘query’ the graph in
+an efficient way. The query procedure, called posterior inference,
+uses the constructed PGM to provide information about prob-
+abilities of particular variables and their states,
+taking
+into account evidence regarding the states of other variables,
+i.e. conditional probability. In particular, there are two types of
+posterior inference tasks in the context of network pathways
+that can be answered using a graphical model. The first task is
+to infer conditional probabilities of the type P(Y j E ¼ e), where
+the probability distribution over the values y [ Y, conditioned
+on E ¼ e is inferred. For example, in such a case, functional path-
+ways from upstream neurons (E) to downstream neurons (Y) can
+be inferred. The second task is to infer the maximum a posteriori
+(MAP) probability: arg max Y P(Y ¼ y j E ¼ e), where the most
+probable assignment to the variables in Y is sought given the
+evidence E ¼ e. In this task, functional pathways can be inferred
+through an inverse process, where downstream neurons (E)
+states are provided (E ¼ e) and inference provides most probable
+upstream neurons (Y) with states (Y ¼ y). PGM is capable of
+discovering the unstructured information within the distribu-
+tions as
+it
+turns complex distributions
+into structured
+information that can be analysed effectively and efficiently
+using statistical tools. The benefit of using a PGM as the func-
+tional connectome is that posterior inference can be performed
+efficiently and circumvent the complexities in direct inference
+of response pathways in dynamic neuronal networks. In particu-
+lar, posterior inference reveals the relations and pathways
+between known stimuli and downstream neurons or allows us
+to discover the stimuli that would trigger downstream neurons.
+
+(b) Collecting data from simulated dynamics
+
+We propose to find conditional probabilities for all pairs of
+neurons by simulating the network and recording data in
+
+snapshot matrices. The snapshot matrix represents finite
+time series of whole network dynamics for a particular
+input to a single neuron. The matrices are computed by inject-
+ing a constant
+input
+into every neuron in the network
+independently, thus resulting in a total of n matrices for the
+network of n neurons. Network dynamics are modelled by
+a set of dynamic equations, e.g. conductance-based model,
+which describe the biophysical processes of neurons and
+interactions between neurons. A snapshot matrix has the
+structure S ¼ [S(t0) S(t1) . . . S(T )] of dimensions n  T, where
+n is the total number of neurons in the network and T is the
+length of the time span.
+
+(c) Dimension reduction
+
+We process the time-series data by projecting it into a lower-
+dimensional
+space using singular value decomposition
+(SVD). The benefits of SVD include reducing dimensionality
+and thus reduction of computational cost and robustness to
+noise [22]. Furthermore, when the SVD-based approach is
+applied to multi-node time-series network dynamics, it decom-
+poses the data into spatial modes and their associated
+time-dependent coefficients. The spatial modes are orthogonal
+vectors representing activity patterns of the nodes [23]. When
+the recorded data have been conditioned on a particular
+event, each spatial mode vector is effectively a vector contain-
+ing a response score for each node. As the spatial modes are
+ranked by singular values to reflect their dominance, the com-
+bination of dominant modes will include the most dominant
+combination of scores as a response to the event. This is the
+property that we use here to estimate dependence between
+stimulation and network response. Such an approach is more
+beneficial than direct estimate of statistical dependence (e.g.
+correlation) as it separates spatial and time-dependent data
+and ranks the spatial modes. Furthermore, these properties of
+SVD ensure that the estimation of the dependencies is robust
+with respect to sample time as long as they have captured
+the full dynamics to which the network converges.
+More precisely, SVD of an n  p matrix S has the form
+S ¼ U  S  V ,
+where U and V are n  n and p  p unitary matrices, with the
+columns of U spanning the column space of X (spatial
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+Algorithm 1. Constructing dependencies.
+1: n number of neurons
+2: t0 starting time
+3: T final time
+4: k time step
+5: for i [ (0, n) do
+input [i ] ¼ 1
+6:
+X ¼ run_network(t0, T, k, input)
+7:
+[U,S,V ] ¼ SVD(X )
+8:
+j jUj j SjP
+9: mode ¼
+probability ¼ mode/mode [i ]
+
+P
+
+k S2
+k
+
+10:
+
+reach a fixed point, the first dominant mode would be suf-
+ficient to represent the fixed point. For oscillatory networks,
+the first two modes together represent oscillatory dynamics.
+Instead of using the classical k-rank approximation, we pro-
+pose a new approach that takes the linear combination of
+the modes acco rd ing to the i r s ign i f ican ce , wh ich resu l t s
+in a one -d imens iona l co lumn vec to r . Spec i f ica l ly, we
+u se the sum o f a l l modes we igh ted by s ingu la r va lues
+a s a one-dimensional representation of the original Rnp
+data ( figures 2 and 3).
+
+4
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+X
+
+n
+
+i¼1
+
+P
+
+s2
+
+i
+n
+j¼1 s2
+j
+
+jUi j [ Rn :
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+Algorithm 2. Constructing trees.
+maxLayer maximum layer of the tree
+2: threshold the threshold for a node being considered
+as a child
+
+function EXTENDTREE( parent,PList,count)
+if count . maxLayer then
+count ¼ 0
+
+return
+
+if parent [ PList then
+
+return
+
+if parent Ó PList then
+PList . add( parent)
+count countþ 1
+
+for i [ (0, n) do
+
+if i Ó PList and Prob [ parent, i ] .
+threshold then
+childList . add(i )
+for child [ childList do
+ExtendTree(child,Plist,count)
+
+4:
+
+6:
+
+8:
+
+10:
+
+12:
+
+14:
+
+16:
+
+neuronal modes) and the columns of V spanning the row
+space (time-dependent coefficients) [24]. S is assumed to
+have diagonal entries sj which are non-negative and
+i.e. s1  s2  . . . s  sm  0, where
+in descending order,
+m ¼ min (n, p). Once the original matrix S is decomposed, Uj
+(column vector of U ) and Vj (column vector of V) record the
+mode corresponding to singular value and temporal coeffi-
+cients corresponding to the sj, respectively. Each singular
+value sj in S corresponds to the significance of the correspond-
+ing mode. Using SVD, we can find a lower-dimensional
+representation for the matrix S, which captures the dominant
+features of neural dynamics. Dimension reduction is per-
+formed by retaining k-dimensional subspace, where k , n,
+spanned by k-modes corresponding to top k singular values.
+When using SVD to obtain a low-dimensional represen-
+tation of the data, we need to retain enough modes to
+approximate the data. In practice, an energy criterion on
+singular values is often used as it specifies the amount of
+energy included in the chosen modes. For example, a typi-
+cal energy criterion requires 95% of the energy in S. That is,
+the sum of the squares of the retained singular values
+should be at least 95% of the sum of the squares of all singu-
+lar values. For a snapshot matrix whose network responses
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+(d) Construction of a Bayesian network
+
+The features extrac ted from snapshot matrices are used to
+obtain pairwise dependencies. Each snapshot matr ix cor-
+responds to a stimulation of a single neuron . We assume
+the st imulated neuron is driven into an ac tive state and
+thus the snapshot matrix reflects the response of other
+neurons, which we transform to probabilities, condit ioned
+on the st imulated neuron being activated . We achieve this
+by norma lizing each mode according to the response of its
+input neuron, Xi. We interpret the result as the conditional
+probability P(Xj ¼ 1 j Xi ¼ 1) and store it into the ith column
+of the conditional probability table. The PGM itself consists
+of probabilities and thus does not indicate whether it is
+positive causality or negative (anti-)causality. Additional
+descriptive states of neuron activity could be added in the
+future by extending neural states, for example, each node
+state would be active, anti-active and inactive. P(Xj ¼ 0 j
+Xi ¼ 1) can be calculated by 1 2 P(Xj ¼ 1 j Xi ¼ 1), and we
+assume that P(Xj ¼ 0 j Xi ¼ 0) ¼ 1 and P(Xj ¼ 1 j Xi ¼ 0) ¼ 0,
+i . e . a n od e c ann o t b e ac t ive i f th e re i s n o i npu t in t o
+the network.
+The resulting table is an n  n dependency matrix, which
+records the complete pairwise dependencies for the entire
+neuronal network (see figure 2). The matrix itself contains
+useful information about the network, and by constructing
+the PGM we can further extract and visualize this infor-
+mation. As any joint distribution can be decomposed into a
+product of conditional probabilities, the dependency matrix
+when transformed into pairwise conditional distributions
+records the full joint distributions encoded by the PGM. A
+natural graphical representation of a neuronal network is a
+directed cyclic graph as the majority of networks incorporate
+multiple pathways and recurrence. Inference on such graphs
+is hard to perform as the existence of cycles often leads to
+non-convergence of
+the probabilities [2]. We,
+therefore,
+choose to eliminate cycles and propose a restricted iterative
+deepening (RID) algorithm that builds a tree for each pos-
+terior inference problem on the graph (algorithm 2). The
+tree structure ensures that each neuron has at most one
+parent and therefore is acyclic by construction. A directed
+spanning tree can be constructed by choosing an arbitrary
+root and direct edges away from the root [2]. As our goal is to
+identify functional sub-circuits within the network and their
+component neurons, a tree-structured graph allows us to
+capture the propagation of neural pathway subject to stimuli.
+For constructing the tree, the RID algorithm that we
+implement starts with designated input neuron and extends
+
+5
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+neuron index
+
+rescale
+
+X1
+X2
+
+Xi
+
+Xn
+
+X1/Xi
+X2/Xi
+
+1
+
+Xn/Xi
+
+SVD
+
+time
+
+snapshot matrices
+
+dominant
+modes
+
+pairwise
+response
+
+1
+
+combine
+
+1
+
+pairwise conditional table
+
+Figure 2. Construction of dependencies between nodes. By injecting input stimuli into each neuron, we obtain a series of snapshot matrices that record network
+dynamics. By decomposing the snapshot matrices using SVD, we obtain the decomposition modes and compress them into a single vector for each matrix. We then
+normalize the vector according to its input neuron and obtain pairwise responses, which constitute the adjacency matrix of pairwise conditional probabilities.
+
+input node
+
+G1
+
+extend (G1)
+
+sort
+
+select
+
+G2
+
+extend (G2)
+
+Figure 3. Tree construction from adjacency matrices. We start with the input
+node, and sort the other nodes according to their probabilities conditioned on
+the input node. We ignore nodes with conditional probabilities lower than
+the threshold, and select the top nodes with the highest conditional prob-
+abilities. A constraint can be imposed to limit the number of children that
+a node can have. From there we extend each node recursively, until
+it
+either reaches the maximum tree depth, or reaches neurons in a particular
+set (e.g. motor neurons). The threshold, maximum tree depth and maximum
+number of children are pre-set parameters to limit the size of the tree.
+
+the tree according to pairwise conditional dependencies.
+The process continues until the tree either reaches the
+desired set of output neurons, e.g. motor neurons, or
+reaches the maximum depth of the tree, which can be
+imposed. We restrict the width of the tree (the number of
+children that a parent can have) by imposing a threshold
+on the conditional dependencies. For each parent neuron
+Xi, we explore all of its children neurons Xj that have pair-
+wise dependencies P(Xj j Xi) exceeding the threshold
+probability in descending order (see figure 3).
+
+3. Examples of three node neuronal network
+motifs
+
+To illustrate our methodology, we consider example motifs
+with three units. Neurons’ dynamics are set by a continuous
+time-recurrent neural network [25]:
+dui (t)
+¼   ui (t)
+w jis(uj (t)) þ Ii (t),
+dt
+
+i ¼ 1, . . ., m,
+
+X
+
+þ
+
+ti
+
+m
+
+j¼1
+
+where ui (t ) is the internal state of the ith unit, ti is the time
+constant of the ith unit, wji are the connectivity signed weights
+
+(þ activation, 2 inhibition), and Ii (t ) is the input into ith unit.
+The term s(ui (t )) specifies the output of the ith unit, with s
+being the output function. Here, we use s(x) ¼ tanh(x). We
+use random variables X, Y, Z to denote the three nodes in
+the respective PGM; each takes binary values f0, 1g.
+In the case o f three un i ts , there are severa l ways to
+connec t them . We choose four d ist inc t connec t iv i ty con -
+f igurat ions that prov ide d ist inc t func t iona l i ty, shown in
+figure 4a. The configurations are: (i) A simple chain from X
+to Y to Z, with weights wXY ¼ wYZ ¼ 1
+2; (ii) A simple loop,
+with weights wXY ¼ wYZ ¼ wZX ¼ 1
+3;
+(iii)
+Inhibition edge
+from Y to Z, with weight wYZ ¼   1
+3;
+(iv) Three edges that constitute a directed acyclic network,
+with weights wXY ¼ wYZ ¼ wXZ ¼ 1
+3. All other unassigned
+weights are 0. We call these static connectivity maps connec-
+tomes. Our goal is to infer functional connectivity based on
+the connectome and the network dynamics.
+To simulate the dynamics, we inject a constant input of 1
+unit into a specific neuron and record network response in a
+snapshot matrix. We then apply SVD on the snapshot matrix
+and extract the dominant modes, as described in the previous
+section. For example, in case 2, the network is simulated for a
+sufficiently long time with stimuli fI1, I2, I3g set to f[1, 0, 0], [0,
+1, 0], [0, 0, 1]g independently. Applying the method yields the
+pairwise dependency matrix P
+
+3, wXY ¼ wXZ ¼ 2
+
+P ¼
+
+1
+0:0817 0:2507
+0:2507
+1
+0:0817
+0:0817 0:2507
+1
+
+2
+4
+
+2
+4
+
+3
+5
+
+:
+
+3
+5
+
+,
+
+The elements of P are used as approximations to
+conditional probabilities:
+P(Y ¼ 1 j X ¼ 1) ¼ 0:2507, P(Z ¼ 1 j X ¼ 1) ¼ 0:0817,
+P(X ¼ 1 j Y ¼ 1) ¼ 0:2507, P(X ¼ 1 j X ¼ 1) ¼ 0:0817,
+P(X ¼ 1 j Z ¼ 1) ¼ 0:2507, P(Y ¼ 1 j Z ¼ 1) ¼ 0:0817:
+
+If we add Gaussian noise to the simulation, we obtain a
+slightly perturbed pairwise dependency matrix P˜ :
+
+~P ¼
+
+1
+0:0832 0:2498
+0:2503
+1
+0:0825
+0:0824 0:2498
+1
+
+which demonstrates that the SVD-based approach is robust to
+noise.
+Owing to the simplicity of the motifs, we can validate
+the PGM via an analytical dynamical systems approach
+by calculating the fixed points. For case 2, the fixed point
+
+induced by input into node X is (u*1, u*2, u*3)  (1, 0.2507,
+0.0817), which is exactly the value of the conditional prob-
+abilities we
+computed using the PGM construction
+approach. Because all edge weights are identical, the same
+fixed point will be induced by input into the other two
+nodes up to shuffling of the indices.
+We also calculate the correlation coefficients directly from
+the time series, and obtain a correlation matrix Q:
+
+Q ¼
+
+1
+0:9705 0:9625
+0:9705
+1
+0:8781
+0:9625 0:8781
+1
+
+2
+4
+
+3
+5
+
+:
+
+With the same Gaussian noise added to the system, the cor-
+relation matrix is greatly perturbed, resulting in a matrix Q˜ :
+ 0:0028
+1
+0:0017
+ 0:0028
+1
+0:0043
+0:0017
+0:0043
+1
+Notably, the matrix Q˜ does not represent the functional
+connectivity of the underlying system; particularly note
+the negative correlation between X and Y . In addition,
+the matrices Q and Q˜ are substantially different, indicating
+the sensitivity of the correlation approach to noise. In sum-
+mary, these examples demonstrate that our proposed SVD
+
+~Q ¼
+
+2
+4
+
+3
+5
+
+:
+
+approach is more appropriate to capture the intrinsic dynamics
+and statistical dependency between nodes.
+A similar validation process can be used for other con-
+figurations. We include their analysis in the Appendix. To
+infer the functional connectivity graph, we apply the RID
+algorithm to the dependency matrix P and set the threshold
+to be 0.1 and the maximum depth of the tree as 3, because
+there are only three nodes. Three individual trees are con-
+structed for each case. Combination of them into one graph
+is shown in figure 4c. Comparing figure 4a (connectome)
+with 4c (PGM), we observe that the PGMs have different
+structures from their corresponding connectomes. Indeed,
+the edges in the PGM represent the conditional dependencies
+instead of weights and reflect how the motif processes inputs.
+In particular,
+in case 1 the PGM shows that Y strongly
+depends on X, and Z strongly depends on Y, which corre-
+sponds
+to the chain structure of
+the motif.
+It also
+demonstrates weaker dependence of Z on X, which is not tri-
+vially seen in the connectome. In case 2, the PGM indicates
+symmetry and interdependence between all
+the nodes.
+Thereby input injection into any node will produce an equiv-
+alent response, a characteristic of a circular structure of the
+motif in this case. Notably, the motif ’s connectome shows
+propagation in one direction, while the PGM estimates
+
+case 1:
+
+X
+
+motif
+
+(a)
+
+(b)
+
+(c)
+
+dynamics
+
+PGM
+
+index
+
+–0.2
+
+0
+
+0.5
+
+1
+
+activity level
+
+X
+
+X
+
+Y
+
+Y
+
+Z
+
+Z
+
+X
+
+X
+
+Y
+
+Z
+
+X
+
+Y
+
+Z
+
+X
+
+Y
+
+Z
+
+X
+
+Y
+
+Z
+
+Y
+
+Z
+
+1/2
+
+1/2
+
+1/3
+
+2/3
+
+1/3
+
+1/3
+
+1/3
+
+2/3
+
+–1/3
+
+1/3
+
+1/3
+
+Y
+
+Z
+
+case 2:
+
+case 3:
+
+case 4:
+
+Figure 4. Construction of PGMs for three-unit motifs. (a) Connectomes of four examined motifs. (b) Network responses when external input is injected into each
+unit (indicated by diagonal arrow). The colour of the units indicate the activation level of each unit, i.e. darker colour indicates a more active node. (c) Constructed
+PGM structures. If there is an edge from X to Y, then the conditional probability P(Y j X ) . 0.1. Stronger arrows correspond to higher probability.
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+h
+n
+g
+o
+
+i
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+6
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+(a) forward locomotion:
+
+(b) connectome:
+(i)
+
+sensory
+
+inter
+
+motor
+
+(ii)
+
+synaptic
+
+gap
+
+(c)
+30
+
+20
+
+10
+
+0
+
+–10
+
+–20
+
+–30
+
+voltage dynamics
+
+VB01
+VB02
+VB03
+VB04
+VB05
+
+0
+
+2
+
+4
+
+6
+
+10
+
+8
+time (s)
+dynamics of key neurons
+
+12
+
+14
+
+16
+
+Figure 5. Two layers of the neuronal network of C. elegans . (a) An example of forward locomotion induced by two layers of the neuronal network of the
+worm (image cred it http://www.connectomeengine.com/). The first layer (b): connectome of C. elegans , consisting of 297 somatic neurons, 6393 chemical
+synapses and 890 gap junctions. The connectome shows (i) the chemica l synapses between neurons and (ii) the gap junctions. The second layer (c): neural
+dynamics mode lled by d ifferential equations. Here, we show voltage oscillations of the motor VB group . Combin ing the two layers we achieve the dynome, a
+dynamically evolv ing network, which is the foundation for constructing the PGM.
+
+7
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+symmetric behaviour. In case 3, there is an inhibitory edge
+between Y and Z, resulting in a negative dependence, and
+we consider two approaches here: one is to set the conditional
+probability to zero and eliminate the edge between Y and Z in
+the functional connectome (as shown in figure 4). Another way
+is to take the absolute value of the dominant modes (as
+described in algorithm 1), and show a positive dependence
+from Y to Z. The first approach ignores the negative causality:
+while the second approach retains some information of the
+causality; therefore we adopt the second approach in the C. ele-
+gans study described below. Also, even though the weights
+wXY and wXZ are the same in the connectome, the dependency
+from Y to X in the PGM is stronger than the dependency from
+Z to X. Such an effect is due to inhibition of stimulus propa-
+gation from X to Z through Y. In comparison, in case 4,
+where the inhibitory edge between Y and Z is replaced by an
+excitatory edge, the PGM indicates that Y enhances the propa-
+gation of stimulus from X to Z, even though the weights wXY
+and wXZ are all identical. These exemplary cases demonstrate
+that PGM structure is different from the motif ’s connectome
+and captures the functional dependencies between the nodes.
+These dependencies are not trivial to conclude from the con-
+nectome structure alone and become more complex as the
+dimension of the motif and ratio of connections change.
+
+4. Application to neurobiological dynamic
+connectome
+
+(a) Neuronal network of Caenorhabditis elegans
+
+The nematode Caenorhabditis elegans nervous system is a
+well-studied system, consisting of 302 neurons identifiable
+and consistent across individuals. The connections between
+the neurons are composed of chemical synapses and gap
+
+i
+
+i
+
+i
+
+i
+
+i
+
+i
+
+,
+
+junctions, whose wiring diagrams,
+i.e. connectomes, are
+nearly fully resolved from serial section electron microscopy
+[14]. In addition to the connectomes, the dynamic model that
+describes the biophysical processes between neurons has
+been introduced [20]. Specifically, the dynamical model of
+the nervous system is governed by a system of nonlinear
+differential equations ( figure 5):
+C _V i ¼  Gc (Vi   Ecell )   I Gap
+(V )   I Syn
+(V ) þ I Ext
+where C is the whole-cell membrane capacitance, G c is the
+membrane leakage conductance and Ecell
+is the leakage
+potential. I Ext
+is the external input current injected to the
+ith neuron. IGap
+and I Syn
+correspond to the input currents
+modelling gap junctions and synapses, respectively. More
+details on the biophysical model can be found in [20] and
+in the Appendix.
+Combining the connectome and the dynamical model con-
+stitute the dynome of C. elegans. Incorporating both the layers
+of connectivity and dynamic biophysical processes, the C. ele-
+gans dynome models the nervous system functionality and
+processing of stimuli that it performs. Indeed, when provided
+with arbitrary input stimuli, the C. elegans dynome is capable
+of producing various forms of characteristic dynamics such as
+static, oscillatory, non-oscillatory and transient voltage pat-
+terns consistent with experimentally observed ones [20,26].
+These simulated dynamics indicate that
+the C.
+elegans
+dynome is a valuable model for the worm’s nervous system
+and thus a suitable foundation for the construction of its
+probabilistic graphical model.
+
+(b) Constructing dependencies
+
+We apply our method to the neuronal network of
+the
+C. elegans nematode by injecting scaled input current into
+the n ¼ 279 neurons independently using the
+each of
+
+8
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+sensory
+
+top five most
+connected neurons
+
+(a)
+
+AFDR
+URAVR
+PLNL
+ASJL
+ASJR
+ASHR
+AWCR
+ASKL
+OLLR
+ASER
+ASHL
+OLQVL
+OLQDR
+ASHR
+AQR
+
+inter
+
+(b)
+
+LUAL
+AIMR
+SDQL
+AIBR
+PVNL
+AVEL
+AVBR
+AVBL
+AVAR
+AVAL
+RIBL
+AVBL
+AVBR
+AVAR
+AVAL
+
+motor
+
+(c)
+
+DD06
+DB07
+SMDVL
+RIVL
+RIVR
+RMDDL
+RMDL
+SMDDR
+DD01
+RMDR
+VD01
+RMDVR
+VA08
+VA09
+DB01
+
+0
+
+10
+
+20
+30
+40
+50
+no. incoming edges
+
+60
+
+70
+
+PGM
+
+synaptic
+
+gap
+
+0
+
+10
+
+20
+
+30
+
+40
+
+50
+
+60
+
+0
+
+10
+
+20
+
+30
+
+40
+
+(d)
+
+s
+e
+g
+d
+e
+
+g
+n
+
+i
+
+m
+
+o
+c
+n
+
+i
+
+.
+
+o
+n
+
+70
+
+60
+
+50
+
+40
+
+30
+
+20
+
+10
+
+0
+
+sensory
+
+inter
+
+motor
+
+ASJL
+
+ASJR
+
+ASKL
+
+ASKR
+
+Figure 6. Top connected neurons in sensory, inter and motor groups. (a – c) We compare three groups: functional connectivity represented by PGM, connectome
+mapping chemical synapses, and a connectome mapping gap junction. Connectivity is measured by the number of incoming edges. Top five connected neurons in
+each group along with the number of incoming edges into them are shown. In the synaptic group, an edge exists from one node (Xi) to another (Xj ) if there is at
+least one chemical synapse Xi ! Xj. In the gap group, an edge exists between Xi and Xj when there is at least one gap junction between Xi and Xj, as the gap
+junctions are non-directed. In the PGM group, an edge exists from Xi to Xj if P(Y ¼ 1jX ¼ 1) . threshold, set here as threshold ¼ 0.1. (d ) Number of incoming
+edges in the PGM for ASJ and ASK sensory neurons, categorized into three classes (sensory, inter and motor).
+
+Neural Interactome platform (see [21,27] for further details).
+We run the simulations for 15 s with a time step of 0.01 s
+and record the dynamics of all neurons in snapshot matrices
+with each snapshot matrix S of dimensions n  T ¼ 279 
+1501. We then subtract the activation threshold for each
+neuron from the simulation and exclude the initialization
+phase of the network (1 s). We then obtain 279 response
+vector representations of all neurons to the stimulation of
+the input neurons by performing SVD on each snapshot
+matrix and taking the weighted sum of all modes as described
+in §2. Each of these vectors is normalized according to input
+neuron response, which yields the conditional probability
+P(Xj ¼ 1 j Xi ¼ 1) as elements of the vector. The vectors are
+stored as column vectors of the conditional probability table,
+resulting in a 279  279 dependency matrix, which records
+the complete pairwise dependencies of the nodes in the
+C. elegans neuronal network.
+
+5. Caenorhabditis elegans functional connectome
+represented by probabilistic graphical model
+
+(a) Anatomical connectomes compared with probabilistic
+graphical model functional connectome
+
+We compare the dependency matrices ( functional connec-
+tome) obtained from our PGM construction with the
+
+anatomical ( gap and chemical connectomes) in figures 6
+and 7. Figure 6 compares top connected (hub) neurons in
+each group type (sensory, inter and motor) across the three
+different connectomes. The definition of connectivity for
+synaptic and gap connectomes is straightforward and we
+use the number of incoming edges as a count for connectivity.
+The connectivity in the PGM is expressed through probabilis-
+tic interaction and thereby top connected neurons are the
+neurons with the highest conditional probability. Notably,
+the PGM identifies a vastly different set of hub neurons
+compared with those identified by synaptic and gap connec-
+tomes. In particular, we observe that ‘hub’ neurons in the
+synaptic and gap connectomes, such as AVA and AVB, are
+not listed in PGM’s top connected neurons. Furthermore,
+top sensory and motor neurons in PGM receive far more con-
+nections than neurons from the same group in the synaptic
+and gap connectomes.
+From sensory neurons, PGM highlights ASJ, PLNL,
+URAVR and AFDR as the neurons with the most probabilistic
+interactions. These neurons are reported to be associated with
+avoidance behaviours under different circumstances in the
+environment. ASJ neurons take part in light sensation and
+promote reversals [28] while PLN neurons are part of the sen-
+sory group associated with oxygen sensing [29]. URA
+neurons are generally considered as sensory neurons but
+also innervate head muscles via the nerve ring [30]. AFD
+neurons are considered as thermo-sensors and promote
+
+ 
+ 
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+sensory
+
+inter
+
+motor
+
+sensory
+
+inter
+
+motor
+
+sensory
+
+inter
+
+motor
+
+9
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+y
+
+r
+
+o
+
+s
+
+n
+e
+s
+
+r
+
+e
+
+t
+
+n
+
+i
+
+r
+
+o
+
+t
+
+o
+
+m
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+gap
+
+synaptic
+
+PGM
+
+motor to sensory 
+
+sensory to motor
+
+motor to motor
+
+AVL
+
+DB01
+
+AQR
+
+AVL DB01
+
+VA07
+
+VB10
+
+VA11
+
+Figure 7. Connectivity matrices of gap, synaptic and PGM. In the dependency matrices, the element in the jth column and ith row, aj i, represents the total
+number of gap contacts/synaptic contacts, probability dependencies respectively from ith neuron to jth neuron. The subplots motor ! sensory, motor !
+motor, sensory! motor are zoomed in to compare deta iled differences in gap, synaptic and PGM connections. Input neurons that activate the majority
+of the responding neurons are labelled.
+
+turns on encounters with high temperature [31]. It is particu-
+larly intriguing to find ASJ neurons as top functional neurons,
+as they are anatomically sparsely connected sensory neurons.
+We investigated the reason for such discrepancy by looking at
+the incoming neurons related to ASJ and comparing them
+with ASK neurons, which have the reverse property: they
+are anatomically well connected neurons but not functionally
+( figure 6d ). Our comparison shows that the majority of incom-
+ing edges (60%) into ASJ in the PGM are motor neurons,
+whereas for ASK, despite being connected to ASJ, there are
+significantly fewer functional interactions with motor neur-
+ons and consequently a smaller number of
+incoming
+edges. These results suggest that ASJ may have substantial
+interactions with motor neurons and possibly a particular
+role in motor coordination, e.g. proprioceptive feedback,
+where motor neurons interact with sensory neurons. Further
+analysing the PGM, we discovered that the AVA, DB01,
+PVC, VA motor group and DVC neurons have the highest
+probabilities of triggering ASJ neurons. As many of these
+neurons are associated with backward locomotion, one can
+speculate that, despite its low connectivity, ASJ could be
+more widely implicated in reversal and avoidance beha-
+viours than previously known in the literature. Similar
+observation can be made with respect to PLNL, URAVR
+
+and AFDR. These neurons are not particularly well connected
+in the anatomical connectomes, but have a high number of
+probabilistic interactions with neurons associated with back-
+ward motion.
+Inter neurons associated with avoidance and locomotion
+appear to be functionally dominating. PGM identifies LUA,
+PVN, SDQ, AIM, AIB neurons as the top connected ones.
+While the exact functions of LUA and PVN are not very well
+known, LUA is suggested to function as a connector cell
+between PLM touch receptors and ventral cord, suggesting
+its potential role in locomotion [32]. While AIM neurons are
+speculated to modulate the locomotion circuit via regulating
+extra-synaptic serotonin [33], SDQ and AIB neurons, on the
+other hand, are known to be associated with high oxygen
+avoidance and promotion of turn, respectively [29].
+As in other groups, within the motor neurons group we
+find that the top connected neurons are associated with turn-
+ing/locomotion behaviours. Both RIV and SMD neurons
+innervate neck/head muscles that modulate avoidance/
+escape behaviours such as omega turns [34], and both DD06
+and DB07 neurons are components of main modulators con-
+trolling turns and locomotion, respectively, in the dorsal cord
+upon their activation [35]. Furthermore, we observe that the
+majority of the neurons that have probabilistic interactions
+
+10
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+with DD06 and DB07 in the PGM are members of body wall
+motor neurons such as the A, B and AS groups. The results
+suggest that DD06 and DB07 may serve as hub neurons
+within the array of motor neurons distributed throughout
+the worm’s body wall.
+Indeed, some studies propose
+repeated network motifs within the body wall motorneuro-
+nal connectivity as a mechanism that facilitates locomotion
+[36]. Taken together, our results provide new insights into
+the worm’s neural function by (i) suggesting the importance
+of avoidance/turning behaviours to the organism, and (ii)
+suggesting the potential functional importance of neurons
+whose roles are currently unclear.
+In figure 7, we visualize side-by-side the PGM dependency
+matrix and the anatomical connectomes with the direction of
+the connectivity being ( from, to) and the neurons are ordered
+by location (anterior to posterior), similar to the order in [14].
+This visualization shows the unique characteristics of each con-
+nectome. Gap connections appear to be mostly local,
+i.e.
+clustered around the diagonal, in which physically neighbouring
+neurons have gap junctions. Also there are a few horizontal and
+vertical ‘chains’ in inter and motor neurons, which correspond to
+single neurons having gap junctions with multiple neurons.
+Synaptic connections incorporate dense connectivity patterns
+(inter – inter, sensory but not functionally inter) in addition to
+local structure and a few connectivity chains. Furthermore, sen-
+sory ! inter and inter ! motor connections are well established
+in the anatomical connectomes, while sensory ! motor connec-
+tions are rarer.
+PGM connectivity appears to be structured differently
+from the anatomical connectomes, with local responses
+being less profound. Most of the dominant patterns appear
+to be vertical chains. Each chain corresponds to a receiving
+neuron triggered by stimulation of multiple neurons across
+groups. Triggering neurons are also distant neurons with
+no gap or synaptic connections. Most of the vertical chains
+appear in inter and motor neuron groups. In addition, we
+observe that excitation of sensory neurons leads to excitation
+of motor neurons, and motor neurons in reverse also impact
+sensory neurons. Such observations could be related to the
+known ability of sensory neurons to trigger motor behaviours
+and motor neurons to influence sensation. Another obser-
+vation from PGM visualization is
+that
+there are no
+dominant horizontal chains indicating that a single neuron
+response is triggered by only a few input neurons. To under-
+stand how each anatomical connectome contributes to the
+PGM structure we constructed PGMs by including only a
+single anatomical connectome ( gap or synaptic)
+in the
+neural dynamics simulator (see figure 10). The PGM associ-
+ated with the synaptic-only dynamical model results in a
+graph with extremely sparse dependencies, indicating that
+only trivial dynamics persist. In particular, we do not observe
+outgoing edges from ALML/R, PLML/R known to be func-
+tional in locomotion behaviour. On the other hand, the PGM
+constructed from the gap-only dynamical model turned out
+to be extremely dense, with many distinct and additional
+functional connections not present in the PGM constructed
+from the full dynamical model. For example,
+for
+the
+ALML/R PLML/R neurons, we note that a different set of
+motor neurons is activated. These experiments indicate that
+both anatomical connectomes are required to produce ade-
+quate neural dynamics. In terms of contribution to the
+PGM construction, we observe that the synaptic connectome
+serves as a selective filter to gap-only functional connections.
+
+(b) Inference of functional sub-circuits
+
+While global features of functional properties could be obtained
+through visualizing the PGM dependency matrix, additional
+analysis is needed to retrieve specific features such as pathways
+of neural information flow from a neuron of interest or a clus-
+ter of neurons. Such pathways can be inferred through
+posterior inference traversing the PGM. We pose two types
+of inference queries on the pairwise conditional table. (i)
+Given a set of input neurons: What is the set of downstream
+neurons most likely to be activated? For example, such infer-
+ence is relevant to identify inter and motor neurons activated
+by a set of sensory neurons. (ii) Given a set of downstream
+neurons: What are the subsets of upstream and midstream
+neurons most likely to activate these downstream neurons?
+Such inference can reveal, for example, inter neurons and sen-
+sory neurons that are most probably to activate motor
+neurons. Both of these questions can be answered by con-
+structing a graphical model for the network and performing
+posterior inference. While the first problem follows stimulus
+propagation forward, the second problem is an inverse
+problem, often called the MAP problem, and requires exam-
+ination and optimization over many probable inverse
+propagation sequences. We summarize our key results
+below and include individual neuron trees in the Appendix.
+To infer downstream neurons, we start with a set of input
+nodes and use the RID algorithm to construct a response tree
+for each input node in the set. For each parent node, we explore
+all of its children that have conditional dependency exceeding
+0.1 in descending order. For simplicity, we restrict the tree to
+having a maximum depth of 3—one layer each of sensory,
+inter and motor neurons—to keep the flow from sensory to
+motor neurons straightforward. In particular, we focus on
+well-known experimental scenarios such as forward and
+backward locomotion, as shown in figure 8. Specifically, we
+investigate forward locomotion triggered by posterior touch:
+activation of sensory PLML/R neurons results in the activation
+of the DB and VB groups, associated with forward locomotion.
+We investigate this sub-circuit by constructing a tree with input
+nodes PLML and PLMR (labelled PLM). Both neurons activate
+the same set of inter neurons, LUA, PVR, PVW, AVJ, DVA,
+i.e. these neurons have the highest probabilities conditioned
+on the activation of PLML and PLMR sensory neurons and
+lead to motor neurons. Other inter neurons do not lead to
+any immediate motor neurons. The DVA neuron leads
+to the DB01 motor neuron in group B (motor neurons
+group associated with forward movement [32]), which in
+turn activates most of the motor neurons in the DB and VB
+groups. These results are consistent with functional stimulus
+propagation flow reported in the literature.
+We also examine anterior touch, triggered by stimulation of
+ALML and ALMR (labelled ALM) neurons, which leads to
+backward locomotion. ALM activation leads to a larger set of
+inter neurons. The set contains all inter neurons associated
+with forward locomotion and additionally includes AVD,
+ADA, PVC, PVQ and BDU, most of which are indeed associ-
+ated with
+backward movement.
+Indeed, AVD is
+experimentally known to be associated with backward loco-
+motion, and PVC plays an important role in both forward
+and backward motion [18,30]. Stimulus flows from the PVC
+neuron to several motor neurons, especially neurons in
+group A, i.e. DA, VA (experimentally identified as associated
+with backward movement), as well as in DB and VB groups.
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+(a)
+
+experimental
+
+PLM
+
+PVD
+
+ALM
+
+AVM
+
+AVA
+
+AVB
+
+11
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+AVD
+
+PVC
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+i
+
+h
+n
+g
+o
+
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+DVA
+
+REV
+
+FWD
+
+(b)
+(i)
+
+PGM
+
+forward
+
+PLM
+
+ALM
+
+(ii)
+
+backward
+
+LUA
+
+PVW DVA
+
+PVR
+
+AVJ
+
+PVR
+
+LUA
+
+AVD
+
+DVA
+
+ADA
+
+PVW PVC
+
+PVQ
+
+AVJ
+
+BDU
+
+VB/DB
+(FWD)
+
+VB/DB
+(FWD)
+
+VA/DA
+(REV)
+
+RMG/
+RMH
+
+Figure 8. Sub-circuits that lead to forward and backward locomotion in C. elegans (a) Experimentally proposed connectome sub-circuit of forward and backward
+locomotion (sensory neurons are shown by rectangles, inter neurons by circles and motor neurons by triangles: FWD, forward; REV, reverse). Lines with arrows refer
+to chemical synapses and dashed lines refer to gap junctions. Reproduced from [18]. (b) Sub-circuits inferred from PGM. (i) Forward locomotion induced by injecting
+input into sensory neurons PLML and PLMR, known to trigger forward locomotion upon posterior touch. (ii) Backward locomotion induced by injecting input into
+ALML and ALMR, known to trigger backward locomotion upon anterior touch. (Online version in colour.)
+
+Compared with the circuit extracted from the synaptic
+and gap connectomes in figure 8a from [18], the PGM suc-
+cessfully recovers neurons participating in this circuit and
+separates them into two functional sub-circuits. In each of
+the sub-circuits, motor neurons are reached to induce loco-
+motion. As can be seen from the circuit sketch, separation
+into independent circuits is nontrivial. The PGM also ident-
+ifies inter neurons such as AVD, PVC and DVA, while the
+hub neurons AVA and AVB are missing. A possible expla-
+nation is that
+individual activation of ALM or PLM is
+insufficient for AVA/AVB to reach a strong state of excitation
+and they are activated through another stimulation/process.
+We use MAP inference to perform reverse tracking of acti-
+vating neurons of motor neurons associated with locomotion.
+We, thus, choose motor neurons in the ventral cord members
+of A and B groups shown as triangles in figure 9 and labelled
+as DA, VA, DB, VB, DD, VD. Posterior MAP inference finds
+inter and sensory neurons, which are most likely to activate
+the given motor neurons. Specifically, we apply the RID
+
+algorithm and flipped conditional probabilities. Instead of
+sorting P(Xi j Xj ), we sort P(Xj j Xi), with Xj being the parent
+node. As in forward RID, we limit the depth of the tree to
+be 3 and keep one layer each of motor, inter and sensory
+neurons. We find ten inter neurons and six sensory neurons
+that most frequently appear in the reverse traversal paths.
+We list these neurons in figure 9 as circles (inter) and rec-
+tangles (sensory). Notably, most of sensory and inter
+neurons that MAP inference produces were indeed exper-
+imentally associated with locomotion, and these are
+neurons that we identified in PLM and ALM pathways in
+figure 8. Furthermore, additional neurons known to partici-
+pate in locomotion are identified. Inferred inter neurons
+now do include AVA and AVB, which were not present in
+forward inference from ALM and PLM (see figure 8),
+emphasizing that when additional paths are considered,
+these neurons do play a role in sensory – motor neural inte-
+gration, but not in direct stimulation of ALM and PLM. The
+power of MAP inference is in its ability to associate
+
+additional neurons with the designated motor neurons,
+without any prior biological knowledge of the network.
+For example, additional inferred sensory neurons include
+AQR and PQR, known experimentally to influence loco-
+motion. Their function is currently being studied and
+conjectured to be associated with oxygen sensation and
+avoidance [37]. Using MAP inference in PGM we, thereby,
+are able to support this conjecture. The posterior inference
+from these neurons would provide more detail about
+which pathways the stimulus from AQR and PQR is
+following to reach locomotion motor neurons.
+
+6. Discussion
+
+We presented a new approach to forming a graphical model
+(PGM) for a neuronal network. Two key components in our
+approach allow us to construct the PGM that captures net-
+work functionality. The first component is the underlying
+dimension reduction technique to obtain a low-dimensional
+pro jec t ion o f ne twork responses to st imu l i . The second
+componen t is that we cap ture ne twork responses to inde -
+pendent stimuli (single neuron stimulation). We thus consider
+pairwise dependencies instead of full dependencies on the
+whole network and greatly reduce the number of par-
+ameters. This constraint-based approach is computationally
+
+efficient and allows posterior inference when combined
+with a method for traversing the PGM to produce response
+trees (RID).
+We describe how to apply these techniques to simple
+motif examples and to a neuronal model of the C. elegans ner-
+vous system whose anatomical connectomes and dynamics
+have been resolved. The application to C. elegans neuronal
+activity identified key neurons and sub-circuits without any
+prior knowledge of their functionality. In particular, our find-
+ings prompt additional examination of functional roles for
+some of the neurons outlined by PGM. Ultimately, determi-
+nation and validation of the roles of these neurons should
+be performed in experimental settings or by coupling
+neural dynamics with biomechanical models of muscles
+and body. Furthermore, the constructed PGM can be used
+for extraction of additional pathways associated with stimuli
+and behaviours that we did not consider here. Notably, the
+pathways inferred using the PGM indicate that if a particular
+neuron is excited electrophysiologically or optogenetically,
+the neurons included in the associated pathway tree will be
+most responsive to this excitation. While we applied the
+methodology to construct
+the PGM from simulation-
+driven data, a similar approach could be implemented in
+an experimental setting using single-neuron clamping and
+multi-neuron imaging network dynamics. Likewise,
+the
+
+ALM
+
+AVA
+
+stimulus
+flow
+
+MAP
+inference
+
+AVB
+
+AVE
+
+AVK
+
+DVC
+
+PVC
+
+RIB
+
+SAB
+
+SDQ
+
+SIB
+
+AQR
+
+ASG
+
+OLQ
+
+PHC
+
+PQR
+
+DA
+
+DB
+
+DD
+
+VA
+
+VB
+
+VD
+
+Figure 9. MAP posterior inference: reverse tracking of A and B motor groups associated with locomotion. We identify a group of neurons using MAP inference. Given
+that a specific group of motor neurons are being excited, the set of inter and sensory neurons that leads to such excitation is shown. From top to bottom is the
+natural stimulus flow, i.e. sensory ! inter ! motor. From bottom to top is MAP inference. (Online version in colour.)
+
+sensory
+
+(a)
+
+(b)
+
+e
+s
+
+n
+
+s
+
+o
+
+r
+
+y
+
+i
+
+n
+
+t
+
+e
+
+r
+
+m
+
+o
+
+t
+
+o
+
+r
+
+e
+s
+
+n
+
+s
+
+o
+
+r
+
+y
+
+i
+
+n
+
+t
+
+e
+
+r
+
+m
+
+o
+
+t
+
+o
+
+r
+
+inter
+
+gap junctions only
+
+synaptic only
+
+motor
+
+sensory
+
+inter
+
+motor
+
+Figure 10. PGM dependency matrices constructed by including a single anatomical connectome (a: gap; b: synaptic) in the neural dynamics simulator. (Online
+version in colour.)
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+h
+n
+g
+o
+
+i
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+12
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+methodology introduced here can be applied to other
+network models and organisms.
+Our framework assumes that the underlying network
+structure remains isotropic over simulation time, that is, the
+anatomical connectomes and pairwise conditional probabilities
+P(BjA) rema in simi lar if the s imulat ion is cont inued for a
+longer
+t ime , un l ike networks that undergo rew iring
+during simulation time, studied in previous works [5,6].
+From a dynamical point of view, we expect our approach
+to perform best when the simulated network dynamics con-
+verge to low-dimensional attractors.
+Indeed,
+for the C.
+elegans network, stimuli-induced low-dimensional attractors
+were shown to exist in the network and simulation of the
+network for an efficiently long period (15 s) is expected to
+capture attractor dynamics [20].
+The dimension reduction employed here is based on
+SVD. We collapse all SVD modes into a single vector by com-
+puting a weighted sum according to singular values of all
+modes. A plausible reduction is to retain the modes compos-
+ing 90% or more of the total energy. In many simulations of
+C. elegans, the first two modes indeed take up more than 90%
+of the energy and the first four modes take up more than
+99%. This is consistent with the observation that behavioural
+manoeuvres are spanned by several modes [38]. Indeed, we
+observe only a minor difference between taking the weighted
+sum of all modes and with taking the weighted sum of the
+first two modes. As expected, we do see a significant differ-
+ence between using the weighted sum of the first two modes
+and just the dominant mode, indicating that attractors are
+spanned by at least a two-dimensional space. Notably, it is
+also possible to use other approaches to compress the
+modes into a single vector, for example, a combination of
+k-rank approximation with methods such as Exclusive
+Threshold Reduction and Optimal Exclusive Threshold
+Reduction, introduced in [39].
+By independent stimulation and activation of each neuron
+followed by construction of pairwise response probabilities,
+our approach assumes that responses could be superim-
+posed, i.e. the response probability caused by two or more
+stimuli is the sum of the responses that would have been
+caused by each stimulus individually. While, in general, the
+assumption is not guaranteed to hold in nonlinear neuronal
+systems, networks that have input induced attractors, such
+as the C. elegans system and other attractor systems where
+there are many functionalities, are an aggregate of response
+patterns to individual stimulations. Theoretically, it is poss-
+ible to construct a Bayesian network D(G, u) with ui ¼ P(Xi j
+X1, . . ., Xn), in which we go beyond the pairwise conditional
+probabilities and explore all the possible assignments to all
+the variables in the set. Specifically, we either activate each
+node in the network, or force it to be inactive. However,
+doing so requires us to specify 2n distributions and would
+require much more simulations such that for large n the
+construction will become computationally intractable.
+Our approach for measuring probabilist ic dependen-
+cies in dynamic processes is different from previously
+introduced approaches. A lternative approaches propose
+constructions which are based on measuring corre lat ions
+or causality that collapse time and can possibly lose valuable
+information. In this realm, another possibility is to consider
+time-dependent PGMs. However, the posterior inference
+becomes ill-defined and inefficient as for the original dyna-
+mical model
+from which the PGM is constructed. Our
+
+13
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+approach is therefore considered as a hybrid of the two
+aforementioned approaches because it uses spatio-temporal
+dimension reduction with pairwise probabilities constraint
+to produce a static PGM for which posterior inference is fast
+and well defined.
+The posterior inference could also be performed in real
+time, by incorporating simulations as the inference occurs,
+i.e. simulate the network and construct probabilities from
+time-series snapshot matrices. Such an extension will allow
+us to relax the pairwise probabilities constraint and potentially
+lead to the more accurate representation of information flow.
+We did not choose such an approach because it is time-
+consuming and requires performing network simulations for
+every inference task. In practice, for a network with more
+than a few nodes, real-time inference becomes intractable.
+We thereby pre-process network responses as pairwise depen-
+dencies and construct a pre-processed PGM for which
+inference is a standard procedure in a statistical model.
+
+Data accessibility. To simulate C. elegans neural dynamics we use the
+Neural Interactome available at [21,27] and store the dynamics as
+Python matrices. Python software to construct the PGM for C. elegans
+is available at [40].
+Competing interests. We declare we have no competing interests.
+Funding. The work was supported by the National Science Foundation
+under grant nos DMS-1361145, the Air Force Office of Sponsored
+Research under grant no. FA95501610167, and the Washington
+Research Foundation Innovation Fund. The authors would also like
+to acknowledge the partial support by the Departments of Applied
+Mathematics, and Electrical Engineering at
+the University of
+Washington.
+
+Appendix
+
+(a) Analytical validation of motif examples
+
+wYZ ¼ 1
+
+For case 1, a simple chain, we set the weights wXY ¼ 1
+2,
+2, and all other weights to be zero. Then the network
+dynamics are as follows:
+f 0
+X (t) ¼  fX þ IX ¼ f1 ,
+f 0
+Y (t) ¼  fY þ 1
+tanh (fX ) þ IY ¼ f2 ,
+2
+f 0
+Z (t) ¼  fZ þ 1
+2
+
+tanh (fY ) þ IZ ¼ f3 :
+
+(1) Fixed point:
+(y
+1 , y
+2 , y
+3 ) ¼
+
+
+
+1
+1
+1,
+tanh (1),
+tanh
+2
+2
+ (1, 0:3808, 0:1817):
+
+
+
+
+
+1
+2
+
+tanh (1)
+
+(2) Linearization:
+
+J (y
+1 , y
+2 , y
+3 ) ¼
+
+L ¼
+
+2
+64
+2
+64
+
+3
+75
+
+,
+
+ 1
+
+0
+0
+0:5 sech2 (y
+1 )  1
+0
+0:5 sech2 (y
+2 )  1
+0
+
+3
+75
+
+:
+
+ 1
+
+0
+0
+0  1
+0
+0
+0  1
+
+As all eigenvalues are negative real numbers, the system is
+stable at the fixed point.
+
+Using algorithm 1, the conditional probabilities obtained
+from simulated data are as follows:
+P(y ¼ 1 j x ¼ 1) ¼ 0:3808, P(z ¼ 1 j x ¼ 1) ¼ 0:1817,
+P(z ¼ 1 j y ¼ 1) ¼ 0:3808, P(x ¼ 1 j y ¼ 1) ¼ 0,
+P(x ¼ 1 j z ¼ 1) ¼ 0,
+P(y ¼ 1 j z ¼ 1) ¼ 0,
+
+which is consistent with the analytical results. If we add
+Gaussian noise to the system, we get approximately the
+same result, which validates that our approach is robust to
+noise.
+For case 3 with feedforward inhibition, suppose wXY ¼ 2
+3,
+3, wYZ ¼   1
+3, and all others are zero. Then the network
+dynamics are as follows:
+f 0
+X (t) ¼  fX þ IX ,
+f 0
+Y (t) ¼  fY þ 2
+tanh (fX ) þ IY ,
+3
+f 0
+Z (t) ¼  fZ þ 2
+tanh (fX )   1
+3
+3
+
+wXZ ¼ 2
+
+tanh (fY ) þ IZ :
+
+(1) Fixed point:
+(y
+1 , y
+2 , y
+3 ) ¼
+
+
+
+1,
+
+2
+3
+
+tanh (1),   1
+3
+
+tanh
+
+
+
+2
+3
+
+tanh (1)
+
+
+
+þ 2
+
+tanh (1)
+3
+ (1, 0:5077, 0:3517)
+
+(2) Linearization:
+
+J (y
+1 , y
+2 , y
+3 ) ¼
+
+ 1
+
+0
+
+0
+
+2
+3
+2
+3
+
+sech2 (y
+1 )
+sech2 (y
+1 )   1
+3
+
+ 1
+
+0
+sech2 (y
+2 )  1
+
+2
+666664
+2
+64
+
+3
+777775,
+
+L ¼
+
+ 1
+
+0
+0
+0  1
+0
+0
+0  1
+
+3
+75
+
+:
+
+As all eigenvalues are negative real numbers, the fixed point
+is stable.
+Using algorithm 1, the conditional probabilities obtained
+are as follows:
+P(y ¼ 1 j x ¼ 1) ¼ 0:5077, P(z ¼ 1 j x ¼ 1) ¼ 0:3517,
+P(z ¼ 1 j y ¼ 1) ¼ 0,
+P(x ¼ 1 j y ¼ 1) ¼  0:2539 ! 0,
+P(x ¼ 1 j z ¼ 1) ¼ 0,
+P(y ¼ 1 j z ¼ 1) ¼ 0:
+For case 4 with feedforward excitation, suppose wXY ¼ 1
+3,
+3, and all others are zero. Then the network
+dynamics are as follows:
+f 0
+X (t) ¼  fX þ IX ,
+f 0
+Y (t) ¼  fY þ 1
+tanh (fX ) þ IY ,
+3
+f 0
+Z (t) ¼  fZ þ 1
+tanh (fY ) þ 1
+3
+3
+
+wXZ ¼ 1
+3, wYZ ¼ 1
+
+tanh (fX ) þ IZ :
+
+(1) Fixed point:
+(y
+1 , y
+2 , y
+3 ) ¼
+
+
+
+1,
+
+1
+3
+
+tanh (1),
+
+1
+3
+
+tanh
+
+
+
+1
+3
+
+tanh (1)
+
+
+
+þ 1
+
+tanh (1)
+3
+ (1, 0:2539, 0:3367):
+
+(2) Linearization:
+
+J (y
+1 ,y
+2 ,y
+3 ) ¼
+
+ 1
+
+0
+
+0
+
+1
+3
+1
+3
+
+sech2 (y
+1 )
+sech2 (y
+1 )
+
+ 1
+
+0
+sech2 (y
+2 )  1
+
+1
+3
+
+2
+666664
+2
+64
+
+3
+777775,
+
+L ¼
+
+ 1
+
+0
+0
+0  1
+0
+0
+0  1
+
+3
+75
+
+:
+
+As all eigenvalues are negative real numbers, the fixed point
+is stable.
+Using algorithm 1, the conditional probabilities obtained
+are as follows:
+
+P(y ¼ 1 j x ¼ 1) ¼ 0:2539, P(z ¼ 1 j x ¼ 1) ¼ 0:3367,
+P(z ¼ 1 j y ¼ 1) ¼ 0:2539, P(x ¼ 1 j y ¼ 1) ¼ 0,
+P(x ¼ 1 j z ¼ 1) ¼ 0,
+P(y ¼ 1 j z ¼ 1) ¼ 0:
+
+(b) Caenorhabditis elegans dynamics
+
+The dynamic model of the neuronal network is governed by a
+system of nonlinear differential equations:
+
+C _V i ¼  Gc (Vi   Ecell )   I Gap
+ij (Vi   Vj ),
+Gg
+
+i
+
+(V )   I Syn
+
+i
+
+(V ) þ I Ext
+
+i
+
+,
+
+I Gap
+
+i ¼
+
+X
+X
+
+j
+
+I Syn
+
+i ¼
+
+j
+
+ij sj (Vi   Vj ),
+Gs
+
+where G g
+is the total conductivity of the gap junctions
+between i and j, and G s
+ij is the maximum total conductivity
+of synapses from j to i. The synaptic activity variable, si, is
+governed by
+
+ij
+
+_si ¼ arf(vi ; b,Vth )(1   si )   ad si ,
+
+where ar and ad correspond to the synaptic activity’s rise and
+decay time s, Vth is voltage at equilibrium, and f is the sig-
+moid function with width b:
+
+f(vi ; b,Vth ) ¼
+
+1
+1 þ exp (   b(vi   Vth ))
+
+:
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+h
+n
+g
+o
+
+i
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+14
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+15
+
+r
+s
+t
+
+b
+
+.
+
+r
+
+o
+y
+a
+
+l
+
+s
+
+o
+
+c
+
+i
+
+e
+
+t
+
+y
+
+p
+u
+b
+
+l
+i
+
+s
+
+i
+
+h
+n
+g
+o
+
+.
+
+r
+
+g
+
+P
+h
+
+i
+l
+.
+
+T
+
+r
+
+a
+n
+
+s
+
+.
+
+R
+
+.
+
+S
+o
+
+c
+
+.
+
+B
+
+3
+7
+3
+
+:
+
+2
+0
+1
+7
+0
+3
+7
+7
+
+Downloaded from 
+http://rstb.royalsocietypublishing.org/
+ on September 11, 2018
+
+References
+
+5.
+
+6.
+
+7.
+
+4.
+
+2.
+
+1.
+
+Koller D, Friedman N, Getoor L, Taskar B. 2007
+Graphical models in a nutshell. In Introduction to
+statistical relational learning, pp. 13 – 55.
+Cambridge, MA: MIT press.
+Koller D, Friedman N. 2009 Probabilistic graphical
+models: principles and techniques. Cambridge, MA:
+MIT Press.
+3. Murphy KP. 2012 Machine learning: a probabilistic
+perspective. Cambridge, MA: MIT Press.
+Friedman N, Linial M, Nachman I, Pe’er D. 2000
+Using Bayesian networks to analyze expression data.
+J. Comput. Biol. 7, 601 – 620. (doi:10.1089/
+106652700750050961)
+Kolar M, Song L, Ahmed A, Xing EP. 2010
+Estimating time-varying networks. Ann. Appl. Stat.
+4, 94 – 123. (doi:10.1214/09-aoas308)
+Ahmed A, Xing EP. 2009 Recovering time-varying
+networks of dependencies in social and biological
+studies. Proc. Natl Acad. Sci. USA 106, 11 878 – 11
+883. (doi:10.1073/pnas.0901910106)
+Honey CJ, Ko¨ tter R, Breakspear M, Sporns O.
+2007 Network structure of cereb ral cortex shapes
+functional connectivity on mu ltiple time scales.
+Proc. Natl Acad. Sci. USA 104 , 10 240 – 10 245.
+(doi:10.1073/pnas.0701519104)
+Butte AJ, Kohane IS. 2000 Mutual information
+relevance networks: functional genomic clustering
+using pairwise entropy measurements. In Pacific
+Symp. Biocomputing 2000 (ed. RB Altman, AK
+Dunker, L Hunter, K Lauderdale, TE Klein),
+pp. 418 – 429. Singapore: World Scientific.
+Ba sso K , Ma rgo l in AA , S to lov i tzky G , K le in U ,
+Da l la-Fave ra R , Ca l i fano A . 2005 Reve rse
+eng inee r ing o f regu lato ry netwo rks in human
+B ce l ls . Nat . Genet . 37 , 382 – 390 . (do i :10 .
+1038 /ng1532)
+Zhang L, Guindani M, Vannucci M. 2015 Bayesian
+models for functional magnetic resonance imaging
+data analysis. Wiley Interdiscip. Rev. Comput. Stat. 7,
+21 – 41. (doi:10.1002/wics.1339)
+Zhang J et al. 2014 Inferring functional interaction
+and transition patterns via dynamic Bayesian
+variable partition models. Hum. Brain Mapp. 35,
+3314 – 3331. (doi:10.1002/hbm.22404)
+12. Ozdemi r A , Bernat EM, Av iyente S. 2017 Recurs ive
+tensor subspace track ing for dynam ic bra in
+network ana lys is . IEEE Trans . S ignal In f . Process .
+Networks 3, 669 – 682. (do i :10 .1109/TS IPN .
+2017 .2668146)
+Yizhar O, Fenno LE, Davidson TJ, Mogri M,
+Deisseroth K . 2011 Optogenetics in neural
+systems. Neuron 71, 9 – 34. (doi:10.1016/j.neuron .
+2011.06.004)
+14. Varshney LR, Chen BL, Paniagua E, Hall DH,
+Chklovskii DB. 2011 Structural properties of the
+
+11.
+
+13.
+
+10.
+
+8.
+
+9.
+
+16.
+
+19.
+
+Caenorhabditis elegans neuronal network. PLoS
+Comput. Biol. 7, e1001066. (doi:10.1371/journal.
+pcbi.1001066)
+15. Goodman MB, Hall DH, Avery L, Lockery SR. 1998
+Active currents regulate sensitivity and dynamic
+range in C. elegans neurons. Neuron 20, 763 – 772.
+(doi:10.1016/S0896-6273(00)81014-4)
+Kato S, Kaplan HS, Schro¨ del T, Skora S, Lindsay TH,
+Yemini E, Lockery S, Zimmer M. 2015 Global brain
+dynamics embed the motor command sequence of
+Caenorhabditis elegans. Cell 163, 656 – 669. (doi:10.
+1016/j.cell.2015.09.034)
+17. Nguyen JP, Shipley FB, Linder AN, Plummer GS, Liu
+M, Setru SU, Shaevitz JW, Leifer AM. 2016 Whole-
+brain calcium imaging with cellular resolution in
+freely behaving Caenorhabditis elegans. Proc. Natl
+Acad. Sci. USA 113, E1074 – E1081. (doi:10.1073/
+pnas.1507110112)
+18. Wicks SR, Roehrig CJ, Rankin CH. 1996 A dynamic
+network simulation of the nematode tap
+withdrawal circuit: predictions concerning synaptic
+function using behavioral criter ia. J. Neurosci. 16,
+4017 – 4031. (doi:10.1523/JNEUROSCI.16-12-
+04017.1996)
+Shlizerman E, Schroder K, Kutz JN. 2012
+Neural activity measures and their dynamics. SIAM
+J. Appl. Math. 72, 1260 – 1291. (doi:10.1137/
+110843630)
+Kunert J, Shlizerman E, Kutz JN. 2014 Low-
+dimensional functionality of complex network
+dynamics: neurosensory integration in the
+Caenorhabditis elegans connectome. Phys. Rev. E
+89, 052805. (doi:10.1103/PhysRevE.89.052805)
+Kim J, Leahy W, Shlizerman E. 2017 Neural
+Interactome: interactive simulation of a neuronal
+system. bioRxiv, 209155. (doi:10.1101/209155)
+Stewart GW. 1991 Perturbation theory for the
+singular value decomposition. In SVD and signal
+processing II: algorithms analysis and applications
+(ed. RJ Vacarro), pp. 99 – 109. Amsterdam: Elsevier.
+Shlizerman E, Schroder K, Kutz JN. 2012 Neural
+activity measures and their dynamics. SIAM J. Appl.
+Math. 72, 1260 – 1291. (doi:10.1137/110843630)
+Friedman J, Hastie T, Tibshirani R. 2001 The
+elements of statistical learning (Springer Series in
+Statistics, vol. 1). New York: Springer.
+Funahashi K-I, Nakamura Y. 1993 Approximation of
+dynamical systems by continuous time recurrent
+neural networks. Neural Networks 6, 801 – 806.
+(doi:10.1016/S0893-6080(05)80125-X)
+Kunert-Graf JM, Shlizerman E, Walker A, Kutz JN.
+2017 Multistability and long-timescale transients
+encoded by network structure in a model of
+C. elegans connectome dynamics. Front. Comput.
+Neurosci. 11, 53. (doi:10.3389/fncom.2017.00053)
+
+20.
+
+22.
+
+23.
+
+24.
+
+25.
+
+26.
+
+21.
+
+32.
+
+33.
+
+29.
+
+27.
+
+Kim J. 2018 C. elegans Neural Interactome b. See
+https://github.com/shlizee/C-elegans-Neural-
+Interactome.
+28. Ward A, Liu J, Feng Z, Xu XS. 2008 Light-sensitive
+neurons and channels mediate phototaxis in
+C. elegans. Nat. Neurosci. 11, 916 – 922. (doi:10.
+1038/nn.2155)
+Zimmer M et al. 2009 Neurons detect increases and
+decreases in oxygen levels using distinct guanylate
+cyclases. Neuron 61, 865 – 879. (doi:10.1016/j.
+neuron.2009.02.013)
+30. Altun Z, Hall D. 2002 WormAtlas. See http://www.
+wormatlas.org, vol. 1384.
+31. Mori I, Ohshima Y. 1995 Neural regulation of
+thermotaxis in Caenorhabditis elegans. Nature 376,
+344 – 348. (doi:10.1038/376344a0)
+Chalfie M, Sulston JE, White JG, Southgate E, Thomson
+JN, Brenner S. 1985 The neural circuit for touch
+sensitivity in Caenorhabditis elegans. J. Neurosci. 5,
+956 – 964. (doi:10.1523/JNEUROSCI.05-04-00956.1985)
+Jafari G, Xie Y, Kullyev A, Liang B, Sze JY. 2011
+Regulation of extrasynaptic 5-HT by serotonin
+reuptake transporter function in 5-HT-absorbing
+neurons underscores adaptation behavior in
+Caenorhabditis elegans. J. Neurosci. 31, 8948 – 8957.
+(doi:10.1523/JNEUROSCI.1692-11.2011)
+34. Gray JM, Hill JJ, Bargmann CI. 2005 A circuit for
+navigation in Caenorhabditis elegans. Proc. Natl
+Acad. Sci. USA 102, 3184 – 3191. (doi:10.1073/pnas.
+0409009101)
+35. Donnelly JL, Clark CM, Leifer AM, Pirri JK, Haburcak
+M, Francis MM, Samuel AD, Alkema MJ. 2013
+Monoaminergic orchestration of motor programs in
+a complex C. elegans behavior. PLoS Biol. 11,
+e1001529. (doi:10.1371/journal.pbio.1001529)
+36. Haspel G, O’Donovan MJ. 2012 A connectivity
+model for the locomotor network of Caenorhabditis
+elegans . InWorm , vol . 1, pp. 125 – 128. London :
+Taylor & Francis. (doi:10.4161/worm.19392)
+Chang AJ, Chronis N, Karow DS, Marletta MA,
+Bargmann CI. 2006 A distributed chemosensory
+circuit for oxygen preference in C. elegans. PLoS Biol.
+4, e274. (doi:10.1371/journal.pbio.0040274)
+Stephens GJ, Johnson-Kerner B, Bialek W, Ryu WS.
+2008 Dimensionality and dynamics in the behavior
+of C. elegans. PLoS Comput. Biol. 4, e1000028.
+(doi:10.1371/journal.pcbi.1000028)
+39. Blaszka D, Sanders E, Riffell JA, Shlizerman E. 2017
+Classification of fixed point network dynamics from
+multiple node timeseries data. Front. Neuroinform.
+11, 58. (doi:10.3389/fninf.2017.00058)
+Liu H. 2018 Probabilistic graphical models for
+neuronal network of C. elegans. See https://github.
+com/HexuanLiu/ProbabilisticGraphical-Models-for-
+Neuronal-Network-of-C-elegans.
+
+37.
+
+38.
+
+40.
+
+

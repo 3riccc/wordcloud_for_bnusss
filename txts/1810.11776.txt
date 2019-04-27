@@ -1,0 +1,4984 @@
+8
+1
+0
+2
+
+t
+
+c
+
+O
+
+8
+2
+
+]
+
+L
+
+M
+
+.
+
+t
+
+a
+
+t
+
+s
+
+[
+
+1
+v
+6
+7
+7
+1
+1
+
+.
+
+0
+1
+8
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+Identifying Causal Structure in Large-Scale
+Kinetic Systems
+
+Niklas Pﬁster
+ETH Z¨urich, Switzerland
+
+niklas.pfister@stat.math.ethz.ch
+
+Stefan Bauer
+ETH Z¨urich, Switzerland
+MPI T¨ubingen, Germany
+
+stefan.bauer@tuebingen.mpg.de
+
+Jonas Peters
+University of Copenhagen, Denmark
+
+jonas.peters@math.ku.dk
+
+October 30, 2018
+
+In the natural sciences, diﬀerential equations are widely used to describe dynam-
+ical systems. The discovery and veriﬁcation of such models from data has become
+a fundamental challenge of science today. From a statistical point of view, we dis-
+tinguish two problems: parameter estimation and structure search. In parameter
+estimation, we start from a given diﬀerential equation and estimate the parameters
+from noisy data that are observed at discrete time points. The estimate depends non-
+linearly on the parameters. This poses both statistical and computational challenges
+and makes the task of structure search even more ambitious. Existing methods use
+either standard model selection techniques or various types of sparsity enforcing
+regularization, hence focusing on predictive performance. In this work, we develop
+novel methodology for structure search in ordinary diﬀerential equation models. Ex-
+ploiting ideas from causal inference, we propose to rank models not only by their
+predictive performance, but also by taking into account stability, i.e., their ability to
+predict well in diﬀerent experimental settings. Based on this model ranking we also
+construct a ranking of individual variables reﬂecting causal importance. It provides
+researchers with a list of promising candidate variables that may be investigated
+further in interventional experiments. Our ranking methodology (both for models
+and variables) comes with theoretical asymptotic guarantees and is shown to outper-
+form current state-of-the art methods based on extensive experimental evaluation
+on simulated data. Practical applicability of the procedure is illustrated on a not
+yet published biological data set. Our methodology is fully implemented. Code will
+be provided online and will also be made available as an R package.
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+1. Introduction
+
+Quantitative models of dynamical systems have become a cornerstone of the modern natural
+sciences. Their development began with the formalization of mathematical analysis by Leibniz
+[1684] and Newton [1736] introducing diﬀerential equations as a tool to model the behavior of
+complicated dynamical systems over time, e.g., in Netwon’s famous laws of motion. Nowadays,
+diﬀerential equations are universally used in scientiﬁc ﬁelds as diverse as physics, neuroscience
+[e.g. Friston et al., 2003], genetics [e.g. Chen et al., 1999], bioprocessing [e.g. Ogunnaike and
+Ray, 1994], robotics [e.g. Murray, 2017], or economics [e.g. Zhang, 2005]. The popularity across
+science together with new data acquisition technologies [Ren et al., 2003, Regev et al., 2017,
+Rozman et al., 2018] has shifted the focus in many disciplines to data-driven inference of these
+models. Assume that a set X 1 , . . . , X d of variables (in biological applications this might be a
+set of protein concentrations) is governed by the diﬀerential equation
+
+˙Xt = fθ (Xt ), X0 = x0 .
+
+(1)
+
+In practice, this set of equations is often unknown, but one is able to constrain the function
+class to contain only mass-action kinetics or Michaelis-Menten dynamics, for example. If we
+have access to noisy observations ˜Xt of Xt that are measured at a ﬁnite set of time points we
+may then try to estimate the diﬀerential equation from the observed data. From a statistical
+point of view, the challenge of learning underlying equations from time series data can be split
+into two sub-problems: parameter estimation and structure search.
+The ﬁrst problem of estimating parameters in known dynamical models is of interest in
+many applications, for example, if the parameters correspond to rate constants in biological or
+chemical reactions. There is a rich literature on statistical methods that solve this problem for
+various settings. We discuss some of the most prominent approaches in Section 1.1. Since the
+estimate depends nonlinearly on the parameters, the problem becomes both statistically and
+computationally hard. This is the reason why the second problem, the estimation of the model
+structure itself, also known as model learning, network inference or system identiﬁcation, is
+even more challenging. It corresponds to inferring the underlying natural laws that govern a
+system, and becomes important when it is possible to constrain the type of relationships between
+variables but it is unclear which variables enter (1) on the right hand side. Existing approaches,
+some of which we revise in Section 1.1, are mostly procedures based on predictability and have
+diﬃculties in capturing the underlying causal mechanism. As a result, they may not predict
+well the outcome of experiments that are diﬀerent from the ones used for ﬁtting the model.
+This paper introduces a novel methodological framework, called Causal KinetiX, for structure
+search on dynamical models described by ordinary diﬀerential equations (ODEs). By drawing
+on tools from causality we aim to infer models that represent the underlying causal mechanisms
+better and therefore show improved ability to generalize to unseen experiments. More speciﬁ-
+cally, we exploit the idea of invariance whose relation to causality is well studied and has been
+of interest to researchers across various disciplines for many decades, see Section 2.4. Assume
+that, as it is usually the case in regression and classiﬁcation settings, we are mainly interested in
+a target variable Y and that we measure several predictor variables X j . A causal model for Y is
+invariant in the sense that it is capable of describing a system well across diﬀerent experimental
+settings, where some of the predictor variables X j have been intervened on. Motivated by this
+well-known observation, we construct a procedure that scores ODE-based models for the dy-
+namics of the target variable according to their invariance under diﬀerent observed experimental
+settings. This, in particular, yields a stability ranking of models. By analyzing the appearance
+of single variables in the top invariant models, we are then able to draw conclusions about the
+
+2
+
+causal nature of such variables, too. (This, again, can be expressed as a ranking.) In practice,
+the stability ranking of models and variables can be used to generate novel causal hypotheses
+that can then be veriﬁed in targeted follow-up experiments. Figure 1 shows an overview of the
+proposed method, the details can be found in Section 3.
+
+Figure 1. The framework of Causal KinetiX: the data for a target variables Y and predictors X
+come from diﬀerent experiments; we rank models according to their ability to ﬁt the
+target well in all experiments; the top ranked model is then ﬁt to the data; it allows
+to predict the target in an unseen experiment.
+
+To illustrate the applicability of our procedure, we focus on examples from the ﬁeld of systems
+biology, where the need for automated modeling has steadily grown in the last decade [Bongard
+and Lipson, 2007, Natale et al., 2017]. Due to the modularity of our procedure, it adapts
+particularly well to problems in systems biology, since researchers there are frequently confronted
+with the paradoxical situation that the system to be modeled is only partially observed and at
+the same time models are needed to better understand the system in order to formulate testable
+hypotheses [Engelhardt et al., 2016].
+
+1.1. Related work
+
+Modeling dynamical systems has a wide variety of applications and there is extensive literature
+on the topic. We summarize some existing work in terms of three categories: parameter esti-
+mation (Section 1.1.1), structure search (Section 1.1.2), and ﬁnally a more recent development,
+causal models for dynamical systems (Section 1.1.3). Our main contribution falls into the latter
+two topics.
+
+3
+
+complexexperimentsstep1dataextractionheterogeneoustimeseriesXt3Xt17Yttimetimetimestep2stabilityrankinghighrankedmodel(androbustvariableranking)X3tX17tYtddtYt=θ1X3tYt+θ2X17tYt+θ3Ytstep3parameterinferencemodelﬁtacrossexperimentsXt3Xt17Yttimetimetimestep4predictioninnewexperimentcomplexexperimenttimeYt1.1.1. Parameter estimation
+
+argmin
+
+θ
+
+(cid:96)=1
+
+,
+
+(2)
+
+(cid:17)2
+
+L(cid:88)
+
+In this paper, we are mainly interested in structure search, but the methods used for parameter
+estimation are often important ingredients for structure search. Assume it is known that the
+dynamics of a system is described by ˙Xt = fθ (Xt ), see (1). In this paper, we will be focusing on
+a target variable Yt = X1
+t , say, but we will describe the method in its full generality here. Here,
+the function fθ is known up to a parameter vector θ and ˙Xt refers to the time derivative of Xt .
+The goal in parameter estimation is to use noisy observations ˜Xt of Xt , observed at the time
+instances t1 , . . . , tL to infer the parameters θ . This problem is often formulated as a nonlinear
+(cid:16) ˜Xt(cid:96) − Xt(cid:96)
+least squares problem
+whose exact solution is often considered as a “gold standard” [e.g., Chen et al., 2017]. Here, the
+solution tra jectories Xt depends on the parameter θ . In practice, solving this optimization is
+computationally very diﬃcult. For a given candidate value θ , one has to solve the initial value
+problem (1). The theorem by Picard-Lindel¨of guarantees the existence of a unique solution if fθ
+is uniformly Lipschitz [e.g., Sideris, 2014, Theorem 3.9]. But except for some special problems,
+this solution cannot be found by symbolic computation, and numerical integration methods have
+to be used instead. Many of the instances we consider in this paper are so-called stiﬀ problems
+whose solutions are particularly diﬃcult to obtain. Standard explicit methods such as RK4 may
+fail and one must use implicit methods instead, with the consequence of additional computing
+time. Therefore, even single evaluations of the ob jective function are computationally expensive
+and require carefully chosen numerical integration methods. Optimizing over θ comes with the
+additional challenge that in practice, the number of time points L is very small (we consider an
+example with L = 11), and the ob jective function is non-convex. Nevertheless, implementations
+of this procedure exist. There are various versions, and here we concentrate on the highly
+optimized Matlab implementation data2dynamics by Raue et al. [2015].
+It is often used in
+systems biology and can be considered as a state-of-the-art implementation for solving (2).
+Their numerical integration is based on CVODES of the SUNDIALS suite [Hindmarsh et al.,
+2005].
+It is a variable order, variable step size method, combining Adams-Moulton and the
+backward diﬀerentiation method. To solve nonlinear least squares, they implemented diﬀerent
+algorithms, and suggest to use a deterministic trust region approach, a Newton type algorithm
+implemented in Matlab as LSQNONLIN [Coleman and Li, 1993, 1994]. Finally, they combine
+their algorithm with a multi-start strategy to avoid local minima. For more details, see Raue
+et al. [2015, supplementary information].
+Due to the computational cost of (2), several alternative approaches have been proposed. In
+gradient matching, one avoids solving the ODE explicitly by ﬁrst smoothing the tra jectories and
+then ﬁtting the gradients to the data, e.g., by ordinary least squares. Naturally, the solution
+depends strongly on the quality of the initial smoother. Varah [1982] suggest to use splines,
+Ramsay et al. [2007] suggest to regularize the smoother using the ODE itself, and Calderhead
+et al. [2009], Dondelinger et al. [2013], Wenk et al. [2018] use Gaussian Processes. Macdonald
+and Husmeier [2015] provide an overview of the diﬀerent approaches based on gradient matching
+with a focus on parameter estimation in biological systems. Instead of matching gradients, it
+has been suggested to perform integral matching [e.g., Dattner and Klaassen, 2015], see also
+Sections 3.4.4 and 5.1.
+
+4
+
+1.1.2. Structure search
+
+The task of model selection is arguably even more diﬃcult than parameter estimation and
+less work has been dedicated to this problem, Existing methods are most often constrained to
+low-dimensional examples.
+The most prominent area of current research views structure search as a model selection
+problem and considers sparsity enforcing regularization procedures to simultaneously infer pa-
+rameters and the structure of the model. Brunton et al. [2016], Wu et al. [2014], for example,
+propose to apply (cid:96)1 -penalization, see the baseline implemented in the Section 5.1. Mikkelsen
+and Hansen [2017] introduce an extension called AIM, which combines the (cid:96)1 -penalization with
+direct minimization of the nonlinear optimization problem that emerges from (2). A similar idea
+for polynomials is proposed by Tran and Ward [2017] and for stochastic diﬀerential equations
+by Boninsegna et al. [2018]. These approaches can also be extended and applied to ﬁnding
+PDEs [Rudy et al., 2017, Schaeﬀer, 2017]. On a critical note, it has been suggested that ap-
+proaches relying on sparsity regularization to identify a model structure should be combined
+with additional prior information, at least in systems biology [Szederk´enyi et al., 2011].
+Employing other types of regularization or classical model selection techniques is possible, too.
+Mangan et al. [2017], for example, combine sparsity regularization with a model selection step
+based on the information criteria AIC and BIC. Common alternatives are based on approximate
+Bayesian computation or likelihood ratio [Toni et al., 2009, Vyshemirsky and Girolami, 2007].
+Procedures using a Gaussian process prior on the solution of the diﬀerential equation include
+Raissi et al. [2017], Dony et al. [2018], for example, and, in a Bayesian setting, by Calderhead
+et al. [2009], Gorbach et al. [2017], Wenk et al. [2018]. Other procedures consider additional
+regularization to the inference problem by restricting the functional family to additive models
+[e.g. Henderson and Michailidis, 2014, Chen et al., 2017].
+Some attempts to describe time series by parametric equations rely on symbolic learning
+as proposed in Crutchﬁeld and McNamara [1987], Schmidt and Lipson [2009] who use evolu-
+tionary algorithms over restricted functional forms. Bongard and Lipson [2007] consider an
+active learning setting, where one can decide on performing new experiments (by changing ini-
+tial conditions), whose data are then included in the inference procedure, too. Methods based
+on inductive logic programming are proposed in Todorovski and Dzeroski [1997], Zembowicz
+and Zytkow [1992], Washio et al. [1999], while modern approaches even try end-to-end learn-
+ing [Raissi, 2018, Martius and Lampert, 2016] and combine the identiﬁcation of underlying
+diﬀerential equations from data with prediction.
+Some approaches tackle the problem by using model-free network reconstructions as in ¨Aij¨o and
+L¨ahdesm¨aki [2009], Guo et al. [2014], Casadiego et al. [2017] and also methods based on general
+time-series models, which focus on non-parametric kernel methods [Grosse et al., 2012, Duve-
+naud et al., 2013]. For a review of network inference methods with a focus on systems biology,
+we refer to Oates and Mukherjee [2012] and Siegenthaler and Gunawan [2014] and for general
+systems to the classic textbook of Ljung [1998].
+All of the above approaches focus on predictive performance in the model selection step. We
+will argue that incorporating invariance yields more robust models and brings us closer to a
+causal model. The method that comes closest to a causality idea is arguably the one proposed
+by Oates et al. [2014]. The authors consider a dynamical system as a chemical reaction graph
+with associated kinetic parameters, where both the graph and kinetic parameters have to be
+inferred from data.
+It employs a full Bayesian approach which comes with a computational
+cost, especially for a large number of variables. The links can be argued to be robust through
+model averaging.
+
+5
+
+In this paper, we restrict ourselves to the task of inferring the model for a single target variable
+Yt := X1
+t , for example. Almost all of the above methods that consider the same model class
+aim at the more challenging task of modeling the full system of variables. Exceptions include
+the approaches with an (cid:96)1 type penalty and the AIM method by [Mikkelsen and Hansen, 2017].
+These can be straightforwardly adapted to our setting and are included as baselines in our
+numerical simulations. Modeling the dynamics of a single target variable rather than the full
+system is more robust against model misspeciﬁcation and the existence of hidden variables, see
+Section 3.1. Moreover, the resulting methods become scalable to large numbers of variables as
+exhaustive model searches continue to remain feasible.
+
+1.1.3. Causal models for ODE based systems
+
+In Section 2.2, we introduce the formal framework of causal kinetic models that do not only
+allow us to model dynamical systems with a set of diﬀerential equations but also to specify
+what we mean by intervening in the system. There have been several other proposals to connect
+diﬀerential equations with causal models. We review some of them and argue why they were
+not suﬃciently general for our purpose.
+Mooij et al. [2013], Blom and Mooij [2018] and Rubenstein et al. [2018] consider (determin-
+istic) ordinary diﬀerential equations. Their goal is to describe the asymptotic solution of such
+a system as a causal model. They consider interventions that ﬁx the full time tra jectory of a
+variable to a pre-deﬁned solution, e.g., to a constant. Mooij et al. [2013] consider interventions
+on the ODE system itself. They are, however, interested in the equilibrium of the ODE sys-
+tems (assuming that they exist) and its relation to standard structural causal models (SCMs).
+Therefore, they explicitly do not distinguish between interventions that yield the same equilib-
+rium. Another class of causal models was introduced by Hansen and Sokol [2014], who consider
+stochastic diﬀerential equations, which contain ODEs as a special case. They introduce inter-
+ventions, for which at any time point the intervened variable can be written as a deterministic
+function of other variables.
+As opposed to the above approaches, causal kinetic models, remain on the level of ODEs. We
+believe that this comes with the following beneﬁts. (1) We aim to model the full time evolution
+of the system and aim at modeling data measured at diﬀerent time points. The focus in our
+work may therefore be slightly diﬀerent from the one in the approaches mentioned above. (2)
+Modeling the full time evolution, it is natural to also consider interventions in the diﬀerential
+equations themselves. Our framework allows us to work with a general class of interventions that
+we believe to be natural in several applications, see Section 2.2.1. Formally, we show at the end
+of Section 2.2.1 that our proposed causal kinetic models indeed also include the interventions
+considered in the causal models mentioned above. For example, setting the initial condition of
+one of the variables to a constant and the corresponding diﬀerential equation to zero yields an
+intervention that eﬀectively puts the tra jectory of a variable to a constant. Finally, (3), we will
+later exploit an invariance in the dynamics of the variables, which is easiest phrased in terms
+of the original ODE, see Assumption 1.
+
+1.2. Contributions
+
+We propose a general and rigorous modeling framework (Causal KinetiX) for performing causal
+inference in dynamical systems.
+It contains the concept of causal kinetic models, oﬀering a
+language for intervening in dynamical systems. It also comes with two novel methodologies for
+structure identiﬁcation from heterogeneous data: (a) model ranking and (b) variable ranking.
+
+6
+
+While we provide full details and analysis for the case of mass-action kinetics, the concepts and
+principles are readily applicable to other types of models. In contrast to established approaches,
+our framework inherently beneﬁts from heterogeneity in the experiments and attempts to learn
+causal structure from time series data. Experimental evaluation on both simulated and real
+data examples shows that our framework is robust to (ubiquitous) model misspeciﬁcation. The
+methods are ﬂexible in that they can be equipped with any parameter estimation method. Here,
+we consider a gradient matching type approach, which allows for fast parameter estimation
+and polynomial runtime in the number of variables, repetitions, environments and number
+of time points. Opposed to any method that searches over an exponentially growing space
+of model structures, and performs parameter estimation combined with model selection, our
+inference framework is scalable to very large systems.
+It is applicable in cases where only
+few observations for each state are available. For both proposed ranking procedures we prove
+theoretical guarantees including an asymptotic consistency result. Finally, we will provide easy
+to use code, which will be published as an open source R-package. It includes our simulation
+models (most notably the Maillard reaction) which can be used for testing and benchmarking
+network inference algorithms.
+
+1.3. Outline
+
+The remainder of this paper is organized as follows. In Section 2, we introduce the framework
+of causal kinetic models that allows us to deﬁne interventions in kinetic systems. We describe
+the well-studied relation between invariance and causality. In Section 3, we propose the main
+methodological components. They allow us to score models by stability, i.e., the ability to
+generalize across experiments. Additionally, we can rank variables according to their importance
+for stability. Section 4 contains theoretical guarantees. We apply our method to various artiﬁcial
+data sets and a real world biological example in Section 5.
+
+2. Causal models for ordinary diﬀerential equations
+
+We begin with a well-known example from biology that mainly serves the purpose of introducing
+notation. We show how mass-action kinetics connects reactions (as they are common in chem-
+istry, for example) to ODE based models. One may start directly with the ODEs, but often,
+the underlying reactions give rise to a natural class of interventions (see Deﬁnition 2 below).
+
+2.1. An example: the Lotka-Volterra model
+
+A general reaction [e.g. Wilkinson, 2006] takes the form
+m1R1 + m2R2 + . . . + mrRr → n1P1 + n2P2 + . . . + npPp
+
+with r being the number of reactants and p the number of products. Both Ri and Pj can
+be thought of as molecules and are often called species. The coeﬃcients mi and nj are called
+stochiometries. A famous example is the Lotka-Volterra model [Lotka, 1909].
+A k1−→ 2A
+A + B k2−→ 2B
+B k3−→ ∅,
+
+(3)
+
+(4)
+
+(5)
+
+7
+
+where A is the pray and B the predator. The coeﬃcients k1 , k2 , and k3 indicate the rates, with
+which the reactions happen.
+In mass-action kinetics [Waage and Guldberg, 1864], one usually considers the concentration
+[X ] of a species X , the square parentheses indicate that one refers to the concentration rather
+than to the integer number of abundant species or molecules itself. The law of mass-action
+states that the instantaneous rate of each reaction is proportional to the product of each of its
+reactants raised to the power of its stochiometry. For the Lotka-Volterra model, for example,
+this yields
+
+[A] = k1 [A] − k2 [A][B ]
+[B ] = k2 [A][B ] − k3 [B ].
+
+d
+dt
+d
+dt
+
+(6)
+
+(7)
+
+This is the type of model that we consider throughout the paper.
+
+2.2. Causal kinetic models
+
+We now deﬁne an ODE based model class that includes the set of reactions in (6) and (7),
+for example. Statistical models are expected to model the observational distribution of a data
+generating process. In this paper we will introduce a causal model class [see Pearl, 2009, Imbens
+and Rubin, 2015, for i.i.d. data] that additionally models intervention distributions. This allows
+us to model the system’s behaviour after having perturbed some parts of the system.1 In this
+work, we extend the ideas of SCMs (see Section 1.1) to the setting of ordinary diﬀerential
+equations (ODEs). To the best of our knowledge, the following formulation has not been used
+before.
+
+Deﬁnition 1 A causal kinetic model over processes X := (Xt )t := (X 1
+t , . . . , X d
+t )t is a col lection
+of d ODEs
+
+0
+
+0
+
+t
+
+t
+
+t
+
+, X 1
+t ),
+, X 2
+t ),
+
+X 1
+0 := x1
+X 2
+0 := x2
+
+˙X 1
+t := f 1 (X PA1
+˙X 2
+t := f 2 (X PA2
+...
+˙X d
+t := f d (X PAd
+Here, for any k ∈ {1, . . . , d},
+˙X k
+and PAk ⊆ {1, . . . , d} \ {k} is cal led the set of direct parents of X k . We require that the system
+t denotes the time derivative of the component X k at time t
+of ODEs is solvable. For each causal kinetic model we can obtain a corresponding graph over
+the vertices2 (1, . . . , d) by drawing edges from PAk to k , k ∈ {1, . . . , d}, see Figure 2 for an
+example. If we consider the initial values as random variables, this induces a distribution over
+X = (Xt )t .
+
+X d
+0 := xd
+0 .
+
+, X d
+t ),
+
+In many practical applications, we might have access to noisy observations only, i.e., we observe
+(cid:101)Xt = Xt + εt ,
+
+(8)
+
+1A subclass of causal models is furthermore able to model counterfactual distributions, that are not considered
+in this work. The model formulation we present in Deﬁnition 1 can be used for counterfactual statements,
+too.
+2By slight abuse of notation, we identify (X 1 , . . . , X d ) with its indices (1, . . . , d).
+
+8
+
+over (cid:101)X = ( (cid:101)Xt )t .
+for example, where we assume for simplicity that each noise component of εt is i.i.d. and the
+components themselves are jointly independent of Xt . Again, the model induces a distribution
+ODE representations
+
+A
+
+B
+
+A + C
+
+B + C
+
+k1−→ 2A
+k2−→ 2B
+k3−→ 2C
+k4−→ 2C
+
+k5−→ ∅
+
+C
+
+d
+
+d
+
+dt [A] = k1 [A] − k3 [A][C ]
+dt [B ] = k2 [B ] − k4 [B ][C ]
+dt [C ] = k3 [A][C ] + k4 [B ][C ] − k5 [C ]
+
+d
+
+C
+
+A
+
+B
+
+Figure 2. Illustration of diﬀerent ODE representations: mass-action (chemical) reactions (left),
+standard ODE system (middle) and corresponding graph (right).
+
+For now, we assume that all variables in the system are observed, an assumption that almost
+never holds in practice. Our method, however, requires that only one of such assignments holds,
+see Assumption 1. The modular structure of this model is the key to formalize the concept of
+interventions.
+
+2.2.1. Interventions
+
+An intervention on the system replaces some of the structural assignments. Interventions can
+change the dynamics of the process X k , the initial values or both at the same time. This in-
+cludes several types of interventions, which may prove useful when modeling complex dynamical
+systems. We discuss some examples below.
+
+Deﬁnition 2 Consider a deterministic causal kinetic model, i.e., a causal kinetic model without
+noise. An intervention on the process X k , 1 ≤ k ≤ d corresponds to replacing the k-th initial
+condition or the k-th ODE with
+
+X k
+0 := ξ
+or
+˙X k
+t := g(X PA
+, X k
+t ),
+respectively, where PA ⊆ {1, . . . , d} is the set of new parent components. In both cases, we stil l
+(cid:16) ˙X k
+require that the system of ODEs is solvable. The interventions are deonoted by
+t := g(X PA
+respectively. The same deﬁnitions apply in the presence of observational noise εt , as in (8).
+
+X k
+0 := ξ
+
+, X k
+t )
+
+(cid:16)
+
+(cid:17)
+
+(cid:17)
+
+,
+
+t
+
+do
+
+and
+
+do
+
+t
+
+If the ODE system stems from a set of reactions replacing one of them constitutes a natural
+intervention; it corresponds to a change of the assignments for all involved variables. In the
+example from Section 2.1, changing the rate of the ﬁrst reaction (3), i.e., changing k1 to ˜k1 , say,
+yields a change of assignment (6). Changing the rate of the second reaction (4), however, yields
+a change of both assignments (6) and (7).
+The framework further allows us to set a variable X k to a constant value c by performing
+the interventions do(X k
+0 := c) and do( ˙X k
+t := 0). To obtain a similar eﬀect, we may introduce
+
+9
+
+a forcing term that “pulls” the variable X k to a certain value c. Alternatively, one can keep
+the dependence of
+˙X k on X (cid:96) , say, but change how strongly ˙X k depends on the value of X (cid:96) . In
+mass-action kinetics, for example, this can be realized by changing the coresponding rates kj ,
+see Figure 2. It is furthermore possible to change the parent set of X k .
+We believe that in a system that is described well by a system of diﬀerential equations,
+it is most natural to formulate the interventions as diﬀerential equations, too. Nevertheless,
+t ) with A ⊆ {1, . . . , d} \ {k} [e.g. Hansen and Sokol,
+interventions of the form X k
+:= ζ (X A
+2014], and X k
+:= ζ (t) [e.g. Rubenstein et al., 2018] are included in our formalism as well.
+In our notation, the intervention do(X k
+t := ζ (X A
+t )) can be written as do( ˙X k
+t := d
+dt ζ (X A
+t )) and
+do(X k
+0 := ζ (X A
+0 )). Similarly, do(X k
+t := ζ (t)) is realized by do( ˙X k
+t := ˙ζ (t)) and do(X k
+0 := ζ (0)).
+The application at hand determines which of these interventions provides the description that
+is closest to reality.3
+
+t
+
+t
+
+2.3. Structure learning for ODE based systems
+
+Given that the parents PAj are unknown, estimation of a causal kinetic model involves both
+structure learning, i.e., model selection, as well as a parameter inference step. As previously
+mentioned in Section 1.1, the case where the parents of each variable (and thus the structure
+of the whole system) is known has received a lot of attention. Our work, however, focuses on
+settings, in which the system’s underlying structure is unknown and needs to be inferred from
+data. This setting is often referred to as structure learning, structure identiﬁcation or causal
+discovery in the causal community [Spirtes et al., 2000, Pearl, 2009, Peters et al., 2017].
+Instead of considering the problem of learning the entire structure, we, here, assume that
+there is a target process Y := X 1 ∈ X, for which the parents are unknown and of particular
+interest. To make this precise, we denote the parents of Y by PAY and assume that each of
+the n repetitions has been generated by a model of the form
+
+t
+
+˙Yt = fY (XPAY
+),
+(9)
+for a ﬁxed function fY . Our goal is to infer both the function fY as well as the parents PAY .
+variables X (in general the noise version (cid:101)X) on the time grid t = (t1 , . . . , tL ). Each of the
+The observed data consists of n repetitions of discrete time observations of each of the d
+repetitions is assumed to be part of an environment or experimental condition {e1 , . . . , em}.
+These experimental conditions should be thought of as diﬀerent states of the system that can
+the time series for the d variables, we thus represent the data by the following n × (d · L) matrix.
+stem from, for example, one of the interventions described in Section 2.2.1. By concatenating
+
+· · ·
+
+· · ·
+
+· · ·
+
+(cid:101)X 1,(1)
+tL
+(cid:101)X 1,(n)
+tL
+
+(cid:101)X d,(1)
+t1
+(cid:101)X d,(n)
+t1
+
+
+
+(cid:101)X d,(1)
+tL
+(cid:101)X d,(n)
+tL
+
+e = e1
+
+(cid:8)
+(cid:8)
+
+
+
+(cid:101)X 1,(1)
+t1
+(cid:101)X 1,(n)
+t1
+
+...
+...
+...
+...
+...
+...
+...
+...
+...
+e = em
+One of the variables, X 1 , say, is considered as the target, i.e., (cid:101)Y 1,(i)
+= (cid:101)X 1,i
+. In Section 3, we
+propose a two-step method that speciﬁcally exploits the diﬀerence between experimental setups
+to tackle the problem of structure identiﬁcation. The ﬁrst step is to rank diﬀerent models by
+
+· · ·
+
+· · ·
+
+· · ·
+
+(10)
+
+t
+
+t
+
+3One may further be interested in modeling delays in the system, i.e., derivatives depending on the earlier state
+of a variable. This is possible by adapting Deﬁnition 1.
+
+10
+
+how well they are able to explain the diﬀerent experimental settings. This leads to a list of
+candidate models (or functions) fY which are then used in the second step to rank variables
+according to their importance in leading to invariant models and hence whether they belong to
+PAY . The relation between causality and invariance will be one of the key components.
+
+2.4. Invariance and causality
+
+The notions of invariance and causality are tightly linked to each other. As illustrated in
+Section 2.2 causal models do not only describe a data generating process in its observational state
+but they also describe how the system can be intervened on. For many practical applications this
+is essential as it allows to make statements about the behavior of a system under certain changes.
+All causal models (for i.i.d. data or dynamical systems) build upon a common assumption:
+intervening on one part of the system, leaves another part intact. This is commonly referred to
+as autonomy or modularity [Haavelmo, 1944, Aldrich, 1989, Pearl, 2009, Sch¨olkopf et al., 2012].
+This principle can be turned around. Let us therefore assume that the system is observed
+under a discrete set of experimental (or interventional) settings, none of which aﬀect the target
+variable Y directly, see (9). In many applications, such an assumption is quite natural, e.g., if the
+target is a phenotype while the predictors are protein concentrations or gene expressions. This
+means that the data from all environments can be described by a single model. We therefore
+propose to evaluate diﬀerent models by their ability to describe the data from all environments
+equally well. Only such invariant models have the potential for being causal and restricting
+inference to the class of invariant models will bring us closer to the underlying causal ground
+truth. In the i.i.d. settings, such methods have been proposed by Eaton and Murphy [2007],
+Peters et al. [2016a], Pﬁster et al. [2018], for example. Note, however, that an extension of
+the above approaches to dynamical systems is not straightforward due to diﬀerent scales across
+experiments, errors in the observation model and the validity of the testing procedure.
+In the following section, we propose a method that ranks models by their stability and then
+uses these scores to ﬁnd certain variables which appear to be important for the most stable
+models. By the above reasoning these variables are therefore likely (depending on the number
+of observed interventional settings) to be part of the true causal model. Moreover, even if they
+are not part of the true causal model they are good predictors for explaining changes across
+diﬀerent interventional settings.
+
+3. Causal KinetiX: Identifying causal predictors
+
+In this section, we introduce a procedure that infers a part of the causal kinetic models described
+in Section 2. It is based on the assumption that the dynamics of the target variable Y := X 1
+are described by an invariant (or stable) model, depending only on an unknown subset of the
+predictors PAY .
+Given an assignment ˙Yt = g(Xt ) it will be convenient to speak about the components of Xt
+g : Rd → R (cid:12)(cid:12) ∃f : R|S | → R : ∀x ∈ Rd g(x) = f (xS )
+that have an inﬂuence on the outcome of g . For any set S ⊆ {1, . . . , d}, we therefore deﬁne
+F (S ) :=
+.
+A set of functions G ⊆ F (S ) then contains only functions that do not depend on variables
+outside S . In the class of mass-action kinetics, for example, we could have
+G1 = {g | g(x) = θ1x1 + θ7x7 , where θ1 , θ7 ∈ R},
+G2 = {g | g(x) = θ2x2 + θ3x3 , where θ2 , θ3 ∈ R},
+
+(cid:110)
+
+(cid:111)
+
+11
+
+(11)
+Further, S ∗ is minimal for f ∗ in the fol lowing sense: there is no S (cid:40) S ∗ such that f ∗ ∈ F (S ).
+
+For causal kinetic models, the pair (f Y , PAY ) satisﬁes Assumption 1 whenever the environments
+consist of interventional data, which do not contain interventions on the target Y itself. Even
+if Assumption 1 is satisﬁed the pair (f ∗ , S ∗ ) is not necessarily unique, i.e., there may be one or
+several pairs satisfying (11). In general, both the set S ∗ as well as the invariant function f ∗ are
+of interest in practice as both are strongly related to the causal mechanisms of the underlying
+In this paper, we propose a method that can rank the target models in M or the
+system.
+individual predictors in X according to their importance in achieving the invariance in (11). As
+discussed in Section 2.4 this means that highly ranked models and variables will be important
+ma jor components: (i) a procedure which assess the stability of each ﬁtted model in M, which
+for understanding the causal mechanisms in the system. Our proposed method consists of two
+we describe in Section 3.2, and (ii) a principled way of ranking individual variables based on the
+stability scores of the ﬁtted models depending on them, see Section 3.3. Although the method’s
+underlying principles are more general, our paper focuses on mass-action kinetics, which we
+introduce formally in the following Section 3.1.
+
+3.1. Parametric models for mass-action kinetics
+
+Many ODE based systems in biology are described by the law of mass-action kinetics, see, e.g.,
+Section 2.1. The resulting ODE models are linear combinations of various orders of interactions
+between the predictor variables X. Assuming that the underlying ODE model of our target Y
+is described by a version of the mass-action kinetic law, the derivative ˙Yt equals
+
+d(cid:88)
+
+d(cid:88)
+
+d(cid:88)
+
+which implies G1 ⊆ F ({1, 7}) and G2 ⊆ F ({2, 3}), see Section 3.1 for more details. In practice,
+the underlying structure is unknown and many methods therefore include a model selection
+step. For the remainder of this paper, we assume that we are given a family of target models
+M = {G 1 , . . . , Gm}, where individual models can depend on various diﬀerent subsets of variables
+S ⊆ {1, . . . , d}. We refer to G as a target model and M as a col lection of target models. Based
+on these deﬁnitions, we can make precise what it means for the target tra jectories Y to be
+described by invariant dynamics.
+Assumption 1 (invariance) There exists a set S ∗ and a function f ∗ : R|S ∗ | → R satisfying
+for al l i ∈ {1, . . . , n} and al l t ∈ t that
+
+t = f ∗(cid:0)XS ∗ ,(i)
+
+t
+
+˙Y (i)
+
+(cid:1).
+
+˙Yt = fθ (Xt ) =
+
+θ0,kX k
+
+t +
+
+θj,kX j
+t X k
+
+t ,
+
+(12)
+
+k=1
+
+j=1
+
+k=j
+
+where θ = (θ0,1 , . . . , θ0,d , θ1,1 , θ1,2 , . . . , θd,d ) ∈ Rd(d+1)/2+d is a parameter vector. Correspond-
+too. The assumption that the model only depends on the variables in S ∗ can be expressed by a
+ingly, the function on the right-hand side of (11) in Assumption 1 has such a parametric form,
+sparsity on the parameter θ , i.e., θj,k = 0 for all j, k with j /∈ S ∗ or k /∈ S ∗ . Also a target model
+G can be constructed by a certain sparsity pattern. Formally, a sparsity pattern is described by
+a vector v ∈ {0, 1}d(d+1)/2+d which speciﬁes the zero entries in θ . For every such v , we deﬁne
+fθ : Rd → R (cid:12)(cid:12)(cid:12) ∀x ∈ Rd : fθ (x) =
+G v :=
+θk,j xk xj and v ∗ θ = θ
+
+(cid:88)
+
+(cid:110)
+
+(cid:111)
+
+,
+
+k,j
+
+12
+
+MExhaustive
+p
+
+where ∗ denotes the element-wise product. In principle, one could now search over all sparsity
+patterns of θ , i.e., deﬁne M = {G v , v ∈ {0, 1}d(d+1)/2+d}, but this becomes computationally
+infeasible already for small values of d. In this work, we suggest two diﬀerent collections of
+target models. Other choices, in particular those motivated by prior knowledge, are possible,
+too, and can easily be included in our code package.
+Exhaustive models. Using only the constraint on the number of terms p leads to the following
+= (cid:8)G v (cid:12)(cid:12) v has at most p non-zeros(cid:9) .
+collection of models
+Every model in MExhaustive
+consists of a linear combination of a ﬁxed number of at most p
+terms of the form X 1 , . . . , X d , X 1X 1 , X 1X 2 , . . . , X d−1X d or X dX d .
+Main eﬀect models. Alternatively, one can also add the restriction that the models including
+= (cid:8)G v (cid:12)(cid:12) v has at most p non-zeros and
+interaction terms for variables, include the corresponding main eﬀects, too.
+v0,j (cid:54)= 0 implies vk,j (cid:54)= 0 ∀k < j and vj,k (cid:54)= 0 ∀k ≥ j(cid:9).
+While the number of main eﬀect models is much smaller it generally requires to ﬁt larger mod-
+els, which can lead to overﬁtting. For example, if the true invariant model only depends on the
+two terms X 1 and X 4X 5 there exists a exhaustive model with two parameters that is invariant,
+while the smallest main eﬀect model has nine parameters.
+
+MMainEﬀect
+p
+
+p
+
+Our method is based on Assumption 1, in combination with a more concrete modeling step,
+as described in this section, for example. Importantly, we only model the dependence of the
+target on its causal predictors. We do not put any constraints on the distribution of the
+predictor variables themselves. Apart from computational advantages that we brieﬂy discuss in
+Section 5.2.4, this comes with the following two modeling beneﬁts: (1) The predictor variables
+do not have to follow a speciﬁc model, such as mass-action kinetics. They can either come from
+a more complex models or can even be inﬂuenced or set by experiments. (2) Additionally, it
+allows the existence of an arbitrary number of hidden variables: as long as the hidden variables
+do not inﬂuence the target variable directly, they do not aﬀect the validity of Assumption 1.
+The case, where also the target variable itself is aﬀected by hidden variables is discussed in
+Section 5.2.6.
+
+3.2. Ranking models by stability
+
+In this section, we introduce a fast, integration-free procedure to compute a stability score for
+each model in M. The resulting score can be used to rank each model by how good it preserves
+the invariance assumption (11). Our proposed stability score is based on a comparison between
+the ﬁts of an unconstrained smoother of the target tra jectories and a constrained smoother in
+which the constraint enforces a structure based on the considered model. It can be summarized
+by the following steps. More details are provided in Section 3.4.
+
+(M1) Input
+Data as described in Equation (10) and a collection M = {G 1 , G 2 , . . . , Gm} of models over
+d variables that is assumed to be rich enough to describe the desired dynamics. In the
+case of mass-action kinetics, examples include M = MMainEﬀect
+.
+
+or M = MExhaustive
+p
+
+p
+
+13
+
+a
+
+˙Y (i)
+
+tL
+
+(13)
+
+(cid:1),
+
+t
+
+t1
+
+tL
+
+y∈HC
+
+(cid:96)=1
+
+t(cid:96)
+
+¨y(s)2 ds,
+
+t1
+
+(cid:90)
+
+L(cid:88)
+
+ˆy (i)
+
+a := argmin
+
+using a smoothing
+
+(M2) Screening of predictor terms (optional)
+For large scale systems, one can reduce the method’s search space to include only a smaller
+number of predictor terms.
+For each repetition i ∈ {1, . . . , n}, smooth the (noisy) data (cid:101)Y (i)
+, . . . , (cid:101)Y (i)
+(M3) Smooth target tra jectories
+(cid:0) (cid:101)Y (i)
+− y(t(cid:96) )(cid:1)2 + λ
+spline
+where λ is a regularization parameter, which in practice is chosen using cross-validation
+and HC = {y : [0, T ] → R smooth | supt∈[0,T ] max(|y(t)|, | ˙y(t)|, | ¨y(t)|) ≤ C }. We denote
+the resulting functions by ˆy (i)
+: [0, T ] → R, i ∈ {1, . . . , n}. For each of the m candidate
+target models G ∈ M perform the steps (M4)–(M6).
+(M4) Fit candidate target model
+Fit the target model G , i.e., ﬁnd the best ﬁtting function g ∈ G such that
+t = g(cid:0)X(i)
+(14)
+holds for all i ∈ {1, . . . , n} and t ∈ t. In Section 3.4.1, we describe two procedures for this
+L ﬁtted values ˆg( (cid:101)X(i)
+), . . . , ˆg( (cid:101)X(i)
+estimation step resulting in an estimate ˆg . For each repetition i ∈ {1, . . . , n}, this yields
+). A slight modiﬁcation is discussed in Section 3.4.2.
+(M5) Smooth target tra jectories with derivative constraint
+Reﬁt the target tra jectories for each repetition i ∈ {1, . . . , n} by constraining the smoother
+to these derivatives, i.e., ﬁnd the functions ˆy (i)
+(cid:0) (cid:101)Y (i)
+− y(t(cid:96) )(cid:1)2 + λ
+: [0, T ] → R which minimize
+˙y(t(cid:96) ) = ˆg( (cid:101)X(i)
+such that
+) for all (cid:96) = 1, . . . , L.
+If the candidate model G allows for an invariant ﬁt, the ﬁtted values ˆg( (cid:101)X(i)
+1 ), . . . , ˆg( (cid:101)X(i)
+(M6) Compute score
+L )
+computed in (M4) will be reasonable estimates of the derivatives ˙Y (i)
+, . . . , ˙Y (i)
+. This, in
+candidate model G does not allow for an invariant ﬁt, the estimates produced in (M4)
+particular, means that the constrained ﬁt in (M5) will be good, too. If, conversely, the
+will be poor. We thus score the models by comparing the ﬁtted tra jectories ˆy (i)
+a and ˆy (i)
+(cid:104)|RSS(i)
+across repetitions as follows
+T G :=
+1
+b − RSS(i)
+(cid:0) ˆy (i)∗ (t(cid:96) ) − (cid:101)Y (i)
+n
+(cid:1)2 .
+where RSS(i)∗
+:= 1
+The scores T G induce a ranking on the models in M, where models with a smaller score have
+more stable ﬁts than models with larger scores. It is further possible to use these scores to rank
+not only models, but also individual variables. By the relation between stability and causality,
+this yields variables that are causally related to the target variable.
+
+a |(cid:105)
+
+(cid:80)L
+
+:= argmin
+
+y∈HC
+
+/
+
+RSS(i)
+
+a
+
+,
+
+n(cid:88)
+
+L(cid:88)
+
+(cid:96)=1
+
+¨y(s)2 ds,
+
+L
+
+(cid:96)=1
+
+t(cid:96)
+
+b
+
+(16)
+
+(cid:104)
+
+(cid:105)
+
+t1
+
+tL
+
+ˆy (i)
+b
+
+(cid:90)
+
+b
+
+t(cid:96)
+
+t(cid:96)
+
+(15)
+
+i=1
+
+14
+
+3.3. Ranking variables by stability
+
+The following idea allows us to rank individual variables according to their importance in
+stabilizing models. We score all models in the collection M based on their stability as described
+in Section 3.2 and then rank the variables according to how many of the top ranked models
+depend on them. This can be summarized in the following steps.
+
+(V1) Input (same as above)
+Data as described in Equation (10) and a collection M = {G 1 , G 2 , . . . , Gm} of models over
+d variables that is assumed to be rich enough to describe the desired dynamics. In the
+case of mass-action kinetics, examples include M = MMainEﬀect
+.
+
+or M = MExhaustive
+p
+
+p
+
+(V2) Compute stabilities
+For each model G ∈ M compute the stability score T G as described in (16). Denote by
+S(1) , . . . , S(K ) the K top ranked models, where K ∈ N is chosen to be the number of
+expected invariant models in M. See Section 3.4 for how to choose K in practice.
+
+(V3) Score variables
+For each variable j ∈ {1, . . . , d} compute the following score
+|{k ∈ {1, . . . , K } | G(k) depends on j }|
+K
+
+sj :=
+
+.
+
+(17)
+
+a
+
+error-in-variables problem. Nevertheless, for certain model classes G it is possible to perform
+this estimation consistently and since the predictions are only used as constraints, one expects
+even rough estimates to work as long as they preserve the general dynamics. Here, we ﬁrst
+propose a general method which can be adapted to many model classes and then discuss a
+second method that often performs slightly better but requires the target models to be linear
+in their parameters.
+The ﬁrst procedure tackles the problem directly by ﬁrst estimating the derivatives and then
+performing a regression based on the model class under consideration. More precisely, we ﬁrst ﬁt
+the smoother y (i)
+from (M3) and then compute its derivatives. When using the ﬁrst derivative
+of a smoothing spline it has been argued that the penalty term in (13) contains the third
+derivative rather than the second derivative of y [see Ramsay and Silverman, 2005, Section
+5.2.8], however, this can lead to numerical instabilities and only works when the problem is
+suﬃciently smooth. Assuming that this results in reasonably unbiased noisy versions of
+,
+we then perform a regression of the estimated derivatives on the data. The regression procedure
+depends on the model class G and can be anything from linear ordinary least squares in the case
+of a linear model class to random forests if the functions are very nonlinear. As mentioned above
+most regression procedures have diﬃculties with errors-in-variables and therefore return biased
+results. Sometimes it can therefore be helpful to use smoothing or averaging of the predictors
+to reduce the impact of this problem.
+The second method we suggest only works for models which are linear in the parameters, i.e.,
+models that consists of function of the form
+
+˙Y (i)
+t
+
+p(cid:88)
+
+k=1
+
+g(x) =
+
+θk gk (x),
+
+(cid:90) t(cid:96)
+t(cid:96)−1
+
+=
+
+θk
+
+Y (i)
+t(cid:96)
+
+p(cid:88)
+
+− Y (i)
+t(cid:96)−1
+
+where the functions g1 , . . . , gp are known transformations. In this case we can transform (18)
+by integration to
+gk ( (cid:101)X(i)
+s )ds.
+Using this equation in the ﬁt no longer requires estimation of the derivatives of Y but instead
+the integral of the predictors.
+It is well-known [e.g., Chen et al., 2017] that integration is
+numerically more stable than diﬀerentiation, which makes the estimation easier. In particular,
+s )ds ≈ gk ( (cid:101)X(i)
+) + gk ( (cid:101)X(i)
+it is often suﬃcient to approximate the integrals using the trapezoidal rule, i.e.
+gk ( (cid:101)X(i)
+2
+In many applications, it may happen that that the noise in the predictors is in fact greater than
+the error in this approximation. The resulting bias is then negligible.
+
+(cid:90) t(cid:96)
+t(cid:96)−1
+
+(t(cid:96) − t(cid:96)−1 ).
+
+)
+
+t(cid:96)−1
+
+k=1
+
+t(cid:96)
+
+3.4.2. Leave-one-environment-out (M4)
+
+In Section 3.2, we proposed to ﬁt the model on all n repetitions and then use the predictions of
+that model to compute the score in (M6). However, since the repetitions are grouped in terms
+of environments e1 , . . . , em (if this is not the case one can also assume each repetition belongs
+ﬁtting the model on all n repetitions, it is often beneﬁcial for every i ∈ {1, . . . , n} to ﬁt the
+to a diﬀerent environment) one can incorporate this additional information. Instead of simply
+model on all repetitions belonging to all environments other than the one to which i belongs.
+
+16
+
+Then, using this ﬁtted model, predict the derivatives for the repetition i. Doing this puts more
+weight on how well a certain model is able to generalize to a diﬀerent environmental condition,
+which is exactly what we are trying to measure. It is, therefore, generally preferable to use this
+leave-one-out procedure whenever sample size and computational time allows it.
+
+3.4.3. Choosing parameter K in variable ranking (V2)
+
+In this section, we discuss the choice of the constant K used in the scores sj in Section 3.3.
+As mentioned in (V2), K should ideally be equal to the number of invariant models, as this
+will be the choice for which we show theoretical consistency guarantees in Section 4.2. We
+found that the method’s results are robust to the choice of K . In doubt, we propose to choose
+on the collection M of target models it is sometimes possible to give a heuristic number of
+K to be small, to ensure that it is smaller than the number of invariant models. Depending
+invariant model only has p terms (i.e., it corresponds to a v∗ ∈ Vp+1 with (cid:80)
+invariant models simply based on the structure. For the examples given in Section 3.1 we have
+that any super-model (i.e., any v ∈ Vp+1 with (cid:80)
+the following reasoning. Let us ﬁrst consider exhaustive models MExhaustive
+. If the smallest
+number of super-models, however, is simply given by 2d + (cid:0)d
+(cid:1) − p. Hence, if we use the model
+j v∗
+j = p) it is clear
+j |vj − v∗
+j | = 1) is also an invariant model. The
+collection MExhaustive
+smallest invariant model, a reasonable choice is to set K = 2d + (cid:0)d
+(cid:1) − p. A similar reasoning
+, where p is assumed to be the expected number of terms contained in the
+for models in MMainEﬀect
+leads to the choice K = d − p.
+
+p+1
+
+p+1
+
+2
+
+2
+
+p+1
+
+3.4.4. Screening of terms (M2)
+
+For large scale, i.e., large d, and even high-dimensional systems, the computational complexity
+of the method can be signiﬁcantly reduced by including a prior screening step. The collections
+of models we propose in Section 3.1 scale as
+
+|MExhaustive
+p
+
+| =
+
+p(cid:88)
+
+(cid:18)(cid:0)d
+(cid:1)
+
+(cid:19)
+
+2
+
+k
+
+k=1
+
+= O(d2p )
+
+and
+
+|MMainEﬀect
+p
+
+| =
+
+= O(dp ).
+
+(cid:18)d
+
+(cid:19)
+
+p(cid:88)
+
+k
+
+k=1
+
+Even though computation of the stability score for a single model is fast, this makes clear that
+an exhaustive search is infeasible for settings with large d. We therefore propose to reduce
+the model sizes by ﬁrst performing a screening step based on how useful certain terms are for
+prediction in the model estimation in (M4) of Section 3.2 and then continue our procedure with
+the reduced model class.
+Apart from the computational gains such a screening step has the additional advantage of
+making sure that the terms required for heterogeneity across experimental conditions have pre-
+dictive power, too. The intuition being that one ﬁrst reduces to a set of reasonably good
+predictors by screening and then makes use of the heterogeneity to further assess models ac-
+cording to their importance in creating invariant models. Therefore, even in a low-dimensional,
+setting combining our method with screening makes sense.
+Essentially, any screening or variable selection method based on the model ﬁt in (14) can
+be used. Here, we give two explicit options based on (cid:96)1 -penalized least squares, also known as
+Lasso [Tibshirani, 1994], for the linear models described Section 3.1. Although we are not aware
+of a method with this exact formulation, these methods are in spirit very similar to existing
+methods, see, e.g., [Wu et al., 2014, Brunton et al., 2016, Mikkelsen and Hansen, 2017] and
+references therein.
+
+17
+
+DerivLasso This method ﬁts a smoother to each tra jectory of the target variable Y and com-
+putes the corresponding derivatives. Then, one ﬁts an (cid:96)1 -penalized sparse linear model on these
+(cid:98)˙Y
+estimated derivatives
+
+d(cid:88)
+
+d(cid:88)
+
+=
+
+(i)
+
+,
+
+θk,lX k,(i)
+t(cid:96)
+
+X j,(i)
+t(cid:96)
+
++ ε(i)
+t(cid:96)
+
+t(cid:96)
+
+j=1
+
+k=j
+
+where again ε(i)
+are assumed independent and identically distributed Gaussian noise variables
+and the regression coeﬃcient θ is assumed to be sparse. This results in a ranking of terms
+X k,(i)X j,(i) by when they enter the model for the ﬁrst time.
+
+t(cid:96)
+
+IntegratedLasso Similarly, we can proceed as in Section 3.4.1 and integrate the linear model to
+avoid estimating the often numerically unstable derivatives. In this case, one ﬁts a (cid:96)1 -penalized
+sparse linear model on the diﬀerence of the form
+− (cid:98)Y (i)
+
+d(cid:88)
+
+X k,(i)
+s X j,(i)
+s
+
+ds + ε(i)
+
+(cid:98)Y (i)
+t(cid:96)
+
+θk,l
+
+t(cid:96)−1
+
+=
+
+t(cid:96)
+
+d(cid:88)
+d(cid:88)
+
+k=j
+
+(cid:90) t(cid:96)
+t(cid:96)−1
+X k,(i)
+t(cid:96)
+
+j=1
+
+≈ d(cid:88)
+
+θk,l
+
+j=1
+
+k=j
+
+X j,(i)
+t(cid:96)
+
++ X k,(i)
+t(cid:96)−1
+
+X j,(i)
+t(cid:96)−1
+
+2
+
+(t(cid:96) − t(cid:96)−1 ) + ε(i)
+
+t(cid:96)
+
+t(cid:96)
+
+where again ε(i)
+are assumed independent and identically distributed Gaussian noise and the
+regression coeﬃcient θ is assumed to be sparse. Again one gets a ranking of the term X k,(i)X j,(i)
+depending on when they ﬁrst enter the model. In the numerical simulation section (Section 5.2.1)
+we show that numerically it appears that IntegratedLasso performs better than DerivLasso (see
+Figure 5). Intuitively, this is the case whenever the dynamics are hard to detect due to noise as
+the estimated derivatives will then have strongly time-dependent biases. Similar observations
+have been made by for example Chen et al. [2017].
+The idea of using (cid:96)1 -penalized procedures for model inference is not new and has been applied
+extensively, as also mentioned in Section 1.1. In our numerical experiments in Section 5 we use
+the above mentioned DerivLasso and IntegratedLasso as two competing methods to assess the
+performance of our proposed procedure and illustrate that one can indeed proﬁt from enforcing
+invariance across experiments.
+
+4. Theoretical guarantees
+
+4.1. Signiﬁcance of the variable ranking
+
+Due to the combinatorial nature of the variable scores introduced in Section 3.3 we can test
+whether a given score sj , deﬁned in (17), is signiﬁcant in the sense that the number of top
+models in M was random. More precisely, consider the null hypothesis
+ranked models depending on variable j is higher than one would expect if the ranking of all
+the top ranked models G(1) , . . . , G(K ) are drawn uniformly from all models in M.
+H0 :
+It is straightforward to show that under H0 it holds that K · sj follows a hypergeometric dis-
+tribution with parameters |M| (population size), |{G ∈ M | G depends on j }| (number success
+in population) and K (number of draws). For each variable we can hence compute a p-value to
+assess whether it is signiﬁcantly important for stability. A small p-value, however, only implies
+
+18
+
+that a variable is potentially causal but does not directly guarantee causality. It can thus be
+used to determine how many of the top ranked variables show interesting behavior.
+In the
+numerical simulations (see Section 5.2.6) we show that this can often be helpful in applications.
+
+4.2. Consistency of ranking procedure
+
+We now provide some conditions under which the proposed procedure is consistent. To this
+end, we ﬁx the number of environments (or experiments) to m and assume that there exist
+R repetitions for each experiment observed on L time points. In total this means we observe
+n = m · R tra jectories, each on a grid of L time points. As asymptotics, consider a growing
+number of repetitions Rn and simultaneously a growing number of time points Ln . Here,
+increasing repetitions R and time points L corresponds to collecting more data and obtaining
+a ﬁner time resolution, respectively. Both of these eﬀects are achieved by novel data collection
+procedures. To make this more precise, assume that for each n ∈ N we are given a time grid
+
+tn = (tn,1 , . . . , tn,Ln )
+on which the data are observed and such that Ln → ∞ for n → ∞. For simplicity we will
+only analyze the case of a uniform grid, i.e., we assume that ∆t := tn,k+1 − tn,k = 1
+k ∈ {1, . . . , Ln}. As in Section 2.3 we denote the m environments by e1 , . . . , em ⊆ {1, . . . , n}
+for all
+and assume that for all k ∈ {1, . . . , m} that |ek | = Rn which grows as n increases.
+To achieve consistency of our ranking procedures (both for models and variables) we require
+the following three conditions (C1)–(C3) below. These three conditions should be understood
+as high-level conditions or guidelines. There may be, of course, other suﬃcient assumptions
+that yield the desired result and that might cover other settings and models.
+
+Ln
+
+(C1) Consistency of target smoothing: The smoothing procedure in (M3), see Section 3.2,
+satisﬁes the following consistency. For all k ∈ {1, . . . , m} it holds that
+
+(cid:32)
+
+(cid:16)
+
+(cid:33)
+
+(cid:17)2
+
+E
+
+lim
+
+n→∞
+
+sup
+
+t∈[0,T ]
+
+ˆy (ek )
+a
+
+(t) − Y (ek )
+
+t
+
+= 0,
+
+tn,(cid:96)
+
+tn,(cid:96)
+
+| P−→ 0
+
+(cid:96)∈{1,...,Ln }
+
+where, by slight abuse of notation, the superscript (ek ) denotes a ﬁxed repetition from
+the environment ek .
+(C2) Consistency of model estimation: For every invariant model G ∈ M and for all
+k ∈ {1, . . . , m} it holds that
+|ˆgn ( (cid:101)X(ek )
+) − ˙Y (ek )
+Ln max
+as n → ∞, i.e., the estimation procedure ˆgn in (M4) is consistent. Furthermore, for all
+non-invariant models G ∈ M there exists a smooth function g ∈ G such that g and its
+ﬁrst derivative are bounded and it holds for all t ∈ [0, T ] and for all k ∈ {1, . . . , m} that
+|ˆgn ( (cid:101)X(ek )
+) − g(X(ek )
+Ln max
+as n → ∞, i.e., the estimation convergences to a ﬁxed function.
+(C3) Uniqueness of invariant model: There exists a unique function g∗ ∈ ∪G∈MG and a
+unique set S ∗ ⊆ {1, . . . , d} such that for all n ∈ {m, m + 1, . . . } the pair f ∗ (x) := g∗ (xS ∗
+)
+and S ∗ satisfy Assumption 1. This condition is fulﬁlled if the experiments are suﬃciently
+heterogeneous, e.g., because there are suﬃciently many and strong interventions.
+
+)| P−→ 0
+
+(cid:96)∈{1,...,Ln }
+
+t(cid:96)
+
+t(cid:96)
+
+19
+
+(cid:12)(cid:12){G ∈ M | T G
+
+Note that (C2) relates to the problem of error-in-variables, see the discussion in Section 3.4.1.
+Relying on the conditions (C1)–(C3), we are now able to prove consistency results for both
+the model ranking from Section 3.2 and the variable ranking from Section 3.3. Recalling the
+n and G not invariant}(cid:12)(cid:12)
+deﬁnition of T G
+n given in (16) (small values of T G
+n indicate invariance), we deﬁne
+(cid:12)(cid:12){G ∈ M | G not invariant}(cid:12)(cid:12)
+n < max{ ˜G∈M| ˜G invariant} T ˜G
+as performance measure of our model ranking. RankAccuracy is thus equal to 1 minus “pro-
+portion of non-invariant models that are ranked better than the worst invariant model”. In
+particular, it equals 1 if and only if all invariant models are ranked better than all other models.
+Given the above conditions the following consistency holds.
+
+RankAccuracyn := 1 −
+
+(19)
+
+Theorem 3 (rank consistency) Let Assumption 1 and conditions (C1) and (C2) be satisﬁed.
+Additional ly, assume that for al l k ∈ {1, . . . , m} it holds for al l i ∈ ek and (cid:96) ∈ {1, . . . , Ln}
+that the noise variables ε(i)
+are i.i.d., symmetric, sub-Gaussian and satisfy E(ε(i)
+) = 0 and
+var(ε(i)
+) = σ2
+k . Let Yt and its ﬁrst and second derivative be bounded and assume that for al l
+non-invariant sets G ∈ M the sets {t (cid:55)→ g(Xt ) | g ∈ G } are closed with respect to the sup norm.
+Then, it holds that
+E (RankAccuracyn ) = 1.
+
+lim
+
+t(cid:96)
+
+n→∞
+
+t(cid:96)
+
+t(cid:96)
+
+If, in addition, condition (C3) holds, we have the fol lowing guarantee for the variable scores
+sn
+j = sj , deﬁned in (17):
+• for al l j ∈ S ∗ it holds that limn→∞ E(sn
+j ) = 1 and
+• for al l j (cid:54)∈ S ∗ it holds that limn→∞ E(sn
+j ) ≤ K−1
+K ,
+where K := |{G ∈ M | G is invariant}|.
+
+The result is proved in Appendix B (which also contains the choice of C for (M3)) and it is
+veriﬁed empirically in Section 5.2.3.
+
+5. Numerical experiments
+
+We believe that the main features of our method are as follows: (a) We model only a part of
+the system, namely the dependence from the target derivative on its causal predictors, see (11)
+and (12). The predictors themselves do not need to be modeled. This is an advantage not
+only because of speed but also because the predictors’ dynamics may follow a complex set of
+diﬀerential equations or may depend on variables that are unobserved, see Section 5.2.6, for
+example.
+(b) Our method does not solve any numerically expensive steps, e.g., there is no
+integration step. Together with the ﬁrst point, this makes our method fast and scalable to large
+systems, see Section 3.4.4. The experiment on real data includes d = 411 predictor variables,
+see Section 5.3. (c) We take the heterogeneity of the data into account. The method therefore
+outputs not only predictive variables but also those that yield a prediction that is particularly
+invariant across diﬀerent settings. This is a distinctive feature of causal predictors (Section 2),
+and such a model may still perform well in a new, unseen experiment, see Section 5.3. (d) The
+output is presented as a ranking that can be seen as a generation of causal hypotheses.
+We introduce some competing methods in Section 5.1. Various experiments on synthetic data
+(partly simulated from real systems) shown in Section 5.2 indicate superior performance of our
+
+20
+
+proposed method. Finally, Section 5.3 shows an application to a real data set illustrating our
+method’s potential to practically relevant problems. In the numerical experiments, we consider
+ODE systems derived from the law of mass-action kinetics, see Section 3.1.
+
+5.1. Competing methods
+
+There exist a large number of methods that aim to perform model selection for ODEs, see
+also Section 1.1. In essence, these methods combine parameter inference with classical model
+selection techniques such as information criteria, e.g., AIC or BIC, or (cid:96)1 -penalized approaches.
+All of them have in common that they solely optimize predictive performance of the resulting
+model and do not make use of any heterogeneity in the data. Here, we compare with two basic
+(cid:96)1 -penalized approaches that we believe are representative for this group of methods. The ﬁrst
+method performs the regularization on the level of the derivatives (DerivLasso) and the second
+on the integrated problem (IntegratedLasso). Both are common in literature and can also be
+used as screening procedures in our method, see Section 3.4.4. Finally, we also compare with
+a more involved method called adaptive integral matching (AIM) introduced by Mikkelsen and
+Hansen [2017]. Rather than only ﬁtting the target equation it ﬁts an entire system of ODEs on
+all variables, hence utilizing information shared across diﬀerent variables.
+
+5.2. Simulation experiments
+
+We perform experiments on three ODE models. The ﬁrst is a biological model of the Maillard
+reaction [Maillard, 1912], whereas the second and third are artiﬁcially constructed ODE models.
+The relatively small sizes of these systems (d < 13) allow for fast data simulation which enables
+us to compare the performance under various settings and conditions.
+It further makes the
+presentation easier to understand. Section 5.3 contains a larger example.
+
+5.2.1. Finding causal predictors in the Maillard reaction
+
+The ﬁrst simulation study is based on a biological ODE system from BioModels Database due
+to Li et al. [2010]. More speciﬁcally, we use the model BIOMD0000000052 due to Brands and
+van Boekel [2002] which describes reactions in heated monosaccharide-casein systems. This
+system has the advantages to be relatively small (11 variables), it consists entirely of mass-
+action type equations, and it remains stable under various random interventions (that we can
+use to simulate diﬀerent experimental conditions). The simulation setup is described in Data
+Set 1.
+
+Data Set 1: Maillard reaction
+
+The ODE structure is given in Appendix C. For the simulations, we randomly select one of
+the d = 11 variables to be the target and generate data from 5 experimental settings and
+sample 3 repetitions for each experiment. The experimental conditions are as follows.
+• experimental condition 1 (observational data):
+Tra jectories are simulated using the parameters given in BIOMD0000000052, see
+Appendix C.
+• experimental conditions 2 to 5 (interventional data):
+Tra jectories are simulated based on the following two types of interventions
+– initial value intervention: Initial values are sampled for [Glu] and [Fru] uni-
+form between 0 and 5 · 160 and for [lys R] uniform between 0 and 5 · 15, the
+
+21
+
+remainder of the quantities are kept at zero initially as they are all products of
+the reactions.
+– blocking reactions: Random reactions that do not belong to the target equa-
+tions are set to zero by ﬁxing the corresponding reaction constant ki ≡ 0. The
+expected number of reactions set to zero is 3.
+Based on these experimental conditions each of the true model tra jectories are computed
+using numerical integration. Finally, the observations are given as noisy versions of the
+values of these tra jectories on a quadratic time grid with L = 11 time points between 0
+and 100. The noise at each observation is independently normal distributed with mean 0
+and variance proportional to the total variation norm of the tra jectory plus a small positive
+constant (in case the tra jectory is constant). Sample tra jectories are given in Figure 3.
+
+As a ﬁrst assessment of our method, we sample B = 500 realizations of the system described
+in Data Set 1 and apply our method as well as the competing methods to rank the variables
+according to which variable is most likely to be a parent variable of the target. To remove any
+eﬀect resulting from ordering of the variables we relabel them in each repetition by randomly
+permuting the labels. Each ranking is then assessed by computing the area under the operator
+receiver curve (AUROC) based on the known ground truth (i.e., parents PAY ). The results
+are given in Figure 4. Here, we applied Causal KinetiX using both the exhaustive and the
+main eﬀect model classes discussed in Section 3.1. For the exhaustive models we considered
+all possible models consisting of individual variables and interactions (66 potential predictor
+terms) and restricted the search to models with at most 4 such terms after reducing the number
+of terms by a prior screening step to 33. For the main eﬀect models we performed no prior
+screening and considered all models with at most 4 variables. The results show that our method
+can improve on all competing methods. In particular, we are able to get a median AUROC of
+1 implying that in more than half of all repetitions our method ranks the correct models ﬁrst.
+Moreover, by comparing with IntegratedLasso one can see that utilizing the heterogeneity (via
+the stability score) does indeed improve on plain prediction based methods.
+
+Figure 3. Sample observations (the method’s input) for the variables Glu, lys R and Melanoidin
+from Data Set 1. Points represent noisy observations with diﬀerent colors for the 5
+diﬀerent experimental conditions, e.g., red corresponds to experimental condition 1.
+
+5.2.2. Comparison of screening procedures
+
+Using data generated as in Data Set 1, we compare the two screening methods DerivLasso and
+IntegratedLasso introduced in Section 3.4.4. To this end, we sample B = 1000 data sets and
+
+22
+
+2004006000255075100time[Glu]02550750255075100time[lys R]0204060800255075100time[Melanoidin]Figure 4. Results for simulation in Section 5.2.1. In each of the 500 simulations, the methods
+rank predictors for a randomly chosen target. If the AUROC equals one, the correct
+variables are ranked highest. Red points correspond to mean AUROC, black points
+to median AUROC.
+
+apply both IntegratedLasso and DerivLasso to rank all 11 · 10 · 0.5 + 22 = 77 individual terms
+of the form X kX j and X j (d = 11) based on their ﬁrst entrance into the model. For each
+data set, we then compute the worst rank of any true term and plot them in Figure 5. For
+comparison, we also include the results from a random ranking, i.e., a random permutation of
+the terms. Both methods perform better than the random baseline, and the IntegratedLasso
+outperforms DerivLasso in this setting. This might be because the integral approximation used
+in IntegratedLasso is more robust than the estimation of the derivatives required for DerivLasso.
+
+Figure 5. Comparison between diﬀerent screening methods based on B = 1000 simulations
+from Data Set 1 in Section 5.2.1. All 77 terms of the form X kX j and X j are ranked
+according to the screening procedure. The x-axis shows the rank of the worst ranked
+term from the true model. High concentration on the left implies good screening
+performance. Here, IntegratedLasso outperforms DerivLasso.
+
+23
+
+lllllllllllllllllllllllllllllRandom rankingDerivLassoIntegratedLassoAIMCausal KinetiX (Exhaustive)Causal KinetiX (MainEffect)0.000.250.500.751.00AUROC0%10%20%0204060worst rank of any true termIntegratedLasso0%5%10%15%0204060worst rank of any true termDerivLasso0%5%10%15%0204060worst rank of any true termRandom5.2.3. Consistency analysis
+
+We now illustrate our theoretical consistency result from Section 4.2. Again, we simulate from
+Data Set 1, where we consider diﬀerent values of L and n to analyze the asymptotic behavior.
+Here, instead of increasing the value of n we decrease the noise variance as this has a similar
+eﬀect but is computationally faster. Moreover, in light of condition (C3), we now use 10
+experimental conditions. The results shown in Figure 6 demonstrate the convergence of the
+RankAccuracy (19) towards one as the number of time steps L goes to inﬁnity and the noise
+variance goes to zero.
+
+Figure 6. Results for simulation in Section 5.2.3. For diﬀerent numbers of time points L and
+noise variance proportional 10
+L2 we sampled 500 simulations from Data Set 1. For
+each simulation we compute the RankAccuracy. Red points correspond to mean
+RankAccuracy, black points to median RankAccuracy.
+
+5.2.4. Scalability
+
+We now analyze how our method scales with the number of variables d, the number of environ-
+ments m, the number of repetitions in each environment R, and the number of observed time
+points for each tra jectory L. Figure 7 illustrates the run-time of our method when one of these
+parameters is varied while the others are kept ﬁxed. The data are generated according to Data
+Set 2. The key steps driving the computational cost of our procedure are the smoothing in steps
+(M3) and (M5), as well as the estimation step (M4). In our case, the cost of the estimation
+procedure, ﬁtting a linear model with ordinary least squares, is negligible. Since the number of
+smoothing operations, we have to perform grows linearly with respect to m and R, we expect a
+linear increase in run-time. Accordingly, the slopes in Figure 7 (bottom left and top right) are
+close to one.
+We compute the smoothing spline in (M3) using a convex quadratic program, which can be
+solved in polynomial time – even if the number of constraints is growing linearly, see (M5). The
+data points in Figure 7 (bottom right) do not lie on a straight line, which may be due to some
+computational overhead for small values of L or due to the quadratic program itself. The worst
+case complexity of convex quadratic programming is cubic in sample size, but many instances
+can be solved more eﬃciently. Correspondingly, the slope in Figure 7 is not larger than three.
+When only values L ≥ 64 are taken into account, the slope is estimated as 2.9, which is close
+
+24
+
+lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll0.000.250.500.751.00510204080160LRankAccuracyFigure 7. Run-time analysis for the parameters number of variables d, number of repetitions R,
+number of environments m and number of time points L. In each plot one parameter
+is varied while the remaining are kept constant and the run-time is computed 100
+times for a full application of our method. The dotted red line is a linear ﬁt to the
+log-log-transformed plots where the slope estimates the polynomial runtime order.
+
+to the worst case guarantee of 3. Finally, varying the number of variables impacts the size of
+M, that is, the number of models. In Figure 7, we consider the case of main-eﬀects models of
+up to three variables (see Section 3.1), which results in O(d3 ) models. If we again assume that
+run-time of the estimation step can be neglected, we expect a slope of 3 in the log-log plot. In
+our empirical experiments the slope is estimated as 2.6 (Figure 7 top left).
+
+5.2.5. Allowing for complex predictor models
+
+Our procedure requires that only the dynamics of the target variable are given by an ODE
+model. We do not model the dynamics of the predictors, which as a consequence may follow
+any arbitrarily complex model. As an illustration we sample tra jectories such that the predictors
+are completely random and only the target variable satisﬁes an invariant model, according to
+Assumption 1. The details of the data generation are shown in Data Set 2.
+
+Data Set 2: Target model based on predictor tra jectories
+
+Consider functions of the form
+
+fc1 ,c2 ,c3 ,c4 (t) =
+
+c1
+
+1 + ec2 (t−3)
+
++
+
+c3
+
+1 + ec4 (t−3)
+
+,
+
+i.e., these functions are linear combinations of sigmoids which have smooth tra jectories that
+imitate dynamics observed in some real data experiment. For each of the 5 experimental
+t = fc1 ,c2 ,c3 ,c4 (t) for t ∈ [0, 6], where c1 , c2 , c3 , c4
+conditions we sample d = 12 tra jectories X j
+are i.i.d. standard normal. Based on these tra jectories and the ODE given by
+
+˙Yt = θ1X 1 + θ2X 2 ,
+
+Y0 = 0,
+
+25
+
+llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllslope: 2.6141664256102448163264dsecondsllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllslope: 0.9248163264128248163264128Rsecondsllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllslope: 0.912481632248163264msecondsllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllslope: 1.714166425610248163264128256512Lsecondswhere θ1 = 0.0001 and θ2 = 0.0002, we compute the tra jectories of the target variable Y
+by numerical integration. Finally, the observations are given as noisy versions of the values
+of these tra jectories on an equally spaced time grid with L = 15 time points between 0 and
+10. The noise at each observation is independently normal distributed with mean 0 and
+variance proportional to the total variation norm of the tra jectory plus a small positive
+constant (in case the tra jectory is constant). Sample tra jectories are given in Figure 8.
+
+The results are shown in Figure 9. Here, again we applied Causal KinetiX for both the
+exhaustive and main eﬀects model class. For the exhaustive model class we again consider
+individual variables and interactions as possible terms (78 terms) and reduce to half these (39
+terms) using screening and then apply our method for all models with at most 3 terms. For the
+main eﬀect models we again perform no screening and consider all models consisting of at most
+3 variables. Even though none of the predictors follows an ODE model our procedure is capable
+of recovering the true causal parents and again improves on plain prediction (IntegratedLasso
+and DerivLasso).
+
+Figure 8. Sample observations for the target variable Y and its two parents X 1 and X 2 Data
+Set 2. Points represent noisy observations with diﬀerent colors used for the 5 diﬀerent
+experiments, e.g., red corresponds to experimental condition 1.
+
+Figure 9. Results for simulation in Section 5.2.5. Red points correspond to mean AUROC,
+black points to median AUROC.
+
+26
+
+−2−1010.02.55.07.510.0timeY−1.0−0.50.00.51.00.02.55.07.510.0timeX1−1.0−0.50.00.50.02.55.07.510.0timeX2lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllRandom rankingDerivLassoIntegratedLassoAIMCausal KinetiX (Exhaustive)Causal KinetiX (MainEffect)0.000.250.500.751.00AUROC5.2.6. Robustness in the presence of hidden variables
+
+In many practical applications hidden (unobserved) variables are omnipresent. Since we only
+model the target equation, see Section 3.1, hidden variables do not aﬀect our methodology if
+they appear anywhere outside the target variable Y . In this section, we show that even if they
+enter the target equation our procedure is generally expected to behave well. The data in this
+section are generated according to Data Set 3, which is based on an artiﬁcially constructed
+ODE system, for which some of the variables are assumed to be hidden. Example tra jectories
+are shown in Figure 10.
+
+Data Set 3: Hidden variable model
+
+The exact ODE structure is given in Appendix D. We generate data from 16 experimental
+conditions and sample 3 repetitions for each experiment. The experimental conditions are
+the following.
+• experimental condition 1 (observational data):
+Tra jectories are simulated using the parameters given in Appendix D.
+• experimental conditions 2 to 16 (interventional data):
+Tra jectories are simulated based on the following two types of interventions
+– initial value intervention: Initial values are sampled for X 1 , X 2 and X 5
+uniform between 0 and 10, the remainder of the quantities are kept at zero
+initially as they are all products of the reactions.
+– blocking reactions: Random reactions other than k4 , k5 and k7 are set to zero
+by ﬁxing the corresponding reaction constant ki ≡ 0. The expected number of
+reactions set to zero is 2. Additionally, the rate k7 is randomly perturbed either
+by sampling it uniform on [0, 0.2] or uniform on [−0.1, 0.3].
+Based on these experimental conditions each true tra jectory is computed using numerical
+integration. Finally, the observations are noisy versions of the values of these tra jectories
+on an exponential time grid with L = 20 time points between 0 and 100. The noise at each
+observation is independently normal distributed with mean 0 and variance proportional
+to the total variation norm of the tra jectory plus a small positive constant (in case the
+tra jectory is constant). Example tra jectories for the variables X 2 and H 2 depending on
+the values of k7 are illustrated in Figure 10.
+
+We conduct three experiments, whose results are shown in Figures 11 and Figure 12. In the
+ﬁrst setting (left plots), all variables are observed. The system of equations is built such that
+X 2 and H 2 obey very similar but not identical tra jectories (here k7 is perturbed less). Most
+methods are able to correctly identify X 3 and H 2 as the direct causes of Y – those variables
+are usually ranked highest, see Figures 11 and 12 (left). In the second setting (middle plots),
+H 2 is unobserved. Because of the similarity between H 2 and X 2 , the methods now infer X 2 as
+a direct cause. Finally, the third setting (right plots) diﬀer from the second setting in the sense
+that H 2 and X 2 are signiﬁcantly diﬀerent (here k7 is perturbed more). The latter variable still
+helps for prediction but does not yield an invariant model. Our method still reliably infers X 3
+as a direct cause, which is usually ranked higher than any of the other variables, see Figures 11
+and 12 (right).
+The results show that our method is relatively robust against the existence of unobserved
+variables.
+
+27
+
+Figure 10. Sample observations of the two predictors X 2 and H 2 from Data Set 3 (only ﬁrst 8
+experiments) for two diﬀerent choices of perturbations of k7 . From left to right: For
+k7 uniform on [0, 0.2] the dynamics are similar but not identical, for k7 uniform on
+[−0.1, 0.3] the dynamics become very diﬀerent. Points represent noisy observations
+of the underlying ODE tra jectories.
+
+Figure 11. Results for the experiment described in Section 5.2.6 (hidden variables). Plot shows
+how often each variable gets a p-value smaller than 0.01, see Section 4.1. The number
+on each histogram is the average number of signiﬁcant variables at a 1% level.
+
+28
+
+0.00.51.01.50255075100timeH2X2 & H2 similar0.00.51.01.52.00255075100timeH2X2 & H2 less similar0.00.51.00255075100timeX201230255075100timeX21.990%25%50%75%100%X1X2X3X4X5X6H2YCausal KinetiX(Exhaustive)X2 & H2 similar1.9680%25%50%75%100%X1X2X3X4X5X6H2YX2 & H2 similar2.0120%25%50%75%100%X1X2X3X4X5X6H2YX2 & H2 less similar1.7960%25%50%75%100%X1X2X3X4X5X6H2YCausal KinetiX(MainEffect)1.6780%25%50%75%100%X1X2X3X4X5X6H2Y1.5620%25%50%75%100%X1X2X3X4X5X6H2YFigure 12. Results for the experiment described in Section 5.2.6 (hidden variables). Left: all
+variables are observed. From top to bottom: Random, DerivLasso, IntegratedLasso,
+AIM, Causal KinetiX (Exhaustive), Causal KinetiX (Main Eﬀect)
+
+29
+
+X3H2X2X1X4X5X6Y12345678rankRandomX2 & H2 similarX3H2X2X1X4X5X6Y12345678rankX2 & H2 similarX3H2X2X1X4X5X6Y12345678rankX2 & H2 less similar0.000.250.500.751.00frequencyX3H2X2X1X4X5X6Y12345678rankDerivLassoX3H2X2X1X4X5X6Y12345678rankX3H2X2X1X4X5X6Y12345678rank0.000.250.500.751.00frequencyX3H2X2X1X4X5X6Y12345678rankIntegratedLassoX3H2X2X1X4X5X6Y12345678rankX3H2X2X1X4X5X6Y12345678rank0.000.250.500.751.00frequencyX3H2X2X1X4X5X6Y12345678rankAIMX3H2X2X1X4X5X6Y12345678rankX3H2X2X1X4X5X6Y12345678rank0.000.250.500.751.00frequencyX3H2X2X1X4X5X6Y12345678rankCausal KinetiX(Exhaustive)X3H2X2X1X4X5X6Y12345678rankX3H2X2X1X4X5X6Y12345678rank0.000.250.500.751.00frequencyX3H2X2X1X4X5X6Y12345678rankCausal KinetiX(MainEffect)X3H2X2X1X4X5X6Y12345678rankX3H2X2X1X4X5X6Y12345678rank0.000.250.500.751.00frequency5.3. Real data example
+
+We apply the proposed ranking method to a real biological data set. At eleven time points, we
+observe cell concentration or ion count measurements of a target variable and 411 metabolites.
+In this application one is particularly interested in distinguishing between up- and downshifts,
+i.e., whether the target tra jectory increases or decreases, respectively, compared to its starting
+value. The system is measured under ﬁve diﬀerent conditions (experiments), each of which
+contains three biological replicates. Deﬁning the auxiliary variable Zt := 2 − Yt , we expect that
+the target species Yt and Zt are tightly related: Yt (cid:10) Zt , i.e., Yt is formed into Zt and vice
+versa. We therefore expect models of the type
+
+t X s
+t
+t X s
+
+t X k
+
+t X k
+
+t X k
+t X k
+
+t X q
+t X q
+
+t − θ3YtX r
+˙Yt = θ1ZtX j
+t + θ2ZtX p
+˙Zt = −θ1ZtX j
+t − θ2ZtX p
+t + θ3YtX r
+t ,
+where j, k , p, q , r, s ∈ {1, . . . , 411} and θ1 , θ2 , θ3 ≥ 0. By the conservation of mass both target
+equations mirror themselves, which makes it suﬃcient to only learn the model for Yt . More
+precisely, we use the model class consisting of three term models of the form ZtX j
+t , YtX j
+t ,
+ZtX j
+t , YtX j
+t , Zt , or Yt , where the sign of the parameter is constrained to being positive or
+negative depending on whether the term contains Zt or Yt , respectively. We constrain ourselves
+to three terms, as we found this to be the smallest number of terms that results in suﬃciently
+good in-sample ﬁts. Given suﬃcient computational resources, one may include more terms, too,
+of course. The sign constraint can be incorporated into our method by performing a constrained
+least squares ﬁt instead of OLS in step (M4). This constrained regression can then be solved
+eﬃciently by a quadratic program with linear constraints.
+As the biological data is high-dimensional, our method ﬁrst screens down to 60 terms and
+then searches over all models consisting of 3 terms. To get more accurate ﬁts of the dynamics,
+we pool and smooth over the three biological replicates and only work with the smoothed data.
+As a baseline, we compare with the results for IntegratedLasso (screened down to 3 terms).
+DerivLasso performs worse than IntegratedLasso (results not shown).
+We now evaluate the applied models according to two criteria: their ability to describe the
+dynamics in the observed experiments (in-sample performance) and their ability to generalize to
+similar but unseen experiments (out-of-sample performance). To verify the in-sample accuracy,
+we consider how well, based on all ﬁve experiments, the top ranked model is able to ﬁt the data.
+The result is illustrated in Figure 13, which shows the target variable and its ﬁt in each of the
+ﬁve experiments. Overall, our method outperforms IntegratedLasso. This is also depicted in the
+numbers: the averaged RSS between the integrated solution (green) and the smoother (blue)
+equals 0.013, 0.219 and 0.043 for Causal KinetiX and the two versions of IntegreatedLasso,
+respectively.
+We furthermore plot the predicted derivatives (red lines) on the smoother ﬁt. This draws a
+picture diﬀerent from the integrated solution: if the latter is only slightly oﬀ from the data, it
+becomes hard to assess the discrepancy between the measured data and the modeled dynamics,
+see, e.g., Figure 13 (second row, third column). We have not seen such a plot before but
+regard it as an indispensable tool when analyzing the ﬁt of dynamical models. Note that for
+both methods, we use the parameters output by the estimation step (see (M4)), in this case
+an estimator based on ordinary least squares. Additionally, we also ﬁt the parameters for the
+IntegratedLasso model using the software package Data2Dynamics (d2d) [Raue et al., 2015],
+which is often used in practice. The large diﬀerence between the two estimates is due to the
+diﬀerent optimization targets (see Section 1.1.1) and much smaller for better ﬁtting models.
+
+30
+
+Figure 13. In-sample ﬁt for real world data containing several up- and downshifts. The left
+model is selected by Causal KinetiX, the center and right model by IntegratedLasso
+(where the parameters are either estimated with OLS or d2d). The green line shows
+the integrated solution. Additionally, we ﬁt a smoother to the raw data (blue) and
+plot at each observed time point the gradient predicted by the model (red). Even
+though the integrated solution (green) may look reasonable, the dynamics can still
+be a bad ﬁt, see, e.g., second row, third column. Overall, Causal KinetiX ﬁts the
+dynamics better than IntegratedLasso.
+
+31
+
+0.60.81.01.2050100150experiment 1 (downshift)Causal KinetiX0.60.81.01.2050100150IntegratedLasso (OLS)0.60.81.01.2050100150IntegratedLasso (d2d)0.00.51.0050100150experiment 2 (downshift)0.00.51.00501001500.00.51.00501001501.01.52.0050100150experiment 3 (upshift)1.01.52.00501001501.01.52.00501001500.91.21.51.82.1050100150experiment 4 (upshift)1.21.51.82.10501001500.91.21.51.82.10501001500.91.21.51.8050100150experiment 5 (upshift)0.91.21.51.80501001500.91.21.51.8050100150To assess the ability to generalize, we consider the best ranked model, hold out one experi-
+ment, ﬁt the parameters on the remaining four experiments and ﬁnally predict the dynamics on
+the held out experiment. The results (see Figure 14) show that our method is indeed able ﬁnd
+models that perform well on experiments that have not been used for parameter estimation.
+
+Figure 14. Out-of-sample parameter estimation for the best ranked model from the in-sample
+experiment. The top ranked model selected by Causal KinetiX is able to generalize
+well to the previously unseen experiments.
+
+Lastly, we perform an out-of-sample experiment, where during training, the data of one
+environment is held out. The inferred model is then used to predict the tra jectory of the
+target variable on that held out experiment. This task is particularly diﬃcult since the goal
+is to predict the outcome of an unseen intervention setting that can deviate arbitrarily from
+the observed experiments. The results are presented in Figure 15. Our method is capable of
+predicting two experiments very well (experiment 1 and experiment 5) and one experiment fairly
+well (experiment 3). For the remaining two experiments the prediction is less accurate, but the
+predicted direction (up- or downshift) is correct. When holding out experiment 2, the high
+ranked out-of-sample models performed well on the remaining four in-sample experiments (not
+shown), but were mostly incapable of accurately generalizing to experiment 2. This indicates
+that the heterogeneity in the four other experiments was not suﬃciently strong to learn a model
+that generalizes to experiment 2. Model selection by IntegratedLasso performs poorly on all
+held-out experiments.
+Despite the lack of heterogeneity in two of these held-out experiments, the Causal KinetiX
+variable ranking is very robust. As three model terms were suﬃcient to ﬁnd stable models, we
+applied Causal KinetiX with four terms to compute the variable ranking (see Section 3.4.3).
+The results are presented in Figure 16. The true causal variables, as well as the true causal
+model, are unknown. For illustration purposes, we indicate which of the highly ranked variables
+appear in the model from above which has obtained the best score when based on all ﬁve
+experiments. (This model was able to explain all the variation in the diﬀerent experiments, see,
+e.g., Figure 14.)
+It can be seen that many of the top ten variables from the fully out-of-sample experiments
+
+32
+
+0.60.81.01.2050100150experiment 1 (downshift)0.00.51.0050100150experiment 2 (downshift)1.01.52.0050100150experiment 3 (upshift)1.21.51.82.1050100150experiment 4 (upshift)1.001.251.501.752.00050100150MethodCausal KinetiX                                        Integrated Lasso (d2d)Integrated Lasso (OLS)experiment 5 (upshift)Figure 15. The plots show the ability to generalize to unseen experiments. Here, one of the
+experiments was entirely held out during training. In many cases, the top ranked
+model selected by Causal KinetiX is nevertheless able to predict the dynamics in the
+unseen experiments. For experiments 2 and 4 only the predicted direction (up- or
+downshift) is correct. See text for details.
+
+rank
+
+1
+
+held-out-experiment
+2
+3
+4
+
+5
+
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+
+X33 X168 X33 X33 X33
+X56 X 231 X56 X168 X56
+X122 X 59 X122 X138 X122
+X128 X 246 X138 X 60 X138
+X168 X33 X168 X 61 X168
+X138 X 373 X 61 X128 X 377
+X 245 X56
+X 68 X 347 X 266
+X 355 X122 X 132 X 73
+X 60
+X 14 X 190 X 215 X122 X128
+X 61 X 206 X 259 X 190 X 132
+
+˙Yt = θ1ZtX56
+
+t X122
+t
++ θ2ZtX128
+t X168
+t
+t X138
+t
+
+− θ3YtX33
+
+Figure 16. Causal KinetiX variable rankings for each held out experiment (left) and best ranked
+model based on all ﬁve experiments (right). As the best ranked in-sample model
+performs well those variables can be seen as important for modeling the heterogeneity
+across experiments. To ease visualization, these variables have been colored green.
+
+are variables from the top ranked model. This is a promising result, since these variables seem
+to play an important role in describing the dynamics of the target under all ﬁve experiments.
+In summary, we consider our ﬁndings on this real data set encouraging. Our method infers a
+model that provides good ﬁts when trained on the full data and when one environment is held
+out for parameter estimation. Compared to state-of-the art model selection techniques, our
+method also generalizes better to experiments that contain unseen and unknown interventions.
+
+33
+
+0.60.81.01.2050100150experiment 1 (downshift)0.00.51.0050100150experiment 2 (downshift)1.01.52.0050100150experiment 3 (upshift)1.21.51.82.1050100150experiment 4 (upshift)1.001.251.501.752.00050100150MethodCausal KinetiX                                         Integrated Lasso (d2d)Integrated Lasso (OLS)experiment 5 (upshift)Even though the data may not be suﬃciently heterogeneous to identify a single invariant model,
+we found that the variable ranking gave more robust solutions than the model ranking.
+Further details including the setup of the biological experiments and a detailed analysis of
+the biological ﬁndings will be published in a biological, non-methodological paper.
+
+6. Summary and conclusion
+
+Learning dynamical systems from data is one of the core challenges in many ﬁelds. Existing
+approaches infer the structure of ordinary diﬀerential equations from one experiment, possibly
+containing data pooled from several experiments, and focus on predictive performance. Causal
+KinetiX proposes a new framework of causal kinetic models for identifying structure in het-
+erogeneous experiments. The results on both simulated and real-world examples suggests that
+learning the structure of dynamical systems indeed beneﬁts from taking into account invariance,
+rather than focusing solely on predictive performance. In situations, where there is not suﬃ-
+cient heterogeneity to guarantee identiﬁcation of a single invariant model, the proposed variable
+ranking may still be used to generate causal hypotheses and interesting candidates for further
+investigation. Code for the proposed implementation will be made available as an open source
+R-package. For future benchmarking on simulated data, it will include our simulation models
+(most notably the Maillard reaction).
+In this paper, we focus on applications in systems biology. The principle of searching for
+invariant models, however, may transfer to other areas of applications, too.
+In robotics, for
+example, the concept of model learning and structure search is becoming increasingly more
+prominent [e.g., Nguyen-Tuong and Peters, 2011, Peters et al., 2016b]. Future extensions may
+also include the application to stochastic, partial and delay diﬀerential equations.
+Causal KinetiX is a rather general framework that can be combined with a wide range of
+dynamical models and any parameter inference method. It opens up a promising direction of
+learning causal time series models from realistic, heterogeneous datasets.
+
+Acknowledgements
+
+We thank Robbie Loewith, Enric Montanana Sayas, Brendan Ryback, Uwe Sauer and J¨org
+Stelling for providing the real biological data set as well as helpful biological insights. We
+further thank Niels Richard Hansen and Nicolai Meinshausen for helpful discussions, as well as
+Antonio Orvieto for his help with data2dynamics. This research was partially supported by the
+Max Planck ETH Center for Learning Systems and the SystemsX.ch pro ject SignalX. JP was
+supported by a research grant (18968) from VILLUM FONDEN.
+
+References
+
+T. ¨Aij¨o and H. L¨ahdesm¨aki. Learning gene regulatory networks from gene expression measure-
+ments using non-parametric molecular kinetics. Bioinformatics, 25(22):2937–2944, 2009.
+
+J. Aldrich. Autonomy. Oxford Economic Papers, 41:15–34, 1989.
+
+T. Blom and J. M. Mooij.
+arXiv:1805.06539, 2018.
+
+Generalized structural causal models.
+
+arXiv preprint
+
+34
+
+J. Bongard and H. Lipson. Automated reverse engineering of nonlinear dynamical systems.
+Proceedings of the National Academy of Sciences, 104(24):9943–9948, 2007.
+
+L. Boninsegna, F. N¨uske, and C. Clementi. Sparse learning of stochastic dynamical equations.
+The Journal of Chemical Physics, 148(24):241723, 2018.
+
+C. M. J. Brands and M. A. J. S. van Boekel. Kinetic modeling of reactions in heated
+monosaccharide-casein systems. Journal of agricultural and food chemistry, 50(23):6725–6739,
+2002.
+
+S. L. Brunton, J. L. Proctor, and J. N. Kutz. Discovering governing equations from data by
+sparse identiﬁcation of nonlinear dynamical systems. Proceedings of the National Academy of
+Sciences, 113(15):3932–3937, 2016.
+
+B. Calderhead, M. Girolami, and N. D. Lawrence. Accelerating bayesian inference over nonlinear
+diﬀerential equations with Gaussian processes. In Advances in neural information processing
+systems (NIPS), pages 217–224, 2009.
+
+J. Casadiego, M. Nitzan, S. Hallerberg, and M. Timme. Model-free inference of direct network
+interactions from nonlinear collective dynamics. Nature communications, 8(1):2192, 2017.
+
+S. Chen, A. Sho jaie, and D. M. Witten. Network reconstruction from high-dimensional ordinary
+diﬀerential equations. Journal of the American Statistical Association, pages 1–11, 2017.
+
+T. Chen, H. He, and G. Church. Modeling gene expression with diﬀerential equations.
+Biocomputing’99, pages 29–40. World Scientiﬁc, 1999.
+
+In
+
+T. F. Coleman and Y. Li. An interior trust region approach for nonlinear minimization sub ject
+to bounds. Technical report, Cornell University, Ithaca, NY, USA, 1993.
+
+T. F. Coleman and Y. Li. On the convergence of interior-reﬂective newton methods for nonlinear
+minimization sub ject to bounds. Mathematical Programming, 67(2):189–224, 1994.
+
+J. P. Crutchﬁeld and B. S. McNamara. Equation of motion from a data series. Complex systems,
+1(417-452):121, 1987.
+
+I. Dattner and C. A. J. Klaassen. Optimal rate of direct estimators in systems of ordinary
+diﬀerential equations linear in functions of the parameters. Electronic Journal of Statistics,
+9(2):1939–1973, 2015.
+
+F. Dondelinger, S. Rogers, and D. Husmeier. Ode parameter inference using adaptive gradient
+matching with gaussian processes. In 16th International Conference on Artiﬁcial Intel ligence
+and Statistics (AISTATS), 2013.
+
+L. Dony, F. He, and M. Stumpf. Parametric and non-parametric gradient matching for network
+inference. bioRxiv, page 254003, 2018.
+
+D. Duvenaud, J. R. Lloyd, R. Grosse, J. B. Tenenbaum, and Z. Ghahramani. Structure discovery
+in nonparametric regression through compositional kernel search. In Proceedings of the 14th
+International Conference on Machine Learning (ICML), pages 1166–1174, 2013.
+
+D. Eaton and K. P. Murphy. Exact Bayesian structure learning from uncertain interventions.
+In Proceedings of the 11th International Conference on Artiﬁcial Intel ligence and Statistics
+(AISTATS), pages 107–114, 2007.
+
+35
+
+B. Engelhardt, H. Fr¨ohlich, and M. Kschischo. Learning (from) the errors of a systems biology
+model. Scientiﬁc reports, 6:20772, 2016.
+
+K. Friston, L. Harrison, and W. Penny. Dynamic causal modelling. Neuroimage, 19(4):1273–
+1302, 2003.
+
+N. S. Gorbach, S. Bauer, and J. M. Buhmann. Scalable variational inference for dynamical
+systems. In Advances in Neural Information Processing Systems (NIPS), pages 4806–4815,
+2017.
+
+R. Grosse, R. R. Salakhutdinov, W. T. Freeman, and J. B. Tenenbaum. Exploiting composi-
+tionality to explore a large space of model structures. Proceedings of the 28th Conference on
+Uncertainty in Artiﬁcial Intel ligence (UAI), 2012.
+
+X. Guo, Y. Zhang, W. Hu, H. Tan, and X. Wang. Inferring nonlinear gene regulatory networks
+from gene expression data based on distance correlation. PloS one, 9(2):e87446, 2014.
+
+T. Haavelmo. The probability approach in econometrics. Econometrica, 12:S1–S115 (supple-
+ment), 1944.
+
+N. R. Hansen and A. Sokol. Causal interpretation of stochastic diﬀerential equations. Electronic
+Journal of Probability, 19(100):1–24, 2014.
+
+J. Henderson and G. Michailidis. Network reconstruction using nonparametric additive ode
+models. PloS one, 9(4):e94003, 2014.
+
+A. C. Hindmarsh, P. N. Brown, K. E. Grant, S. L. Lee, R. Serban, D. E. Shumaker, and C. S.
+Woodward. SUNDIALS: Suite of nonlinear and diﬀerential/algebraic equation solvers. ACM
+Transactions on Mathematical Software, 31(3):363–396, 2005.
+
+G. W. Imbens and D. B. Rubin. Causal Inference for Statistics, Social, and Biomedical Sciences:
+An Introduction. Cambridge University Press, New York, NY, 2015.
+
+G. W. Leibniz. Nova methodus pro maximis et minimis, itemque tangentibus, quae nec fractas,
+nec irrationales quantitates moratur, et singulare pro illis calculi genus. Acta Eruditorum,
+pages 467–473, 1684.
+
+C. Li, M. Donizelli, N. Rodriguez, H. Dharuri, L. Endler, V. Chelliah, L. Li, E. He, A. Henry,
+M. I. Stefan, J. L. Snoep, M. Hucka, N. Le Nov`ere, and C. Laibe. Biomodels database: An
+enhanced, curated and annotated resource for published quantitative kinetic models. BMC
+systems biology, 4(1):92, 2010.
+
+L. Ljung. System identiﬁcation. In Signal analysis and prediction, pages 163–173. Springer,
+1998.
+
+A. J. Lotka. Contribution to the theory of periodic reactions. The Journal of Physical Chemistry,
+14(3):271–274, 1909.
+
+B. Macdonald and D. Husmeier. Gradient matching methods for computational inference in
+mechanistic models for systems biology: a review and comparative analysis. Frontiers in
+bioengineering and biotechnology, 3:180, 2015.
+
+L. C. Maillard. Action des acides amines sur les sucres; formation des melanoidines par voie
+methodique. Comptes rendus de l’Acad´emie des Sciences, 154:66–68, 1912.
+
+36
+
+N. M. Mangan, J. N. Kutz, S. L. Brunton, and J. L. Proctor. Model selection for dynamical
+systems via sparse regression and information criteria. Proceedings of the Royal Society A,
+473(2204):20170009, 2017.
+
+G. Martius and C. H. Lampert. Extrapolation and learning equations.
+arXiv:1610.02995, 2016.
+
+arXiv preprint
+
+P. Meyer. Probability and potentials. Blaisdell Publishing Company, 1966.
+
+F. V. Mikkelsen and N. R. Hansen. Learning large scale ordinary diﬀerential equation systems.
+arXiv preprint arXiv:1710.09308, 2017.
+
+J. M. Mooij, D. Janzing, and B. Sch¨olkopf. From ordinary diﬀerential equations to structural
+causal models: the deterministic case. In Proceedings of the 29th Conference Annual Confer-
+ence on Uncertainty in Artiﬁcial Intel ligence (UAI), pages 440–448, Corvallis, Oregon, USA,
+2013. AUAI Press.
+
+R. Murray. A mathematical introduction to robotic manipulation. CRC press, 2017.
+
+J. L. Natale, D. Hofmann, D. G. Hern´andez, and I. Nemenman. Reverse-engineering biological
+networks from large data sets. arXiv preprint arXiv:1705.06370, 2017.
+
+I. Newton. Method of Fluxions. Henry Woodfall, 1736.
+
+D. Nguyen-Tuong and J. Peters. Model learning for robot control: a survey. Cognitive processing,
+12(4):319–340, 2011.
+
+C. Oates and S. Mukherjee. Network inference and biological dynamics. The annals of applied
+statistics, 6(3):1209, 2012.
+
+C. J. Oates, F. Dondelinger, N. Bayani, J. Korkola, J. W. Gray, and S. Mukherjee. Causal
+network inference using biochemical kinetics. Bioinformatics, 30(17):i468–i474, 2014.
+
+B. Ogunnaike and W. Ray. Process dynamics, modeling, and control, volume 1. Oxford Uni-
+versity Press New York, 1994.
+
+J. Pearl. Causality: Models, Reasoning, and Inference. Cambridge University Press, New York,
+USA, 2nd edition, 2009.
+
+J. Peters, P. B¨uhlmann, and N. Meinshausen. Causal inference using invariant prediction:
+identiﬁcation and conﬁdence intervals. Journal of the Royal Statistical Society, Series B
+(with discussion), 78(5):947–1012, 2016a.
+
+J. Peters, D. D. Lee, J. Kober, D. Nguyen-Tuong, J. A. Bagnell, and S. Schaal. Robot learning.
+In Springer Handbook of Robotics, pages 357–398. Springer, 2016b.
+
+J. Peters, D. Janzing, and B. Sch¨olkopf. Elements of Causal Inference: Foundations and Learn-
+ing Algorithms. MIT Press, Cambridge, MA, USA, 2017.
+
+N. Pﬁster, P. B¨uhlmann, and J. Peters. Invariant causal prediction for sequential data. JASA
+(accepted), arXiv preprint arXiv:1706.08058, 2018.
+
+M. Raissi. Deep hidden physics models: Deep learning of nonlinear partial diﬀerential equations.
+arXiv preprint arXiv:1801.06637, 2018.
+
+37
+
+M. Raissi, P. Perdikaris, and G. E. Karniadakis. Machine learning of linear diﬀerential equations
+using Gaussian processes. Journal of Computational Physics, 348:683–693, 2017.
+
+J. O. Ramsay and B. W. Silverman. Functional Data Analysis. Springer, New York, NY, 2005.
+
+J. O. Ramsay, G. Hooker, D. Campbell, and J. Cao. Parameter estimation for diﬀerential
+equations: a generalized smoothing approach. Journal of the Royal Statistical Society: Series
+B (Statistical Methodology), 69(5):741–796, 2007.
+
+A. Raue, B. Steiert, M. Schelker, C. Kreutz, T. Maiwald, H. Hass, J. Vanlier, C. T¨onsing,
+L. Adlung, R. Engesser, W. Mader, T. Heinemann, J. Hasenauer, M. Schilling, T. H¨ofer,
+E. Klipp, F. Theis, U. Klingm¨uller, B. Sch¨oberl, and J. Timmer. Data2dynamics: a modeling
+environment tailored to parameter estimation in dynamical systems. Bioinformatics, 31(21):
+3558–3560, 2015.
+
+A. Regev, S. Teichmann, E. Lander, I. Amit, C. Benoist, E. Birney, B. Bodenmiller, P. Campbell,
+P. Carninci, M. Clatworthy, H. Clevers, B. Deplancke, I. Dunham, J. Eberwine, R. Eils,
+W. Enard, A. Farmer, L. Fugger, B. G¨ottgens, N. Hacohen, M. Haniﬀa, M. Hemberg, S. Kim,
+P. Klenerman, A. Kriegstein, E. Lein, S. Linnarsson, E. Lundberg, J. Lundberg, P. Ma jumder,
+J. Marioni, M. Merad, M. Mhlanga, M. Nawijn, M. Netea, G. Nolan, D. Pe’er, A. Phillipakis,
+C. Ponting, S. Quake, W. Reik, O. Rozenblatt-Rosen, J. Sanes, R. Satija, T. Schumacher,
+A. Shalek, E. Shapiro, P. Sharma, J. Shin, O. Stegle, M. Stratton, M. Stubbington, F. Theis,
+M. Uhlen, A. van Oudenaarden, A. Wagner, F. Watt, J. Weissman, B. Wold, R. Xavier,
+N. Yosef, and Human Cell Atlas Meeting participants. Science forum: the human cell atlas.
+Elife, 6:e27041, 2017.
+
+S-X. Ren, G. Fu, X-G. Jiang, R. Zeng, Y-G. Miao, H. Xu, Y-X. Zhang, H. Xiong, G. Lu, L-F.
+Lu, H-Q. Jiang, J. Jia, Y-F. Tu, J-X. Jiang, W-Y. Gu, Y-Q. Zhang, Z. Cai, H-H. Sheng,
+H-F. Yin, Y. Zhang, G-F. Zhu, M. Wan, H-L. Huang, Z. Qian, S-Y. Wang, W. Ma, Z-J. Yao,
+Y. Shen, B-Q. Qiang, Q-C. Xia, X-K. Guo, A. Danchin, S. Girons, R. Somerville, Y-M. Wen,
+M-H. Shi, Z. Chen, J-G. Xu, and G-P. Zhao. Unique physiological and pathogenic features
+of leptospira interrogans revealed by whole-genome sequencing. Nature, 422(6934):888, 2003.
+
+J. Rozman, B. Rathkolb, M. Oestereicher, C. Sch¨utt, A. Ravindranath, S. Leuchtenberger,
+S. Sharma, M. Kistler, M. Willersh¨auser, R. Brommage, T. Meehan, J. Mason, H. Hase-
+limashhadi, IMPC Consortium, T. Hough, A-M. Mallon, S. Wells, L. Santos, C. Lelliott,
+J. White, T. Sorg, M-F. Champy, L. Bower, C. Reynolds, A. Flenniken, S. Murray, L. Nut-
+ter, K. Svenson, D. West, G. Tocchini-Valentini, A. Beaudet, F. Bosch, R. Braun, M. Dobbie,
+X. Gao, Y. Herault, A. Moshiri, B. Moore, K. Lloyd, C. McKerlie, H. Masuya, N. Tanaka,
+P. Flicek, H. Parkinson, R. Sedlacek, J. Seong, C-K. Wang, M. Moore, S. Brown, M. Tsch¨op,
+W. Wurst, M. Klingenspor, E. Wolf, J. Beckers, F. Machicao, A. Peter, H. Staiger, H-U.
+H¨aring, H. Grallert, M. Campillos, H. Maier, H. Fuchs, V. Gailus-Durner, T. Werner, and
+M. Hrabe de Angelis. Identiﬁcation of genetic elements in metabolism by high-throughput
+mouse phenotyping. Nature communications, 9(1):288, 2018.
+
+P. Rubenstein, S. Bongers, J. M. Mooij, and B. Sch¨olkopf. From deterministic ODEs to dy-
+namic structural causal models. In Proceedings of the 34th Conference Annual Conference on
+Uncertainty in Artiﬁcial Intel ligence (UAI). AUAI Press, 2018.
+
+S. H. Rudy, S. L. Brunton, J. L. Proctor, and J. N. Kutz. Data-driven discovery of partial
+diﬀerential equations. Science Advances, 3(4):e1602614, 2017.
+
+38
+
+H. Schaeﬀer. Learning partial diﬀerential equations via data discovery and sparse optimization.
+Proceedings of the Royal Society A, 473(2197):20160446, 2017.
+
+M. Schmidt and H. Lipson. Distilling free-form natural laws from experimental data. Science,
+324(5923):81–85, 2009.
+
+B. Sch¨olkopf, D. Janzing, J. Peters, E. Sgouritsa, K. Zhang, and J. M. Mooij. On causal and
+anticausal learning. In Proceedings of the 29th International Conference on Machine Learning
+(ICML), 2012.
+
+T. Sideris. Ordinary Diﬀerential Equations and Dynamical Systems. Atlantis Press, 2014.
+
+C. Siegenthaler and R. Gunawan. Assessment of network inference methods: how to cope with
+an underdetermined problem. PloS one, 9(3):e90481, 2014.
+
+P. Spirtes, C. Glymour, and R. Scheines. Causation, Prediction, and Search. MIT Press, 2nd
+edition, 2000.
+
+G. Szederk´enyi, J. R. Banga, and A. A. Alonso.
+Inference of complex biological networks:
+distinguishability issues and optimization-based solutions. BMC systems biology, 5(1):177,
+2011.
+
+R. Tibshirani. Regression shrinkage and selection via the lasso. Journal of the Royal Statistical
+Society, Series B, 58:267–288, 1994.
+
+L. Todorovski and S. Dzeroski. Declarative bias in equation discovery. In Proceedings of the
+14th International Conference on Machine Learning (ICML), pages 376–384, 1997.
+
+T. Toni, D. Welch, N. Strelkowa, A. Ipsen, and M. Stumpf. Approximate Bayesian computation
+scheme for parameter inference and model selection in dynamical systems. Journal of the
+Royal Society Interface, 6(31):187–202, 2009.
+
+G. Tran and R. Ward. Exact recovery of chaotic systems from highly corrupted data. Multiscale
+Modeling & Simulation, 15(3):1108–1129, 2017.
+
+J. M. Varah. A spline least squares method for numerical parameter estimation in diﬀerential
+equations. SIAM Journal on Scientiﬁc and Statistical Computing, 3(1):28–46, 1982.
+
+V. Vyshemirsky and M. Girolami. Bayesian ranking of biochemical system models. Bioinfor-
+matics, 24(6):833–839, 2007.
+
+P. Waage and C. M. Guldberg. Studier over aﬃniteten (in Danish). Forhand linger i Videnskabs-
+selskabet i Christiania, pages 35–45, 1864.
+
+T. Washio, H. Motoda, and Y. Niwa. Discovering admissible model equations from observed
+data based on scale-types and identity constraints. In Proceedings of the 16th international
+joint conference on Artiﬁcial intel ligence (IJCAI), pages 772–779, 1999.
+
+P. Wenk, A. Gotovos, S. Bauer, N. Gorbach, A. Krause, and J. M. Buhmann. Fast Gaussian
+process based gradient matching for parameter identiﬁcation in systems of nonlinear ODEs.
+arXiv preprint arXiv:1804.04378, 2018.
+
+D. J. Wilkinson. Stochastic model ling for systems biology. Chapman and Hall/CRC mathemat-
+ical and computational biology series. Chapman & Hall/CRC, 2006.
+
+39
+
+H. Wu, T. Lu, H. Xue, and H. Liang. Sparse additive ordinary diﬀerential equations for dynamic
+gene regulatory network modeling. Journal of the American Statistical Association, 109(506):
+700–716, 2014.
+
+R. Zembowicz and J. M. Zytkow. Discovery of equations: Experimental evaluation of con-
+vergence. In Proceedings of the 10th National Conference on Artiﬁcial intel ligence (AAAI),
+1992.
+
+W-B. Zhang. Diﬀerential equations, bifurcations, and chaos in economics, volume 68. World
+Scientiﬁc Publishing Company, 2005.
+
+A. Smoothing splines with derivative constraints
+
+y(t) =
+
+K(cid:88)
+ , B =
+
+In this section, we show how to transform the constrained spline optimization in (15) into a
+quadratic program with linear constraints. For the classical spline ﬁt in (13) just removes the
+linear constraint and only considers the quadratic program. Assume the function y : [0, T ] → R
+has the following form
+ckϕk (t),
+ ϕ1 (t1 )
+ ˙ϕ1 (t1 )
+where (ϕk )k∈N is a ﬁxed spline basis. Moreover, deﬁne the following three matrices
+· · · ϕK (t1 )
+...
+...
+...
+ϕ1 (tL )
+· · · ϕK (tL )
+(cid:82) ¨ϕ1 (t) ¨ϕ1 (t) dt
+(cid:82) ¨ϕ1 (t) ¨ϕK (t) dt
+˙ϕ1 (tL )
+(cid:82) ¨ϕK (t) ¨ϕ1 (t) dt
+· · · (cid:82) ¨ϕK (t) ¨ϕK (t) dt
+...
+...
+where the second-derivatives in the matrix C can be replaced by the desired order of derivatives
+used for the smoothness penalty. Then, the solution of the constrained minimization in (15)
+can be expressed as
+
+˙ϕK (t1 )
+...
+˙ϕK (tL )
+
+ ,
+
+
+
+
+
+· · ·
+
+· · ·
+
+C =
+
+A =
+
+and
+
+k=1
+
+· · ·
+
+K(cid:88)
+
+where
+
+ˆy =
+ˆckϕk ,
+(cid:16)−2 ˜YAc + c(cid:62) (A(cid:62)A + λC )c
+The minimization in (20) can be solved using any standard quadratic program solver which
+allows for linear constraints.
+
+c∈RK×1 : Bc=ξ
+
+ˆc := argmin
+
+(cid:17)
+
+(20)
+
+k=1
+
+.
+
+B. Proof of Theorem 3
+
+To simplify notation, we will whenever it is clear from the context drop the n in the grid time
+points tn,(cid:96) and simply write t(cid:96) .
+
+40
+
+B.1. Intermediate results
+
+In order to prove Theorem 3 we require the following two auxiliary results.
+Lemma 4 Let y1 , y2 : [0, T ] → R be two smooth functions satisfying that there exists c1 > 0
+such that
+∃t∗ ∈ [0, T ] with | ˙y1 (t∗ ) − ˙y2 (t∗ )| ≥ c1 .
+(21)
+Moreover, assume c2 := supt∈[0,T ] (| ¨y1 (t)| + | ¨y2 (t)|) < ∞. Then, there exists an interval [l1 , l2 ] ⊆
+[t∗ − c1
+, t∗ + c1
+] satisfying that l2 − l1 = c1
+and
+
+4c2
+
+4c2
+
+8c2
+
+.
+
+1
+
+inf
+
+t∈[l1 ,l2 ]
+
+|y1 (t) − y2 (t)| ≥ c2
+16c2
+Proof To simplify presentation, we will assume that t∗ from (21) is not on the boundary of
+the interval [0, T ] and that all the intervals considered in this proof are contained in (0, T ). We
+ﬁrst show that the bound on the second derivative of the functions implies that the diﬀerence
+in ﬁrst derivatives is lower bounded on a closed interval. Using a basic derivative inequality it
+holds for i ∈ {1, 2} and t ∈ [t∗ , t∗ + c1
+] that
+˙yi (t) ≤ ˙yi (t∗ ) +
+
+| ¨yi (s)| ≤ ˙yi (t∗ ) +
+
+· sup
+
+4c2
+
+.
+
+c1
+4c2
+Similarly, for i ∈ {1, 2} and t ∈ [t∗ − c1
+, t∗ ] it holds that
+˙yi (t) ≥ ˙yi (t∗ ) − c1
+| ¨yi (s)| ≥ ˙yi (t∗ ) − c1
+4c2
+4
+
+· sup
+
+s∈[0,T ]
+
+c1
+4
+
+s∈[0,T ]
+
+4c2
+
+.
+
+Combining these inequalities with (21) yields
+( ˙y1 (t) − ˙y2 (t)) · sign( ˙y1 (t∗ ) − ˙y2 (t∗ )) ≥ c1
+2
+
+t∈[t∗− c1
+
+,t∗+ c1
+
+inf
+
+]
+
+4c2
+
+4c2
+
+.
+
+(22)
+
+1
+
+,
+
+8c2
+
+4c2
+
+8c2
+
+4c2
+
+16c2
+
+Next, we show that this lower bound on the diﬀerence of the ﬁrst derivatives implies the
+statement of the lemma. To this end, consider the two intervals I1 = [t∗ − c1
+, t∗ − c1
+I2 = [t∗ + c1
+, t∗ + c1
+] and
+]. We show that at least one of the following two inequalities holds
+(a) inf t∈I1 |y1 (t) − y2 (t)| ≥ c2
+(b) inf t∈I2 |y1 (t) − y2 (t)| ≥ c2
+.
+Assume that (a) does not hold. Then, there exists t ∈ I1 such that
+|y1 (t) − y2 (t)| <
+c2
+.
+(23)
+16c2
+Let s ∈ I2 , then since the sign of the diﬀerence in ﬁrst derivatives remains constant on the
+interval [t∗ − c1
+, t∗ + c1
+] (see (22)) it holds by integration that
+
+16c2
+
+1
+
+1
+
+4c2
+
+4c2
+
+(cid:90) s
+
+t
+
+| ˙y1 (r) − ˙y2 (r)|dr = [(y1 (s) − y2 (s)) − (y1 (t) − y2 (t))] · sign( ˙y1 (t∗ ) − ˙y2 (t∗ ))
+= |y1 (s) − y2 (s)| − |y1 (t) − y2 (t)|.
+
+(24)
+
+41
+
+(cid:18)
+
+(cid:19)
+
+By (22), it additionally holds that
+| ˙y1 (r) − ˙y2 (r)|dr ≥ (s − t)
+
+(cid:90) s
+
+t
+
+c1
+2
+
+≥ c1
+4c2
+
+c1
+2
+
+=
+
+1
+
+c2
+8c2
+
+.
+
+(25)
+
+Finally, combining (23), (24) and (25) we get that
+|y1 (s) − y2 (s)| ≥ c2
+,
+16c2
+which implies that (b) holds since s ∈ I2 was arbitrary. An analogous argument can be used
+if we assume that (b) does not hold. Hence, since at least one of (a) and (b) holds, we have
+proved Lemma 4.
+Lemma 5 For any a smooth function f : R → R, with max(supt |f (t)|, supt | ˙f (t)|, supt | ¨f (t)|) ≤
+C , any a > 1, and any r ∈ R, there exists a smooth function g satisfying ˙g(0) = r, g(t) = f (t)
+for al l |t| ≥ 1/a, and
+
+(cid:3)
+
+1
+
+t
+
+t
+
+t
+
+(cid:16)
+(cid:16)
+
+|g(t)|, sup
+| ˙g(t)|, sup
+|¨g(t)|
+≤ C + 16a|r − ˙f (0)|.
+max
+sup
+Proof Assume that we are given a smooth function ba that is supported on [−1/a, 1/a], and
+(cid:17) · ba (t),
+that has derivative ˙ba (0) = 1. We can then deﬁne
+r − ˙f (0)
+g(t) := f (t) +
+which is equal to f outside the interval [−1/a, 1/a] and which satisﬁes ˙g(0) = r.
+Let us ﬁrst create such a function ba . To do so, deﬁne
+1 − 1
+
+if |t| < 1
+0
+otherwise.
+This function is smooth and satisﬁes supt |b(t)| ≤ 1, supt | ˙b(t)| ≤ 1, supt |¨b(t)| ≤ 16, and ˙b(0) = 1.
+We now deﬁne the function
+1
+ba (t) :=
+b(at),
+a
+whose support contained in [−1/a, 1/a]. Because of ˙ba (t) = ˙b(at), we have ˙ba (0) = 1. Finally,
+we ﬁnd
+
+sin(t) exp
+
+(cid:40)
+
+b(t) :=
+
+(cid:17)
+
+1−t2
+
+sup
+
+| ˙g(t)| ≤ C + |c − ˙f (0)| sup
+|¨g(t)| ≤ C + |c − ˙f (0)|16a,
+sup
+
+t
+
+t
+
+| ˙ba (t)| ≤ C + |c − ˙f (0)|
+
+where the last line follows from ¨ba (t) = a¨b(at). This completes the proof of Lemma 5.
+
+(cid:3)
+
+t
+
+Lemma 6 Let ((εn,k )k∈{1,...,n} )n∈N be a triangular array of i.i.d. sub-Gaussian (with parameter
+ν ) random variables. Moreover, assume ((Xn,k )k∈{1,...,n} )n∈N is a triangular array of random
+variables which satisﬁes that
+P−→ 0 as n → ∞ and ∃K > 0 : sup
+n∈N
+
+k∈{1,...,n} Xn,k
+
+|Xn,k | ≤ K.
+
+k∈{1,...,n}
+
+max
+
+max
+
+Then, it holds that
+
+lim
+
+n→∞
+
+1
+n
+
+E (|Xn,k εn,k |) = 0.
+
+n(cid:88)
+
+k=1
+
+42
+
+Proof Fix δ, θ > 0, then by the convergence in probability it holds that there exists N ∈ N
+such that for all n ∈ {N , N + 1, . . . } it holds that
+|Xn,k | > n
+
+|Xn,k | > 1
+
+≤ P
+
+≤ δ
+
+(cid:18)
+
+(cid:19)
+
+(cid:18)
+
+(cid:19)
+
+max
+
+max
+
+(26)
+
+P
+
+.
+
+k∈{1,...,n}
+
+k∈{1,...,n}
+
+Furthermore, using independence, sub-Gaussianity and Bernoulli’s inequality we get for all c > 0
+and n ∈ N that
+
+(cid:18)
+
+(cid:19)
+
+(cid:18)
+
+2
+
+(cid:19)
+
+P
+
+max
+
+k∈{1,...,n}
+
+k∈{1,...,n}
+
+= 1 − P
+
+|εn,k | > c
+
+|εn,k | ≤ c
+max
+= 1 − P (|εn,1 | ≤ c)n
+1 − C e−ν c2 (cid:17)n
+= 1 − (1 − P (|εn,1 | > c))n
+≤ nC e−ν c2
+.
+Combining (26) and (27) this proves that for all n ∈ {N , N + 1, . . . } it holds that
+|Xn,k εn,k | > θ
+|Xn,k εn,k | > θ , max
+|Xn,k | ≤ n
+
+≤ 1 − (cid:16)
+
+(cid:19)
+
+(cid:18)
+
+(cid:18)
+
+= P
+
+max
+
+max
+
+P
+
+(cid:19)
+
+k∈{1,...,n}
+
+k∈{1,...,n}
+
+k∈{1,...,n}
+
+(cid:18)
+
++ P
+
+(cid:18)
+
+max
+
+k∈{1,...,n}
+
+|Xn,k εn,k | > θ , max
+
+|Xn,k | > n
+
+k∈{1,...,n}
+
+(cid:19)
+
+(cid:18)
+
+≤ P
+
+max
+
+k∈{1,...,n}
+
+|εn,k | >
+
+θ
+n
+
++ P
+
+|Xn,k | > n
+
+max
+
+k∈{1,...,n}
+
+(27)
+
+(cid:19)
+(cid:19)
+
+n )2
+
+n )2
+
+≤ nC e−ν ( θ
+δ
++
+.
+2
+Since the term nC e−ν ( θ
+converges to zeros as n goes to inﬁnity, there exists N ∗ ∈ {N , N +
+1, . . . } such that for all n ∈ {N ∗ , N ∗ + 1, . . . } it holds that
+nC e−ν ( θ
+.
+2
+Finally, we combine these results to show that for all n ∈ {N ∗ , N ∗ + 1, . . . } it holds that
+|Xn,k εn,k | > θ
+≤ δ,
+max
+which implies that maxk∈{1,...,n} |Xn,k εn,k | converges to zero in probability as n → ∞. In par-
+k=1 |Xk,nεk,n | also converges to zero in probability as it is P-a.s. dominated by
+ticular, 1
+maxk∈{1,...,n} |Xn,k εn,k |. Furthermore, due to boundedness assumption on Xn,k it also holds
+that
+
+(cid:80)n
+
+n )2 ≤ δ
+
+k∈{1,...,n}
+
+(cid:18)
+
+(cid:19)
+
+P
+
+n
+
+(cid:32)(cid:12)(cid:12)(cid:12) 1
+
+n
+
+n(cid:88)
+
+k=1
+
+E
+
+sup
+n∈N
+
+(cid:33)
+
+(cid:12)(cid:12)(cid:12)2
+
+Xk,nεk,n
+
+< ∞,
+
+which by de la Vall´ee-Poussin’s theorem [Meyer, 1966, p.19 Theorem T22] implies uniform inte-
+grability. Since uniform integrability and convergence in probability is equivalent to convergence
+in L1 , this completes the proof of Lemma 6.
+
+(cid:3)
+
+The following two lemmas are the key steps used in the proof of the Theorem 3. They prove
+some essential properties related to the constraint optimization, i.e., the estimation of ˆyb .
+
+43
+
+Lemma 7 Consider the setting of Theorem 3, that is, let Assumption 1 and conditions (C1)
+and (C2) be satisﬁed. Additional ly, assume that for al l k ∈ {1, . . . , m} it holds for al l i ∈ ek
+and (cid:96) ∈ {1, . . . , Ln} that the noise variables ε(i)
+are i.i.d., symmetric, sub-Gaussian and satisfy
+E(ε(i)
+) = 0 and var(ε(i)
+) = σ2
+k . Let Yt and its ﬁrst and second derivative be bounded by c < ∞
+and deﬁne C := c + 16 for the set HC , see (M3). Then, for an invariant model G ∈ M and for
+al l k ∈ {1, . . . , m} it holds that
+
+t(cid:96)
+
+t(cid:96)
+
+t(cid:96)
+
+(cid:32)
+
+(cid:16)
+
+(cid:33)
+
+(cid:17)2
+
+E
+
+lim
+
+n→∞
+
+sup
+
+t∈[0,T ]
+
+ˆy (ek )
+b
+
+(t) − Y (ek )
+
+t
+
+= 0,
+
+i.e., the outcome of step (M5) converges towards the true target trajectory. Furthermore, for
+G ∈ M non-invariant there exists k∗ ∈ {1, . . . , m} and cmin > 0 such that
+
+(cid:32)
+
+(cid:16)
+
+Ln(cid:88)
+(cid:96)=1
+
+(cid:33)
+
+(cid:17)2 ≥ cmin
+
+P
+
+lim inf
+
+n→∞
+
+1
+Ln
+
+ˆy (ek∗ )
+b
+
+(t(cid:96) ) − Y (ek∗ )
+
+t(cid:96)
+
+= 1.
+
+(28)
+
+ˆy (i)
+c
+
+(cid:90)
+
+:= argmin
+
+L(cid:88)
+
+c ∈ HC
+
+Proof First, recall the deﬁnition of HC (see (M3)) and deﬁne the smoother function ˆy (i)
+corresponding to the constrained optimization based on the true derivatives, i.e.,
+(cid:0) (cid:101)Y (i)
+− y(t(cid:96) )(cid:1)2 + λ
+such that
+˙y(t(cid:96) ) = ˙Y (i)
+for all (cid:96) = 1, . . . , Ln .
+Fix k ∈ {1, . . . , m}. To simplify notation we will drop the superscript (ek ) in the following. Fix
+δ ∈ (0, 1) and deﬁne the sets
+|ˆgn ( (cid:101)Xt(cid:96) ) − ˙Yt(cid:96) | ≤ δ
+
+and Bδ :=
+
+¨y(s)2 ds,
+
+(cid:41)
+
+y∈HC
+
+(cid:26)
+
+t(cid:96)
+
+(cid:27)
+
+(cid:96)=1
+
+εt(cid:96)
+
+.
+
+t(cid:96)
+
+(cid:12)(cid:12)(cid:12) ≤ δ
+
+Aδ :=
+
+Ln max
+
+(cid:96)∈{1,...,Ln }
+
+(cid:40)(cid:12)(cid:12)(cid:12) 1
+
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+Then, by condition (C2) it holds that
+
+and, by the law of large numbers,
+
+P (Aδ ) = 1,
+
+lim
+
+n→∞
+
+P (Bδ ) = 1.
+
+lim
+
+n→∞
+
+(29)
+
+(30)
+
+Note that on the set Aδ , our method is well-deﬁned: for a = Ln , Lemma 5 shows us that the
+function ˆyb exists since the corresponding optimization problem has at least one solution. Then,
+on the event Aδ
+
+where the second last inequality follows from the bound on the second derivative. Moreover,
+deﬁne the function yb∗ := ˆyb − ˆyb (t1 ) + Yt1 then similar arguments show that
+|yb∗ (t(cid:96) ) − Yt(cid:96) | = max
+|( ˆyb (t(cid:96) ) − ˆyb (t1 )) − (Yt(cid:96) − Yt1 )| ≤ 2C
+
+max
+
+(32)
+
++ δ.
+
+Ln
+
+(cid:96)∈{1,...,Ln }
+
+(cid:96)∈{1,...,Ln }
+
+Using that ˆyc has the true derivatives as constraint the same argument implies for yc∗ :=
+ˆyc − ˆyc (t1 ) + Yt1 that
+max
+|yc∗ (t(cid:96) ) − Yt(cid:96) | ≤ 2C
+(cid:16) (cid:101)Yt(cid:96) − y(t(cid:96) )
+
+Next, deﬁne the loss function
+
+(cid:90) T
+
+¨y(s)2ds.
+
+(cid:17)2
+
++ λn
+
+(33)
+
+Ln
+
+.
+
+(cid:96)∈{1,...,Ln }
+Ln(cid:88)
+(cid:96)=1
+
+lossn (y) :=
+Then using (32) and (33) it holds that
+(cid:16) (cid:101)Yt(cid:96) − ˆyb (t(cid:96) )
+(Yt1 − ˆyb (t1 ))2 + 2 (Yt1 − ˆyb (t1 ))
+= lossn (yb∗ ) +
+
+Ln(cid:88)
+(cid:96)=1
+
+(cid:90) T
+
+lossn ( ˆyb ) =
+
+¨ˆyb (s)2ds
+
+(cid:17)2
+
++ λn
+
+0
+
+0
+
+Ln(cid:88)
+(cid:96)=1
+
+≥ lossn (yb∗ ) + Ln (Yt1 − ˆyb (t1 ))2 + 2|Yt1 − ˆyb (t1 )|Ln
+
+(cid:17)
+
+Ln(cid:88)
+(cid:16) 2C
+(cid:96)=1
+L2
+
+(cid:16) (cid:101)Yt(cid:96) − yb∗ (t(cid:96) )
++ δ
++ 2 (Yt1 − ˆyb (t1 ))
+
+(cid:17)
+
+Ln
+
+n
+
+Ln(cid:88)
+(cid:96)=1
+
+εt(cid:96)
+
+Now, yb∗ has the same derivatives as ˆyb and since ˆyb minimizes lossn under ﬁxed derivative
+constraints it holds that lossn ( ˆyb ) ≤ lossn (yb∗ ). This implies
+
+(cid:16) 2C
+Ln
+
+(cid:17)
+(cid:12)(cid:12)(cid:12)(cid:12) 1
+
++ 2 (Yt1 − ˆyb (t1 ))
+
++ δ
+
+which is equivalent to
+
+Ln (Yt1 − ˆyb (t1 ))2 ≤ 2|Yt1 − ˆyb (t1 )|Ln
+|Yt1 − ˆyb (t1 )| ≤ 2 · (cid:16) 2C
+Ln
+Since, we are on the set Bδ this in particular as n → ∞ implies that
+|Yt1 − ˆyb (t1 )| ≤ 4δ.
+lim sup
+
+Ln(cid:88)
+(cid:96)=1
+
+(cid:17)
+
++ 2
+
++ δ
+
+εt(cid:96)
+
+Ln
+
+(cid:12)(cid:12)(cid:12)(cid:12).
+
+n→∞
+
+With the same arguments as in (34) and (35) for the function ˆyc we get that
+|Yt1 − ˆyc (t1 )| ≤ 2δ.
+lim sup
+
+n→∞
+
+Combining (36) and (37) with the triangle inequality it holds that
+| ˆyb (t1 ) − ˆyc (t1 )| ≤ 6δ.
+lim sup
+
+n→∞
+
+45
+
+Ln(cid:88)
+(cid:96)=1
+
+εt(cid:96) ,
+
+(34)
+
+(35)
+
+(36)
+
+(37)
+
+(38)
+
+Hence, we can combine this with (31) to get that
+| ˆyb (t(cid:96) ) − ˆyc (t(cid:96) )| ≤ 7δ,
+
+lim sup
+
+max
+
+n→∞
+
+(cid:96)∈{1,...,Ln }
+
+which together with the global bound on the ﬁrst derivative also implies that
+| ˆyb (t) − ˆyc (t)| ≤ lim sup
+| ˆyb (t(cid:96) ) − ˆyc (t(cid:96) )| + C
+
+max
+
+n→∞
+
+(cid:96)∈{1,...,Ln }
+
+lim sup
+n→∞ sup
+
+t∈[0,T ]
+
+(cid:19)
+
+≤ 7δ.
+
+Ln
+
+(cid:18)
+
+Finally, we use this, the global bound and the dominated convergence theorem to show that
+
+(cid:32)
+
+(cid:16)
+(cid:32)
+
+sup
+
+t∈[0,T ]
+
+(cid:32)
+
+E
+
+(cid:16)
+
+E
+
+lim
+
+n→∞
+
+ˆy (ek )
+b
+
+(t) − Y (ek )
+
+t
+
+= lim
+
+n→∞
+
+sup
+
+t∈[0,T ]
+
+ˆy (ek )
+b
+
+(t) − Y (ek )
+
+t
+
+(cid:33)
+
+(cid:17)2
+
+(cid:17)2
+
+1Aδ
+
+Since we assumed an equally spaced grid it is clear that at least (cid:98) ln,2−l1,n
+contained in the interval [l1,n , l2,n ]. Hence, deﬁning cmin := µ2 we get
+
+T
+
+n(cid:99) grid points are
+
+(cid:19)
+
+(t)|2 ≥ cmin
+
+(cid:27)
+
+inf
+
+t∈[l1,n ,l2,n ]
+
+|Y (ek∗ )
+t
+
+− ˆy (ek∗ )
+
+b
+
+(t)|2 ≥ cmin
+
+(cid:32)
+
+lim inf
+
+n→∞
+
+P
+
+1
+Ln
+≥ lim inf
+
+P
+
+n→∞
+
+≥ lim inf
+
+n→∞
+
+P
+
+(cid:33)
+
+(cid:17)2 ≥ cmin
+|Y (ek∗ )
+t
+
+− ˆy (ek∗ )
+
+b
+
+(cid:16)
+
+(cid:18)(cid:106) l2,n−l1,n
+
+Ln(cid:88)
+Y (ek∗ )
+t(cid:96)
+(cid:96)=1
+(cid:18)(cid:26)(cid:106) l2,n−l1,n
+T
+T
+
+n
+
+(cid:107)
+
+(cid:107)
+
+n
+
+− ˆy (ek∗ )
+
+b
+
+(t(cid:96) )
+
+inf
+
+t∈[l1,n ,l2,n ]
+
+and, by the law of large numbers,
+
+P (Bδ ) = 1.
+
+lim
+
+n→∞
+
+(42)
+
+Note that on the set Aδ , our method is well-deﬁned: for a = Ln , Lemma 5 shows us that the
+function ˆyb exists since the corresponding optimization problem has at least one solution. Then,
+on the event Aδ
+
+Secondly, using (44) and the deﬁnition of the Riemann integral we get that
+(cid:12)(cid:12)(cid:12)(cid:12) + lim sup
+(Yt(cid:96) − ylim (t(cid:96) ))
+
+(Yt(cid:96) − yb∗ (t(cid:96) ))
+
+(cid:12)(cid:12)(cid:12)(cid:12) 1
+
+(cid:12)(cid:12)(cid:12)(cid:12) 1
+
+≤ lim sup
+
+Ln(cid:88)
+(cid:96)=1
+
+lim sup
+
+n→∞
+
+n→∞
+
+n→∞
+
+Ln
+
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+Ln(cid:88)
+(cid:96)=1
+
+(yb∗ (t(cid:96) ) − ylim (t(cid:96) ))
+
+(cid:12)(cid:12)(cid:12)(cid:12)
+
+Ln
+(Ys − ylim (s)) ds
+
+≤
+
+(cid:12)(cid:12)(cid:12)(cid:12)
+(cid:12)(cid:12)(cid:12)(cid:12) + δ
+
+(cid:12)(cid:12)(cid:12)(cid:12) 1
+(cid:12)(cid:12)(cid:12)(cid:12)(cid:90) T
+
+0
+
+= δ,
+
+(48)
+
+where in the last step we used the deﬁnition of the function ylim . Hence, combining (46) with
+(47) and (48) we get that
+|ylim (t1 ) − ˆyb (t1 )| ≤ 4δ.
+lim sup
+
+(49)
+
+n→∞
+
+Furthermore, we can combine this with (43) to get that
+| ˆyb (t(cid:96) ) − ylim (t(cid:96) )| ≤ 5δ,
+
+lim sup
+
+max
+
+n→∞
+
+(cid:96)∈{1,...,Ln }
+
+which together with the global bound on the ﬁrst derivative also implies that
+
+| ˆyb (t) − ylim (t)| ≤ lim sup
+
+t∈[0,T ]
+
+lim sup
+n→∞ sup
+Since δ ∈ (0, 1) was arbitrary this proves that supt∈[0,T ] | ˆyb (t) − ylim (t)| converges in probability
+to zero, which completes the proof of Lemma 8.
+
+(cid:96)∈{1,...,Ln }
+
+n→∞
+
+max
+
+(cid:3)
+
+Ln
+
+| ˆyb (t(cid:96) ) − ylim (t(cid:96) )| + C
+
+≤ 5δ.
+
+(cid:19)
+
+(cid:18)
+
+B.2. Proof of theorem
+
+Proof Assume that Yt and its ﬁrst and second derivative be bounded by c < ∞ and deﬁne
+C := c + 16 for the set HC , see (M3). The proof of Theorem 3 consists of two parts. First we
+assume that the following two claims are true and show that they suﬃce in proving the result.
+Afterwards, we prove both claims.
+(cid:1) = 0
+Claim 1: For all invariant G ∈ M it holds that
+lim
+Claim 2: There exists a c > 0 such that for all non-invariant G ∈ M it holds that
+
+n→∞
+
+n
+
+E (cid:0)T G
+E (cid:0)T G
+
+n
+
+(cid:1) ≥ c.
+
+lim inf
+
+n→∞
+
+49
+
+n and G not invariant}(cid:12)(cid:12)(cid:33)
+Combining both claims and using Markov’s inequality we get that
+T
+
+(cid:32)(cid:12)(cid:12){G ∈ M | T G
+
+n <
+
+max
+
+lim
+
+E
+
+˜G
+
+n→∞
+
+{ ˜G∈M| ˜G invariant}
+
+1{T G
+
+n <max{ ˜G∈M| ˜G invariant} T
+
+(cid:19)
+
+˜G
+
+n }
+
+(cid:33)
+
+˜G
+
+n
+
+T
+
+(cid:88)
+
+G∈M:
+
+G not invariant
+
+E
+
+P
+
+P
+
+(cid:18)
+(cid:32)
+(cid:32)
+(cid:32)
+
+lim
+
+n→∞
+
+lim
+
+n→∞
+
+G not invariant
+
+G not invariant
+
+G not invariant
+
+= lim
+
+n→∞
+
+=
+
+=
+
+G∈M:
+
+G∈M:
+
+(cid:88)
+(cid:88)
+≤ (cid:88)
+(cid:88)
+≤ (cid:88)
+(cid:88)
+
+G∈M:
+
+G∈M:
+
+G not invariant
+
+claim 2≤
+
+G∈M:
+
+G not invariant
+claim 1= 0,
+
+Markov≤
+
+G∈M:
+
+G not invariant
+
+max
+
+{ ˜G∈M| ˜G invariant}
+
+max
+
+{ ˜G∈M| ˜G invariant}
+
+T G
+
+n <
+
+E (cid:0)T G
+E (cid:0)T G
+
+n
+
+(cid:1) <
+(cid:1) <
+
+(cid:12)(cid:12)(cid:12)
+
+P
+
+lim
+
+n→∞
+
+n→∞
+
+n
+
+{ ˜G∈M| ˜G invariant}
+
+E (cid:16)(cid:12)(cid:12)max{ ˜G∈M| ˜G invariant} T ˜G
+max
+lim
+E (cid:16)(cid:12)(cid:12)max{ ˜G∈M| ˜G invariant} T ˜G
+E (cid:16)(cid:12)(cid:12)max{ ˜G∈M| ˜G invariant} T ˜G
+c
+
+E (cid:0)T G
+E (cid:0)T G
+
+(cid:1)
+(cid:12)(cid:12)(cid:17)
+(cid:1)
+(cid:12)(cid:12)(cid:17)
+
+n
+
+n
+
+n
+
+n
+
+lim
+
+n→∞
+
+lim
+
+n→∞
+
+(cid:1)(cid:33)
+(cid:1)(cid:12)(cid:12)(cid:12)(cid:33)
+
+n
+
+T
+
+n + E (cid:0)T G
+n − T G
+˜G
+n + E (cid:0)T G
+n − T G
+˜G
+n + E (cid:0)T G
+n − T G
+
+(cid:1)(cid:12)(cid:12)(cid:17)
+
+T
+
+n
+
+n
+
++ E (cid:0)|T G
+n − E (cid:0)T G
++ E (cid:0)|T G
+n − E (cid:0)T G
+
+(cid:1)|(cid:1)
+(cid:1)|(cid:1)
+
+n
+
+n
+
+which proves that limn→∞ E (RankAccuracyn ) = 1. This result also proves the second part of
+Theorem 3. In the limit of inﬁnitely many data points, any invariant model depends on all
+variables in S ∗ (otherwise the set S ∗ would not be unique, see (C3)). Each variable j ∈ S ∗
+therefore receives a score of one. On the other hand, any variable j /∈ S ∗ receives a score less or
+equal to (K − 1)/K since there exists at least one invariant model, namely the pair S ∗ , g∗ (xS ∗
+)
+that does not depend on variable j .
+It therefore remains to prove claim 1 and claim 2.
+Proof of claim 1: Let G ∈ M be invariant and ﬁx k ∈ {1, . . . , m}. In the remainder of this
+proof, the residual sum of square terms RSS(ek )
+and RSS(ek )
+depend on n, which will not be
+
+a
+
+b
+
+50
+
+E (cid:16)|RSS(ek )
+reﬂected in our notation. First, observe that the triangle inequality implies that
+E (cid:16)|( ˆy (ek )
+(t(cid:96) ) − (cid:101)Y (ek )
+(t(cid:96) ) − (cid:101)Y (ek )
+E (cid:16)|( ˆy (ek )
+(t(cid:96) ) − 2 (cid:101)Y (ek )
+E (cid:16)|[( ˆy (ek )
+(t(cid:96) ) − ˆy (ek )
+(t(cid:96) ) − Y (ek )
+(t(cid:96) ) − Y (ek )
+
+b − RSS(ek )
+Ln(cid:88)
+a
+Ln(cid:88)
+(cid:96)=1
+Ln(cid:88)
+(cid:96)=1
+Ln(cid:88)
+(cid:96)=1
+(cid:96)=1
+
+|(cid:17)
+
+≤ 1
+
+Ln
+
+b
+
+t(cid:96)
+
+)2 − ( ˆy (ek )
+
+a
+
+t(cid:96)
+
+)2 |(cid:17)
+
+=
+
+1
+Ln
+
+b
+
+a
+
+(t(cid:96) ))( ˆy (ek )
+
+b
+
+(t(cid:96) ) + ˆy (ek )
+
+a
+
+t(cid:96)
+
+)|(cid:17)
+
+=
+
+1
+Ln
+
+b
+
+(t(cid:96) ) − Y (ek )
+
+t(cid:96)
+
+) − ( ˆy (ek )
+
+a
+
+t(cid:96)
+
+)][( ˆy (ek )
+
+b
+
+t(cid:96)
+
+) + ( ˆy (ek )
+
+a
+
+(t(cid:96) ) − Y (ek )
+
+t(cid:96)
+
+) − 2ε(ek )
+
+t(cid:96)
+
+)]|(cid:17)
+
+≤ 1
+
+Ln
+
+[A(t(cid:96) , k) + B (t(cid:96) , k) + C (t(cid:96) , k) + D(t(cid:96) , k) + E (t(cid:96) , k)] ,
+A(t(cid:96) , k) := E (cid:16)
+)2(cid:17)
+where we used the following deﬁnitions
+B (t(cid:96) , k) := E (cid:16)
+(t(cid:96) ) − Y (ek )
+)2(cid:17)
+C (t(cid:96) , k) := 2E (cid:16)|( ˆy (ek )
+(t(cid:96) ) − Y (ek )
+D(t(cid:96) , k) := 2E (cid:16)|( ˆy (ek )
+(t(cid:96) ) − Y (ek )
+)( ˆy (ek )
+E (t(cid:96) , k) := 2E (cid:16)|( ˆy (ek )
+(t(cid:96) ) − Y (ek )
+(t(cid:96) ) − Y (ek )
+
+(50)
+
+( ˆy (ek )
+b
+
+t(cid:96)
+
+( ˆy (ek )
+a
+
+t(cid:96)
+
+b
+
+t(cid:96)
+
+a
+
+(t(cid:96) ) − Y (ek )
+
+t(cid:96)
+
+)|(cid:17)
+
+b
+
+t(cid:96)
+
+)ε(ek )
+t(cid:96)
+)ε(ek )
+t(cid:96)
+
+|(cid:17)
+|(cid:17)
+
+a
+
+t(cid:96)
+
+.
+
+First, it holds that
+
+lim
+
+n→∞
+
+1
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+A(t(cid:96) , k) = 0
+
+and
+
+lim
+
+n→∞
+
+1
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+B (t(cid:96) , k) = 0,
+
+(51)
+
+where the ﬁrst statement holds by the ﬁrst part of Lemma 7 and the second by condition (C1).
+Together with the fact that the functions ˆy (ek )
+∈ HC and Y (ek )
+∈ HC it holds P-a.s.
+that
+(t) − Y (ek )
+| ≤ 2C and
+(t) − Y (ek )
+| ≤ 2C.
+sup
+n∈N
+2E (cid:16)|( ˆy (ek )
+Using the second statement together with condition (C1) we get that
+(t(cid:96) ) − Y (ek )
+E (cid:16)| ˆy (ek )
+
+a ∈ HC , ˆy (ek )
+b
+
+·
+
+sup
+n∈N
+
+sup
+
+t∈[0,T ]
+Ln(cid:88)
+(cid:96)=1
+
+| ˆy (ek )
+a
+
+t
+
+sup
+
+t∈[0,T ]
+
+| ˆy (ek )
+b
+
+t
+
+(52)
+
+lim
+
+n→∞
+
+1
+Ln
+
+C (t(cid:96) , k) = lim
+
+n→∞
+
+1
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+b
+
+t(cid:96)
+
+)( ˆy (ek )
+
+a
+
+(t(cid:96) ) − Y (ek )
+
+t(cid:96)
+
+)|(cid:17)
+
+≤ 4C · lim
+
+n→∞
+
+1
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+a
+
+(t(cid:96) ) − Y (ek )
+
+t(cid:96)
+
+|(cid:17)
+
+= 0.
+
+Using both bounds in (52), condition (C1) and Lemma 7 we can apply Lemma 6 to get that
+
+lim
+
+n→∞
+
+1
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+D(t(cid:96) , k) = 0
+
+and
+
+lim
+
+n→∞
+
+1
+Ln
+
+Ln(cid:88)
+(cid:96)=1
+
+E (t(cid:96) , k) = 0.
+
+(53)
+
+51
+
+|(cid:17)
+
+= 0.
+
+b − RSS(ek )
+a
+
+lim
+
+n→∞
+
+E (cid:16)|RSS(ek )
+Hence, by taking the limit of (50), we have shown that
+Moreover, we can make the following decomposition.
+(t(cid:96) ) − (cid:101)Y (ek )
+(t(cid:96) ) − Y (ek )
+
+(cid:18)(cid:16)
+(cid:18)(cid:16)
+
+(cid:17)2(cid:19)
+
+E (cid:16)
+
+RSS(ek )
+a
+
+1
+Ln
+
+ˆy (ek )
+a
+
+(cid:17)
+
+E
+
+E
+
+=
+
+=
+
+ˆy (ek )
+a
+
++ Y (ek )
+t(cid:96)
+
+t(cid:96)
+
+1
+Ln
+
+(cid:17)2(cid:19)
+E (cid:16)
+
+− (cid:101)Y (ek )
+t(cid:96)
+Ln(cid:88)
+(cid:96)=1
+
+2
+Ln
+
++
+
+)2(cid:17)
+
+E (cid:16)
+
+Ln(cid:88)
+t(cid:96)
+(cid:96)=1
+
+(ε(ek )
+t(cid:96)
+
+=
+
+1
+Ln
+
+B (t(cid:96) , k) +
+
+1
+Ln
+
+Ln(cid:88)
+Ln(cid:88)
+(cid:96)=1
+Ln(cid:88)
+(cid:96)=1
+(cid:96)=1
+
+Using (51) and (53) and taking the limit of (55) it holds that
+
+E (cid:16)
+
+(cid:17)
+
+lim
+
+n→∞
+
+RSS(ek )
+a
+
+= σ2
+k .
+
+(54)
+
+(cid:17)
+
+.
+
+(55)
+
+(56)
+
+( ˆy (ek )
+a
+
+(t(cid:96) ) − Y (ek )
+
+t(cid:96)
+
+)ε(ek )
+t(cid:96)
+
+|RSS
+
+(ek )
+a
+
+|
+
+(ek )
+
+b − RSS
+RSS
+
+(ek )
+a
+
+P−→ 0 as
+
+|
+
+E
+
+sup
+n∈N
+
+b − RSS(ek )
+a
+RSS(ek )
+a
+
+(cid:33)2 < ∞,
+
+Combining (54) and (56) with Slutsky’s theorem this shows that
+n → ∞. By (52) and (56) it also holds that
+(cid:32) |RSS(ek )
+which together with de la Vall´ee-Poussin’s theorem [Meyer, 1966, p.19 Theorem T22] implies
+(cid:32) |RSS(ek )
+uniform integrability and thus L1 convergence, i.e.,
+Finally, since the number of environments m is ﬁxed and it holds for all i ∈ ek that
+|RSS(i)
+b − RSS(i)
+|RSS(ek )
+RSS(i)
+(cid:1) = lim
+(cid:32) |RSS(i)
+(cid:32) |RSS(ek )
+b − RSS(i)
+RSS(i)
+
+b − RSS(ek )
+a
+RSS(ek )
+a
+
+b − RSS(ek )
+a
+RSS(ek )
+a
+
+E (cid:0)T G
+
+it holds that
+
+n(cid:88)
+m(cid:88)
+
+(cid:33)
+
+(cid:33)
+
+(cid:33)
+
+n→∞
+
+n→∞
+
+n→∞
+
+a |
+
+a |
+
+= 0.
+
+(57)
+
+1
+n
+
+lim
+
+lim
+
+d=
+
+i=1
+
+E
+
+E
+
+|
+
+,
+
+|
+
+n
+
+a
+
+a
+b − RSS(ek )
+a
+RSS(ek )
+a
+
+|
+
+= 0.
+
+= lim
+
+n→∞
+
+1
+m
+
+This completes the proof of claim 1.
+
+E
+
+k=1
+
+52
+
+( ˆy (ek∗ )
+
+a
+
+(t(cid:96) ) − Y (ek∗ )
+
+( ˆy (ek∗ )
+
+a
+
+(t(cid:96) ) − Y (ek∗ )
+
+t(cid:96)
+
+)ε(ek∗ )
+t(cid:96)
+
+(cid:41)
+
+(cid:12)(cid:12)(cid:12) ≤ δ
+
+Proof of claim 2: Let G ∈ M be non-invariant. Let k∗ ∈ {1, . . . , m} be the index and cmin
+the constant for which (28) in Lemma 7 is satisﬁed. For every δ > 0 deﬁne the following sets
+
+Ln
+
+(cid:40)(cid:12)(cid:12)(cid:12) 1
+(cid:40)(cid:12)(cid:12)(cid:12) 1
+(cid:40)(cid:12)(cid:12)(cid:12) 1
+(cid:40)
+
+1
+Ln
+
+Ln
+
+Ln
+
+Ln(cid:88)
+Ln(cid:88)
+(cid:96)=1
+Ln(cid:88)
+(cid:96)=1
+Ln(cid:88)
+(cid:96)=1
+(cid:96)=1
+
+Aδ :=
+
+Bδ :=
+
+Cδ :=
+
+Dδ :=
+
+(cid:16)
+
+ε(ek∗ )
+t(cid:96)
+
+t(cid:96)
+
+(cid:17)2 − σk∗
+
+)2 (cid:12)(cid:12)(cid:12) +
+(cid:41)
+(cid:12)(cid:12)(cid:12) ≤ δ
+
+Ln(cid:88)
+(cid:96)=1
+
+Ln
+
+(cid:12)(cid:12)(cid:12) 2
+(cid:12)(cid:12)(cid:12) ≤ δ
+
+(cid:41)
+(cid:41)
+
+( ˆy (ek∗ )
+
+b
+
+(t(cid:96) ) − Y (ek∗ )
+
+t(cid:96)
+
+)ε(ek∗ )
+t(cid:96)
+
+( ˆy (ek∗ )
+
+b
+
+(t(cid:96) ) − Y (ek∗ )
+
+t(cid:96)
+
+)2 ≥ cmin − δ
+
+.
+
+Using that both summands in the deﬁnition of Aδ converge in L1 (this follows in exactly the
+same way, we obtained (51) and (53)) it holds that the sum convergences in probability. This
+in particular implies that there exists NA ∈ N such that for all n ∈ {NA , NA + 1, . . . } it holds
+that
+P (Aδ ) ≥ 1 − δ.
+
+(58)
+
+Next, by the law of large numbers it holds that 1
+converges to σ2
+k∗ in probability.
+This implies that there exists NB ∈ N such that for all n ∈ {NB , NB + 1, . . . } it holds that
+P (Bδ ) ≥ 1 − δ.
+
+(59)
+
+Ln
+
+(cid:16)
+
+(cid:80)Ln
+(cid:96)=1
+
+ε(ek∗ )
+t(cid:96)
+
+(cid:17)2
+
+Finally, observe that since ε(ek∗ )
+
+t(cid:96)
+
+has mean zero it holds that
+
+( ˆy (ek∗ )
+
+b
+
+(t(cid:96) ) − Y (ek∗ )
+
+t(cid:96)
+
+)ε(ek∗ )
+t(cid:96)
+
+( ˆy (ek∗ )
+
+b
+
+(t(cid:96) ) − y (ek∗ )
+
+lim (t(cid:96) ))ε(ek∗ )
+t(cid:96)
+
+E (cid:16)
+
+(cid:17)
+
+= E (cid:16)
+
+(cid:17)
+
+,
+
+where y (ek∗ )
+lim is the limit function given in Lemma 8. The statement of Lemma 8 together with
+the boundedness of the functions allows us to apply Lemma 6 to get that
+
+E (cid:12)(cid:12)(cid:12)(cid:16)
+
+Ln(cid:88)
+(cid:96)=1
+
+(cid:17)
+
+(cid:12)(cid:12)(cid:12) = 0.
+
+t(cid:96)
+
+lim
+
+n→∞
+
+ε(ek∗ )
+t(cid:96)
+
+ˆy (ek∗ )
+b
+
+(t(cid:96) ) − Y (ek∗ )
+
+2
+Ln
+Hence, this term also converges in probability and thus there exists NC ∈ N such that for all
+n ∈ {NC , NC + 1, . . . } it holds that
+P (Cδ ) ≥ 1 − δ.
+(60)
+Finally, applying Lemma 7 there exists ND ∈ N such that for all n ∈ {ND , ND + 1, . . . } it holds
+that
+P (Dδ ) ≥ 1 − δ.
+(61)
+Combining (58), (59), (60) and (61) we get for all n ∈ {N max , N max + 1, . . . } with N max :=
+
+53
+
+max{NA , NB , NC , ND } that
+(cid:32) |RSS(ek∗ )
+
+E
+
+b
+
+− RSS(ek∗ )
+RSS(ek∗ )
+
+a
+
+a
+
+(cid:33)
+
+|
+
+≥ E
+
+(cid:33)
+
+− 1
+
+(cid:19)
+
+− 1
+
+1Aδ
+
+1Bδ
+
+1Cδ
+
+1Dδ
+
+(cid:33)
+
+− 1
+
+(cid:32)
+(cid:32)
+
+b
+
+a
+
+RSS(ek∗ )
+RSS(ek∗ )
+RSS(ek∗ )
+RSS(ek∗ )
+
+b
+
+≥ E
+
+≥ E
+
+=
+
+1Dδ
+
+a
+
+1Cδ
+
+1Aδ
+
+1Bδ
+
+(cid:18) cmin − δ − δ + σ2
+k∗ − δ
+2δ + σ2
+k∗ + δ
+cmin − 3δ + σ2
+P (Aδ
+3δ + σ2
+
+k∗
+
+k∗
+
+C. Biomodel 52
+
+Reactions equations
+
+Glu
+
+Fru
+
+Glu
+
+Fru
+
+Fru
+
+Triose
+
+lys R + Glu
+
+Amadori
+
+Amadori
+
+lys R + Fru
+
+AMP
+
+k1−→ Fru
+k2−→ Glu
+k3−→ Formic acid + C5
+k4−→ Formic acid + C5
+k5−→ 2 · Triose
+k6−→ Cn + Acetic acid
+k7−→ Amadori
+k8−→ Acetic acid + lys R
+k9−→ AMP
+k10−→ AMP
+k11−→ Melanoidin
+
+Parameters and initial conditions
+
+k1 = 0.01
+k2 = 0.00509
+k3 = 0.00047
+k4 = 0.0011
+k5 = 0.00712
+k6 = 0.00439
+k7 = 0.00018
+k8 = 0.11134
+k9 = 0.14359
+k10 = 0.00015
+k11 = 0.12514
+
+ODE equations
+
+d
+
+d
+
+d
+
+d
+
+dt [Glu] = −(k1 + k3 )[Glu] + k2 [Fru] + k7 [Glu][lys R]
+dt [Fru] = k1 [Glu] − (k2 + k4 + k5 )[Fru] − k10 [Fru][lys R]
+dt [Formic acid] = k3 [Glu] + k4 [Fru]
+dt [Triose] = 2k5 [Fru] − k6 [Triose]
+dt [Acetic acid] = k6 [Triose] + k8 [Amadori]
+dt [Cn] = k6 [Triose]
+dt [Amadori] = −(k8 + k9 )[Amadori] + k7 [Glu][lys R]
+dt [AMP] = k9 [Amadori] − k11 [AMP] + k10 [Fru][lys R]
+dt [C5] = k3 [Glu] + k4 [Fru]
+dt [lys R] = k8 [Amadori] − k7 [Glu][lys R] − k10 [Fru][lys R]
+dt [Melanoidin] = k11 [AMP]
+
+d
+
+d
+
+d
+
+d
+
+d
+
+d
+
+d
+
+[Glu] |t=0 = 160
+[Fru] |t=0 = 0
+[Formic acid] |t=0 = 0
+[Triose] |t=0 = 0
+[Acetic acid] |t=0 = 0
+[Cn] |t=0 = 0
+[Amadori] |t=0 = 0
+[AMP] |t=0 = 0
+[C5] |t=0 = 0
+[lys R] |t=0 = 15
+[Melanoidin] |t=0 = 0
+
+55
+
+D. Artiﬁcial hidden variable model
+
+Reactions equations
+
+ODE equations
+
+X 1 k1−→ H 1
+H 1 k2−→ X 2 + H 2
+H 1 k3−→ X 1
+H 2 k4−→ Y
+X 3 k5−→ Y + X 4
+X 1 + X 4 k6−→ X 3
+X 2 k7−→ X 6
+X 5 k8−→ X 3
+X 4 k9−→ X 5
+
+Parameters and initial conditions
+
+d
+
+d
+
+d
+
+d
+
+dt [X 1 ] = −k1 [X 1 ] + k3 [H 1 ] − k6 [X 1 ][X 4 ]
+dt [X 2 ] = k2 [H 1 ] − k7 [X 2 ]
+dt [X 3 ] = −k5 [X 3 ] + k6 [X 1 ][X 4 ] + k8 [X 5 ]
+dt [X 4 ] = k5 [X 3 ] − k6 [X 1 ][X 4 ] − k9 [X 4 ]
+dt [X 5 ] = k9 [X 4 ] − k8 [X 5 ]
+dt [X 6 ] = k7 [X 2 ]
+dt [H 1 ] = k1 [X 1 ] − (k2 + k3 )[H 1 ]
+dt [H 2 ] = k2 [H 1 ] − k4 [H 2 ]
+dt [Y ] = k4 [H 2 ] + k5 [X 3 ]
+
+d
+
+d
+
+d
+
+d
+
+d
+
+k1 = 0.08
+k2 = 0.08
+k3 = 0.01
+k4 = 0.1
+k5 = 0.003
+k6 = 0.06
+k7 = 0.1
+k8 = 0.02
+k9 = 0.05
+
+X 2
+
+X 6
+
+[X 1 ] |t=0 = 5
+[X 2 ] |t=0 = 0
+[X 3 ] |t=0 = 0
+[X 4 ] |t=0 = 5
+[X 5 ] |t=0 = 0
+[H 1 ] |t=0 = 0
+[H 2 ] |t=0 = 0
+[Y ] |t=0 = 0
+
+X 4
+
+X 1
+
+H 1
+
+H 2
+
+X 3
+
+X 5
+
+Y
+
+Figure 17. Graph representation of hidden variable ODE model. If the rate k4 is equal to the
+rate k7 the variables X 2 and H 2 will have identical dynamics.
+
+56
+
+

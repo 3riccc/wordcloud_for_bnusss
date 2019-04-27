@@ -1,0 +1,3660 @@
+Data based reconstruction of complex multiplex networks
+
+Chuang Ma,1 Han-Shuang Chen,2 Xiang Li,3 Ying-Cheng Lai,4 and Hai-Feng Zhang1, 5 , ∗
+
+1School of Mathematical Science, Anhui University, Hefei 230601, China
+2 School of Physics and Material Science, Anhui University, Hefei 230601, China
+3Adaptive Networks and Control Laboratory, Department of Electronic Engineering,
+and the Center of Smart Networks and Systems,
+School of Information Science and Engineering, Fudan University, Shanghai 200433, China
+4School of Electrical, Computer and Energy Engineering,
+Arizona State University, Tempe, Arizona 85287, USA
+5Department of Communication Engineering, North University of China, Taiyuan, Shan’xi 030051, China
+(Dated: August 29, 2018)
+
+It has been recognized that many complex dynamical systems in the real world require a descrip-
+tion in terms of multiplex networks, where a set of common, mutually connected nodes belong to
+distinct network layers and play a diﬀerent role in each layer. In spite of recent progress towards data
+based inference of single-layer networks, to reconstruct complex systems with a multiplex structure
+remains largely open. We articulate a mean-ﬁeld based maximum likelihood estimation framework
+to solve this outstanding and challenging problem. We demonstrate the power of the reconstruction
+framework and characterize its performance using binary time series from a class of prototypical
+duplex network systems that host two distinct types of spreading dynamics. In addition to vali-
+dating the framework using synthetic and real-world multiplex networks, we carry out a detailed
+analysis to elucidate the impacts of structural and dynamical parameters as well as noise on the
+reconstruction accuracy and robustness.
+
+8
+1
+0
+2
+
+g
+u
+
+A
+
+8
+2
+
+]
+
+h
+p
+
+-
+
+c
+
+o
+
+s
+
+.
+
+s
+
+c
+
+i
+
+s
+
+y
+h
+p
+
+[
+
+2
+v
+5
+0
+4
+3
+0
+
+.
+
+6
+0
+8
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+∗ haifengzhang1978@gmail.com
+
+ 
+ 
+ 
+ 
+ 
+ 
+INTRODUCTION
+
+2
+
+3
+
+FIG. 1. Reconstruction of the CS-AARHUS network. (a) Actual structure of the virtual contact layer (Facebook).
+(b) The structure of the physical layer. (c,d) The values of −ai
+l ln (cid:0)1 − λi (cid:1) , i 6= l and −bi
+l ln (cid:0)1 − λi (cid:1) i 6= l, respectively, versus
+the nodal degree. Each column gives the connectivity of a node, where the blue and orange dots denote the existent and
+nonexistent links, respectively. The length of the time series is M = 30000. The parameter values for the dynamical processes
+are λ = 0.2, U β = 0.2, A β = 0.5U β , and µ = δ = 0.8.
+
+of each node in the layer. A detailed formulation of the reconstruction framework is presented in Methods and a
+schematic illustration of the UAU-SIS coupling dynamics is given in Fig. 6 of Supplementary Information (SI).
+
+Performance demonstration: reconstruction of three real-world duplex networks. For a network layer (say the
+
+virtual layer), the mathematical formulation of our reconstruction framework gives a characteristic, node-speciﬁc
+quantity for distinguishing the existent from the non-existent links: −ai
+l ln (cid:0)1 − λi (cid:1), where ai is the vector deﬁning
+the local connection structure of node i: ai
+l = 1 speciﬁes that node l is in the neighborhood of i and ai
+j = 0 otherwise,
+and λi is the probability that node i (if it is unaware) is informed by an aware (A) neighbor. For actual links, the
+values of −ai
+l ln (cid:0)1 − λi (cid:1) are ﬁnite and away from zero, while the values for non-existent links are near zero. If there
+is a gap between the two sets of values, the actual links can be detected. A similar quantity can be deﬁned for the
+physical layer, which is denoted as −bi
+l ln (1 − Aβ ).
+We ﬁrst validate our framework using an empirical network of 61 nodes, the so-called CS-AARHUS network [41].
+The original network has ﬁve layers. We regard the Facebook layer as the virtual layer and the other four oﬀ-line layers
+(Leisure, Work, Co-authorship, Lunch) as the physical layer, as illustrated in Figs. 1(a,b), respectively. Figures 1(c,d)
+show the values of characteristic quantities −ai
+l ln (cid:0)1 − λi (cid:1) and −bi
+l ln (1 − Aβ ) for the virtual and physical layers,
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:24)
+
+(cid:38)
+
+(cid:50)
+
+(cid:19)(cid:17)(cid:28)(cid:19)
+
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:27)(cid:24)
+
+(cid:19)(cid:17)(cid:27)(cid:19)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:72)
+
+(cid:87)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:53)
+
+(cid:51)
+
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:19)(cid:17)(cid:23)
+
+(cid:3)(cid:57)(cid:76)(cid:85)(cid:87)(cid:88)(cid:68)(cid:79)(cid:3)(cid:70)(cid:82)(cid:81)(cid:87)(cid:68)(cid:70)(cid:87)
+
+(cid:19)
+
+(cid:20)(cid:19)
+
+(cid:21)(cid:19)
+
+(cid:48)
+
+(cid:22)(cid:19)
+
+(cid:23)(cid:19)
+
+(cid:24)(cid:19)
+
+(cid:68)
+
+(cid:85)
+
+(cid:3)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:86)
+(cid:86)
+(cid:72)
+(cid:70)
+(cid:70)
+
+(cid:88)
+
+(cid:54)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)
+
+(cid:20)(cid:19)
+
+(cid:21)(cid:19)
+
+(cid:48)
+
+(cid:22)(cid:19)
+
+(cid:23)(cid:19)
+
+(cid:24)(cid:19)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:19)(cid:17)(cid:23)
+
+(cid:19)
+
+(cid:20)(cid:19)
+
+(cid:21)(cid:19)
+
+(cid:48)
+
+(cid:23)(cid:19)
+
+(cid:22)(cid:19)
+
+(cid:11)(cid:20)(cid:19)(cid:22)(cid:12)
+
+4
+
+(cid:24)(cid:19)
+
+5
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:38)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:50)
+
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:3)(cid:57)(cid:76)(cid:85)(cid:87)(cid:88)(cid:68)(cid:79)(cid:3)(cid:70)(cid:82)(cid:81)(cid:87)(cid:68)(cid:70)(cid:87)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:20)(cid:19)
+
+(cid:48)
+
+(cid:11)(cid:68)(cid:12)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:38)
+
+(cid:50)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:19)
+
+(cid:11)(cid:70)(cid:12)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:23)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:25)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:48)
+
+(cid:11)(cid:20)(cid:19)(cid:22)(cid:12)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:11)(cid:69)(cid:12)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:19)
+
+(cid:11)(cid:71)(cid:12)
+
+(cid:20)(cid:17)(cid:19)
+
+6
+
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:23)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:25)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:48)
+
+(cid:11)(cid:20)(cid:19)(cid:22)(cid:12)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:38)
+
+(cid:50)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:25)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:27)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:48)
+
+(cid:11)(cid:20)(cid:19)(cid:22)(cid:12)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:23)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:25)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+(cid:3)(cid:31)(cid:78)(cid:20)(cid:33)(cid:32)(cid:27)(cid:15)(cid:31)(cid:78)(cid:21)(cid:33)(cid:32)(cid:27)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:48)
+
+(cid:11)(cid:20)(cid:19)(cid:22)(cid:12)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+FIG. 4. Eﬀect of average degree on reconstruction as measured by the AUROC index. (a,b) For a ﬁxed value of the
+
+average degree hk1 i of the virtual layer, the eﬀect of varying the average degree hk2 i of the physical layer on the reconstruction
+accuracy of the former and latter, respectively. (c,d) For a ﬁxed value of hk2 i, the eﬀect of varying the value of hk1 i on the
+reconstruction accuracy of the virtual and physical layer, respectively. ER-ER duplex networks with N =100 are used. The
+parameters are λ = 0.3, U β = 0.4, Aβ = 0.5U β , and µ = δ = 0.8.
+
+the transition of an unaware node in the virtual layer to the aware state depends only on the states of its neighbors.
+With the presence of the physical layer, an A-node can spontaneo
+
+7
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:72)
+
+(cid:87)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:53)
+
+(cid:51)
+
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:19)(cid:17)(cid:23)
+
+(cid:3)(cid:57)(cid:76)(cid:85)(cid:87)(cid:88)(cid:68)(cid:79)(cid:3)(cid:70)(cid:82)(cid:81)(cid:87)(cid:68)(cid:70)(cid:87)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:20)(cid:19)
+
+t
+
+(cid:68)
+
+(cid:85)
+
+(cid:3)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:86)
+(cid:86)
+(cid:72)
+(cid:70)
+(cid:70)
+
+(cid:88)
+
+(cid:54)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:19)(cid:17)(cid:24)
+
+(cid:19)(cid:17)(cid:23)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:20)(cid:17)(cid:19)(cid:19)
+
+(cid:19)(cid:17)(cid:28)(cid:24)
+
+(cid:38)
+
+(cid:50)
+
+(cid:19)(cid:17)(cid:28)(cid:19)
+
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:27)(cid:24)
+
+(cid:19)(cid:17)(cid:27)(cid:19)
+
+Mathematical formulation of the reconstruction framework. For a duplex network hosting UAU-SIS dynamics, at
+
+8
+
+any time a node can be in one of the three distinct states: unaware and susceptible (US), aware and susceptible
+(AS), or aware and infected (AI). The state UI (unaware and infected) is redundant because an I-node becomes aware
+immediately. The connections of node i in the virtual and physical layers are speciﬁed by the vectors ai and bi ,
+respectively, where ai
+j = 1 indicates that node j is a neighbor of node i in the virtual layer and ai
+j = 0 otherwise, and
+bi
+j is deﬁned similarly.
+The various transition probabilities can be derived from the transition tree of the UAU-SIS model (Fig. 7 in SI).
+Let U β and Aβ = γ · U β be the infection rates of unaware and aware S-node, respectively. For node i, Pj 6=i
+ai
+t and
+bi
+t are the numbers of A-neighbors in the virtual layer and I-neighbors in the physical layer, respectively. The
+following probabilities are essential to the spreading dynamics: (1) rt
+i , the probability that node i is not informed by
+any neighbor, (2) U q i
+t , the probability that node i is not infected by any neighbor if i was unaware, and (3) A q i
+t , the
+probability that node i is not infected by any neighbor if i was aware. In the absence of any dynamical correlation,
+these probabilities are given by
+
+Pj 6=i
+
+2 sj
+
+1 sj
+
+j
+
+j
+
+P
+
+ai
+
+j
+
+1 sj
+t
+
+,
+
+j 6=i
+
+U q i
+
+ri
+t = (cid:0)1 − λi (cid:1)
+t = (cid:0)1 − U β i (cid:1)
+t = (cid:0)1 − Aβ i (cid:1)
+A tacit assumption in Ref. [40] is that diﬀusion of awareness in the virtual layer occurs before epidemic spreading in
+the physical layer. In our work, we do not require that the two types of spreading dynamics occur in any particular
+order.
+From Fig. 7 in SI and Eq. (1), we have that the probabilities of node i being in the US, AS and AI states at t + 1
+when it is in the US state at time t are
+
+A q i
+
+(1)
+
+2 sj
+t
+
+2 sj
+t
+
+P
+
+P
+
+bi
+
+j
+
+bi
+
+j
+
+j 6=i
+
+,
+
+.
+
+j 6=i
+
+P U S→U S = ri
+t U q i
+
+P U S→AI = ri
+
+t (cid:1) U q i
+
+t ,
+P U S→AS = (cid:0)1 − ri
+t ,
+t (cid:0)1 − U q i
+t (cid:1) + (cid:0)1 − ri
+t (cid:1) (cid:0)1 − U q i
+t (cid:1) = 1 − U q i
+t .
+The probabilities of node i being in the US, AS and AI states at t + 1 when it is in the AS state at time t are
+t ,
+P AS→AS = (cid:0)1 − δ i (cid:1) A q i
+t ,
+t (cid:1) + (cid:0)1 − δ i (cid:1) (cid:0)1 − A q i
+t (cid:1) = 1 − A q i
+t .
+The probabilities for node i to be in the US, AS and AI states at t + 1 if it is in the AI state at time t are
+
+P AS→U S = δ i
+A q i
+P AS→AI = δ i (cid:0)1 − A q i
+P AI→U S = δ iµi ,
+
+(2)
+
+(3)
+
+P AI→AS = (cid:0)1 − δ i (cid:1) µi ,
+P AI→AI = 1 − µi .
+Say only the states 1 si
+tm and 2 si
+tm (i = 1, . . . , N ) at time tm (not necessarily uniform) are recorded, where N is
+the network size. Our framework consists of three steps: (1) to reconstruct the likelihood function of the coupled
+dynamics, (2) to apply the mean-ﬁeld approximation to enable maximum likelihood estimation (MLE), and (3) to
+transform the MLE problem into two solvable linear systems - one for each layer with solutions representing the
+neighbors of each node in the layer. In particular, the likelihood function of node i is given by (see Sec. III of SI):
+P (cid:18)(cid:8)1 si
+, ai , bi , λi , U β i , Aβ i , δ i , µi(cid:19)
+= Qm (cid:20)(cid:0)ri
+
+tm+1 , 2 si
+tm+1 (cid:9)m=1···M |n1 sj
+tm , 2 sj
+
+1 si
+tm +1 (1−2 si
+
+tm+1 )(1−2 si
+
+tm )(1−2 si
+
+1 si
+tm+1
+
+tm )
+
+(4)
+
+(5)
+
+tm oj=1···N ,m=1···M
+tm (cid:1) U q i
+tm (cid:1)
+tm (cid:1)
+
+1 si
+tm +1 (1−2 si
+
+1 si
+tm +1 (1−2 si
+
+tm +1 ) (cid:0)(cid:0)1 − ri
+tm +1 )(cid:0)(cid:0)1 − δ i (cid:1) A q i
+tm +1 )(cid:0)(cid:0)1 − δ i(cid:1) µi (cid:1)
+
+tm +1 )(cid:0)1 − U q i
+tm (cid:1)
+tm+1 ) (cid:0)1 − A q i
+tm (cid:1)
+
+1 si
+tm +1
+
+1 si
+tm +1
+
+2 si
+tm +1 (cid:21)
+
+tm +1 )(cid:0)1 − µi (cid:1)
+
+tm U q i
+tm (cid:1)(1−1 si
+tm (cid:1)(1−1 si
+A q i
+
+(cid:20)(cid:0)δ i
+
+(cid:20)(cid:0)δ iµi (cid:1)(1−1 si
+
+tm +1 )(1−2 si
+
+tm +1 )(1−2 si
+
+tm +1 (cid:21)(1−1 si
+2 si
+1 si
+tm )
+2 si
+tm +1 (cid:21)
+1 si
+2 si
+tm
+tm
+
+tm (1−2 si
+
+,
+
+9
+
+can be written as
+
+where M is the length of the time series (step 1). The logarithmic form of Eq. (5), denoted as
+L = L (cid:0)ai , bi , λi , U β i , Aβ i , δ i , µi (cid:1) ,
+L = L0 (cid:0)δ i , µi (cid:1) + L1 (cid:0)ai , λi (cid:1) + L2 (cid:0)bi , U β i , Aβ i (cid:1) .
+MLE can be performed by maximizing L0 , L1 and L2 (Sec. III of SI). Because L0 does not contain information
+about the network structure, it is only necessary to maximize L1 and L2 with respect to ai
+j and bi
+j , respectively. The
+likelihood function for reconstructing the virtual layer is (see Sec. III of SI for the corresponding function for the
+physical layer):
+
+j
+
+j 6=i
+
+ai
+
+ai
+
+P
+
+P
+
+1 sj
+
+1Y i
+
+1X i
+
+where
+
+L1 (cid:0)ai , λi (cid:1) = Xm
+
+tm ln (cid:0)1 − λi (cid:1)
+tm ! + Xm
+tm ln 1 − (cid:0)1 − λi (cid:1)
+tm = (cid:0)1 − 1 si
+tm (cid:1) (cid:0)1 − 1 si
+tm+1 (cid:1) and
+tm = (cid:0)1 − 1 si
+tm (cid:1) (cid:0)1 − 2 si
+The maximum value of L1 cannot be obtained straightforwardly by setting zero its derivative with respect to ai
+j ,
+because ai
+j appears in the exponential term and the values of λi are unknown. We resort to the mean-ﬁeld approxima-
+tion to solve this problem (step 2). Speciﬁcally, for node i in the virtual layer, the fraction Pj 6=i
+j of A-neighbors
+is approximately equal to the fraction of A-nodes in the whole layer excluding node i itself:
+
+tm+1 (cid:1) 1 si
+tm+1 .
+
+1 sj
+tm !
+
+1X i
+1Y i
+
+tm ai
+
+1 sj
+
+(6)
+
+j 6=i
+
+j
+
+1 sj
+
+tm ai
+
+j ≈
+
+Xj 6=i
+
+1k i
+
+N − 1
+
+1 θi
+
+tm ,
+
+(7)
+
+where 1k i is the degree of node i, 1 θi
+
+tm = Pj 6=i
+
+1 sj
+
+tm is the number of A-nodes excluding node i itself. Letting
+
+1 ki
+N −1 ,
+
+1 θ i
+
+1γ i = (cid:0)1 − λi (cid:1)
+we rewrite Eq. (6) concisely as
+ˆL1 (cid:0)1γ i(cid:1) = Xm h 1X i
+tm ln (cid:16)(cid:0)1γ i(cid:1)
+tm ln (cid:16)1 − (cid:0)1γ i(cid:1)
+tm (cid:17) i.
+Diﬀerentiating ˆL1 (cid:0)1γ i (cid:1) with respect to 1 γ i and setting it to zero, we get the equation
+= Xm
+1 − (1γ i )
+whose solutions give the values of 1γ i denoted as 1γ i = 1 ˜γ i .
+To transform the MLE problem into a linear system (step 3), we take the derivative of Eq. (6) with respect to ai
+and set it to zero, which gives the following high-dimensional nonlinear equation (the detailed reconstruction process
+for the virtual and physical layers is given in Secs. IV and V of SI, respectively):
+
+tm (cid:0)1γ i (cid:1)
+1 θi
+
+tm (cid:17) + 1 Y i
+
+Xm
+
+1X i
+
+1Y i
+
+1 θ i
+tm
+
+1 θ i
+tm
+
+tm ,
+
+1 θi
+
+(9)
+
+(8)
+
+1 θ i
+
+tm
+
+tm
+
+l
+
+tm (cid:0)1 − λi (cid:1)
+= Xm
+1 − (1 − λi )
+To obtain a solution, we take advantage of Eq. (7) and use the ﬁrst-order approximation. The result is a solvable
+linear system expressed in the matrix form
+
+Xm
+
+1X i
+
+1Y i
+
+1 sj
+tm
+
+tm .
+
+1 sl
+
+1 sl
+
+tm
+
+tm
+
+P
+
+ai
+
+j 6=i
+
+j 6=i
+
+j
+
+ai
+
+j
+
+P
+
+1 sj
+tm
+
+Λ · η = ζ ,
+
+(10)
+
+10
+
+with the vector
+
+η = (cid:2)ai
+1 ln (cid:0)1 − λi (cid:1), . . . , ai
+i−1 ln (cid:0)1 − λi (cid:1), ai
+i+1 ln (cid:0)1 − λi (cid:1), . . . , ai
+N ln (cid:0)1 − λi (cid:1)(cid:3)T
+(see Sec. IV of SI for the detailed forms of Λ and ζ ). With the available time series 1 si
+tm and 2 si
+tm , the values of the
+elements of the matrix Λ and the components of the vector ζ can be calculated, so that the vector η characterizing
+the connectivity of node i can be solved. Because ln (1 − λi ) < 0 is a constant, the value of −ai
+l ln (cid:0)1 − λi (cid:1) is much
+above zero for ai
+l = 1 or close to zero for ai
+l = 0. A threshold value can then be readily set to distinguish the existent
+from the nonexistent links: a pair of nodes i and l are connected in the virtual layer if the value of −ai
+l ln (cid:0)1 − λi (cid:1) is
+larger than the threshold (see Sec. VI in SI for the criterion to choose the threshold).
+Evaluation metrics. We use three metrics [46] to characterize the performance of our reconstruction framework:
+the area under the receiver operating characteristic curve (AUROC), the area under the precision-recall curve (AUPR),
+and the Success rate.
+To deﬁne AUROC and AUPR, it is necessary to calculate three basic quantities: TPR (true positive rate), FPR
+(false positive rate), and Recall [46]. In particular, TPR is deﬁned as
+
+where l is the cut-oﬀ index in the list of the predicted links, TP(l) is the number of true positives in the top l
+predictions in the link list, and T is the number of positives.
+FPR is deﬁned as
+
+TPR(l) =
+
+TP(l)
+T
+
+,
+
+(11)
+
+FPR(l) =
+
+FP(l)
+Q
+
+,
+
+(12)
+
+where FP(l) is the number of false positives in the top l entries in the predicted link list, and Q is the number of
+negatives by the golden standard.
+Recall and Precision are deﬁned as
+
+and
+
+Recall(l) = TPR(l) =
+
+TP(l)
+T
+
+.
+
+Precision(l) =
+
+TP(l)
+TP(l) + FP(l)
+
+=
+
+TP(l)
+l
+
+,
+
+(13)
+
+(14)
+
+respectively. Varying the value of l from 0 to N , we plot two sequences of points: [FPR(l), TPR(l)] and [Recall(l),
+Precision(l)]. The area under the two curves correspond to the values of AUROC and AUPR, respectively. For perfect
+reconstruction, we have AUROC=1 and AUPR=1. In the worst case (completely random), we have AUROC=0.5
+and AUPR=T /2N .
+Let n1 and n2 be the numbers of the actual and nonexistent links in the network, respectively, n3 and n4 be the
+numbers of the predicted existent and nonexistent links. The Success rates for actual links (SREL) and nonexistent
+links (SRNL) are deﬁned as n3/n1 and n4/n2 , respectively. The normalized Success rate is √SQEL × SRNL [25].
+
+ACKNOWLEDGMENTS
+
+This work was supported by NSFC under Grant Nos. 61473001 and 11331009. YCL is supported by ONR through
+Grant No. N00014-16-1-2828. XL is supported by the National Science Fund for Distinguished Young Scholars of
+China (No. 61425019) and NSFC under Grant No. 71731004.
+
+Supplementary Information for
+
+Data based reconstruction of complex multiplex networks
+
+Chuang Ma, Han-Shuang Chen, Xiang Li, Ying-Cheng Lai, and Hai-Feng Zhang
+
+CONTENTS
+
+Introduction
+
+Results
+
+Discussion
+
+Methods
+
+Acknowledgments
+
+I. UAU-SIS dynamics on multiplex networks with a double-layer structure
+
+II. Transition tree of UAU-SIS model
+
+III. Likelihood function
+
+IV. Reconstruction of virtual layer
+
+V. Reconstruction of physical layer
+
+VI. Selection of threshold value for identiﬁcation of existent links
+
+VII. Reconstruction of duplex networks with heterogeneous rates of spreading dynamics
+
+References
+
+11
+
+2
+
+2
+
+7
+
+7
+
+10
+
+12
+
+12
+
+14
+
+15
+
+16
+
+19
+
+19
+
+19
+
+12
+
+I. UAU-SIS DYNAMICS ON MULTIPLEX NETWORKS WITH A DOUBLE-LAYER STRUCTURE
+
+The UAU-SIS model was originally articulated to describe the competition between social awareness and disease
+spreading on double layer networks, where the physical contact layer supports an epidemic process and the virtual
+contact layer supports awareness diﬀusion [40]. The two layers share exactly the same set of nodes but their connection
+patterns are diﬀerent. Spreading of awareness in the virtual layer is described by the conventional SIS dynamics: an
+unaware node (U) is informed by an aware neighbor (A) with probability λ, and an aware node can lose awareness
+and returns to the U state with probability δ . Epidemic dynamics in the physical layer are also of the SIS type, where
+an infected (I) node can infect its susceptible (S) neighbors with probability β , and an I-node returns to the S state
+with probability µ. There is interlayer interaction, which can be described, as follows. An I-node in the physical layer
+is automatically aware of the infection and changes to the A state immediately in the virtual layer. If an S-node is
+in the A state, its ability to infect is reduced by a factor 0 ≤ γ < 1. Figure 6 presents a schematic illustration of the
+double layer network with the described interacting dynamical processes.
+
+Virtual contact UAU
+
+Physical contact SIS
+
+FIG. 6. Schematic illustration a multiplex network with a double layer interacting structure. The upper layer
+
+(virtual contact) supports awareness diﬀusion, where each node has two possible states: unaware (U) or aware (A). The bottom
+layer (physical contact) hosts epidemic spreading dynamics, where a node can be in the susceptible (S) or infected (I) state.
+
+II. TRANSITION TREE OF UAU-SIS MODEL
+
+Let U β and Aβ = γ · U β be the infection rates of unaware and aware S-node, respectively. For node i, Pj 6=i
+and Pj 6=i
+bi
+t are the numbers of A-neighbors in the virtual layer and I-neighbors in the physical layer, respectively.
+Three probabilities are needed to describe the network spreading dynamics: (1) rt
+i , the probability that node i is not
+informed by any neighbor, (2) U q i
+t , the probability that node i is not infected by any neighbor if i was unaware, and
+
+2 sj
+
+j
+
+ai
+
+j
+
+1 sj
+
+t
+
+(3) A q i
+t , the probability that node i is not infected by any neighbor if i was aware. In the absence of any dynamical
+correlation, the three probabilities are given by
+
+13
+
+ai
+
+j
+
+1 sj
+t
+
+P
+
+j 6=i
+
+,
+
+ri
+t = (cid:0)1 − λi (cid:1)
+t = (cid:0)1 − U β i (cid:1)
+t = (cid:0)1 − Aβ i (cid:1)
+A tacit assumption in Ref. [40] is that diﬀusion of awareness in the virtual layer occurs before epidemic spreading in
+the physical layer. In our work, we do not require that the two types of spreading dynamics occur in any particular
+order. Figure 7 presents the transition probability tree of the UAU-SIS coupling dynamics on the duplex networks.
+
+(15)
+
+U q i
+
+A q i
+
+2 sj
+t
+
+2 sj
+t
+
+bi
+
+j
+
+bi
+
+j
+
+P
+
+P
+
+j 6=i
+
+,
+
+.
+
+j 6=i
+
+(cid:56)
+
+(cid:11)(cid:68)(cid:12)
+
+(cid:76)(cid:85)
+
+(cid:56)
+
+(cid:20)
+
+(cid:76)(cid:85)(cid:16)
+
+(cid:36)
+
+(cid:76)
+
+(cid:56) (cid:84)
+
+(cid:54)
+
+(cid:54)
+
+(cid:20)
+
+(cid:56) (cid:84)(cid:16)
+
+(cid:76)
+
+(cid:44)
+
+(cid:11)(cid:69)(cid:12)
+
+(cid:36)
+
+(cid:76)(cid:71)
+
+(cid:56)
+
+(cid:20)
+
+(cid:76)(cid:71)(cid:16)
+
+(cid:36)
+
+(cid:76)
+
+(cid:36) (cid:84)
+
+(cid:54)
+
+(cid:54)
+
+(cid:20)
+
+(cid:36) (cid:84)(cid:16)
+
+(cid:76)
+
+(cid:44)
+
+(cid:36)
+
+(cid:11)(cid:70)(cid:12)
+
+(cid:76)(cid:71)
+
+(cid:56)
+
+(cid:20)
+
+(cid:76)(cid:71)(cid:16)
+
+(cid:36)
+
+(cid:76)(cid:80)
+
+(cid:54)
+
+(cid:44)
+
+(cid:20)
+
+(cid:76)(cid:80)(cid:16)
+
+(cid:44)
+
+(cid:56)(cid:54) (cid:56)(cid:44)
+(cid:56)
+(cid:11)(cid:36)(cid:44)(cid:12)
+
+(cid:36)
+(cid:36)(cid:54) (cid:36)(cid:44)
+(cid:36)(cid:36)(cid:36)
+
+(cid:56)
+(cid:56)(cid:54) (cid:56)(cid:44)
+(cid:11)(cid:36)(cid:44)(cid:12)
+
+(cid:36)
+(cid:36)(cid:54) (cid:36)(cid:44)
+(cid:36)(cid:36)(cid:36)
+
+(cid:56)(cid:54) (cid:56)(cid:44)
+(cid:56)
+(cid:11)(cid:36)(cid:44)(cid:12)
+
+(cid:36)(cid:54) (cid:36)(cid:44)
+(cid:36)
+(cid:36)(cid:36)(cid:36)
+
+FIG. 7. Transition probability tree of coupled UAU-SIS dynamics on duplex networks. The notations are: AI -
+
+aware and infected, UI - unaware and infected (redundant to the AI state), AS - aware and susceptible, and US - unaware and
+susceptible.
+
+From Fig. 7 and Eq. (15), we have that the probabilities of node i being in the US, AS and AI states at t + 1 when
+it is in the US state at time t are
+
+P U S→U S = ri
+t U q i
+
+t ,
+P U S→AS = (cid:0)1 − ri
+t ,
+t (cid:0)1 − U q i
+t (cid:1) + (cid:0)1 − ri
+t (cid:1) (cid:0)1 − U q i
+t (cid:1) = 1 − U q i
+t .
+The probabilities of node i being in the US, AS and AI states at t + 1 when it is in the AS state at time t are
+
+t (cid:1) U q i
+
+P U S→AI = ri
+
+t ,
+P AS→AS = (cid:0)1 − δ i (cid:1) A q i
+t ,
+t (cid:1) + (cid:0)1 − δ i (cid:1) (cid:0)1 − A q i
+t (cid:1) = 1 − A q i
+t .
+The probabilities for node i to be in the US, AS and AI states at t + 1 if it is in the AI state at time t are
+
+P AS→U S = δ i
+A q i
+P AS→AI = δ i (cid:0)1 − A q i
+
+P AI→U S = δ iµi ,
+
+P AI→AS = (cid:0)1 − δ i (cid:1) µi ,
+P AI→AI = 1 − µi .
+
+(16)
+
+(17)
+
+(18)
+
+III. LIKELIHOOD FUNCTION
+
+14
+
+(19)
+
+tm (1−2 si
+
+tm )
+
+1 si
+tm+1
+
+tm if 1 si
+
+1 si
+tm +1
+
+1 si
+tm +1
+
+tm
+
+tm +1 )(1−2 si
+
+tm+1 )(1−2 si
+
+1 si
+tm +1
+
+1 si
+tm +1
+
+.
+
+tm
+
+tm +1 )(1−2 si
+
+tm +1 )(1−2 si
+
+tm )(1−2 si
+
+tm )
+
+1 si
+tm +1 (1−2 si
+
+1 si
+tm+1 (1−2 si
+
+1 si
+tm +1 (1−2 si
+
+1 si
+tm +1 (1−2 si
+
+2 si
+tm = 2 si
+
+2 si
+tm +1 (cid:21)
+
+tm (cid:1) U q i
+tm (cid:1)
+
+(cid:20)(cid:0)ri
+
+tm U q i
+tm (cid:1)(1−1 si
+
+tm+1 (cid:1) (cid:0)1 − 2 si
+tm+1 (cid:1) = 1 − 1 si
+tm+1 .
+
+tm U q i
+tm (cid:1)(1−1 si
+A q i
+tm (cid:1)(1−1 si
+
+(cid:20)(cid:0)δ i
+
+tm+1 , 2 si
+tm+1(cid:9)m=1···M |n1 sj
+tm , 2 sj
+
+(cid:20)(cid:0)δ iµi (cid:1)(1−1 si
+2 si
+tm+1 = 2 si
+
+tm +1 (cid:21)(1−1 si
+2 si
+2 si
+tm+1 (cid:21)
+1 si
+1 si
+2 si
+tm
+tm
+
+tm +1 )(cid:0)1 − U q i
+tm (cid:1)
+tm +1 )(cid:0)1 − A q i
+tm (cid:1)
+
+tm oj=1···N ,m=1···M
+tm (cid:1) U q i
+tm (cid:1)
+tm (cid:1)
+
+The likelihood function of a node can be written in the following compact form:
+P (cid:18)(cid:8)1 si
+, ai , bi , λi , U β i , Aβ i , δ i , µi(cid:19)
+= Ym (cid:20)(cid:0)ri
+
+tm +1 )(cid:0)(cid:0)1 − ri
+tm +1 ) (cid:0)(cid:0)1 − δ i(cid:1) A q i
+tm +1 ) (cid:0)(cid:0)1 − δ i (cid:1) µi (cid:1)
+tm +1 ) (cid:0)1 − µi(cid:1)
+In the UAU-SIS model, we assume that a node, once it is infected in the physical layer, enters into the A state
+immediately in the virtual layer: 2 si
+t = 1 indicates 1 si
+t = 1 at any time t. As a result, we have 1 si
+tm and
+tm+1 . Note that a node in the U state in the virtual layer cannot be in the I state in the physical
+layer, i.e., 1 si
+t = 0 indicates 2 si
+t = 0 at any time t, which leads to
+(cid:0)1 − 1 si
+tm (cid:1) (cid:0)1 − 2 si
+tm (cid:1) = 1 − 1 si
+(cid:0)1 − 1 si
+Equation (19) appears complicated, but it can be reduced to some simple form. For example, assuming that node i
+at tm is in the US state: 1 si
+tm = 0 and 2 si
+tm = 0, we need to retain only one term in the product:
+tm +1 )(cid:0)(cid:0)1 − ri
+which can be further reduced to (cid:0)1 − ri
+tm+1 = 1 and 2 si
+tm+1 = 0 (i.e., in the AS state at the next time
+step). This corresponds to the transition probability from the US state to the AS state:
+P U S→AS = (cid:0)1 − ri
+in Eq. (16). In general, Eq. (19) contains all the transition probabilities in Eqs. (16)-(18).
+After some algebra, we obtain the logarithmic form of Eq. (19) as
+L (cid:0)ai , bi , λi , U β i , Aβ i , δ i , µi(cid:1) = L0 (cid:0)δ i , µi (cid:1) + L1 (cid:0)ai , λi (cid:1) + L2 (cid:0)bi , U β i , Aβ i (cid:1) ,
+L0 (cid:0)δ i , µi(cid:1) = Xm (cid:20) 1 si
++2si
+tm (cid:0)1 − 1 si
+tm (cid:0)1 − 2 si
+tm+1 (cid:1) ln (cid:0)δ i (cid:1) + 1 si
+tm+1 (cid:1) ln (cid:0)µi (cid:1) + 2 si
+tm+1 (cid:1) ln (cid:0)1 − δ i (cid:1)
+tm+1 ln (cid:0)1 − µi (cid:1)
+Note that Eq. (21) does not rely on any information about the network structure. The quantity that does contain
+the information is L1 (cid:0)ai , λi (cid:1), which depends on the connectivity of node i in the virtual layer. It can be written as
+L1 (cid:0)ai , λi (cid:1) = Xm "1X i
+tm ln (cid:0)1 − λi (cid:1)
+tm ln 1 − (cid:0)1 − λi (cid:1)
+tm !#,
+(22)
+tm = (cid:0)1 − 1 si
+tm (cid:1) (cid:0)1 − 1 si
+tm+1 (cid:1) and
+tm = (cid:0)1 − 1 si
+tm (cid:1) (cid:0)1 − 2 si
+Similarly, the quantity L2 (cid:0)bi , U β i , Aβ i (cid:1) that depends on the connectivity of node i in the physical layer is given by
+L2 (cid:0)bi , U β i , Aβ i (cid:1) =
+(23)
+tm ln (cid:0)1 − U β i (cid:1)
+tm ln 1 − (cid:0)1 − U β i (cid:1)
+tm ln (cid:0)1 − Aβ i (cid:1)
+tm ln 1 − (cid:0)1 − Aβ i (cid:1)
+
+tm +1 ) (cid:0)1 − U q i
+tm (cid:1)
+
+tm ! + 2
+tm ! + 2
+
+1 si
+tm+1 (cid:0)1 − 2 si
+2 si
+
+tm
+
+tm+1 (cid:1) 1 si
+tm+1 .
+
+tm !#
+tm !#
+
+tm ! + 1 Y i
+
++ Xm "2
+
+2 si
+tm +1 (cid:21),
+
+Xm "2
+
+tm (cid:1) U q i
+
+t (cid:1) U q i
+t
+
+1X i
+1Y i
+
+U Y i
+
+AY i
+
+U X i
+
+AX i
+
+(20)
+
+(21)
+
+bi
+
+j
+
+2 sj
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+
+P
+
+j 6=i
+
+ai
+
+j
+
+1 sj
+
+P
+
+j 6=i
+
+ai
+
+j
+
+1 sj
+
+P
+
+j 6=i
+
+where
+
+where
+
+tm
+
+(cid:21).
+
+where
+
+15
+
+2
+
+2
+
+U X i
+U Y i
+AX i
+AY i
+
+tm = (cid:0)1 − 1 si
+tm (cid:1) (cid:0)1 − 2 si
+tm = (cid:0)1 − 1 si
+tm (cid:0)1 − 2 si
+tm (cid:1) (cid:0)1 − 2 si
+tm+1 (cid:1) , and
+tm (cid:0)1 − 2 si
+In principle, Eq. (20) indicates that one can maximize L1 and L2 with respect to ai
+j and bi
+j , respectively, to uncover
+the connectivity of node i. However, the conventional maximization process leads to equations that cannot be solved
+because the quantity ai
+j (bi
+j ) appears in the exponential term and the values of λi (or U β i ) are unknown. We exploit
+the mean-ﬁeld approximation to maximize L1 and L2 .
+
+tm+1 (cid:1) ,
+tm (cid:1) 2 si
+tm+1 ,
+tm (cid:1) 2 si
+tm+1 .
+
+tm = 1 si
+tm = 1 si
+
+2
+
+2
+
+IV. RECONSTRUCTION OF VIRTUAL LAYER
+
+To infer the neighbors of node i in the virtual layer, we impose the mean-ﬁeld approximation on L1 :
+
+N − 1
+where N and 1k i are the number of nodes and the degree of node i in the virtual layer, respectively, and the number
+of A-nodes in the virtual layer (excluding node i itself ) is 1 θi
+tm . A new unknown parameter 1k i emerges in
+
+1 sj
+
+1 sj
+
+tm ai
+
+j ≈
+
+Xj 6=i
+
+(24)
+
+1k i
+
+1 θi
+
+tm ,
+
+tm = Pj 6=i
+
+j
+
+j 6=i
+
+ai
+
+P
+
+1 θ i
+
+(25)
+
+1 ki
+N −1
+
+1 sj
+tm
+
+1 ki
+N −1 ,
+
+to obtain
+
+(cid:0)1 − λi (cid:1)
+
+Eq. (22) when we substitute Eq. (24) into Eq. (22). To simplify the analysis, we let
+1γ i = (cid:0)1 − λi (cid:1)
+= (cid:0)1 − λi (cid:1)
+tm = (cid:0)1 γ i(cid:1)
+Equation (22) can then be written concisely as
+ˆL1 (cid:0)1γ i(cid:1) = Xm h 1X i
+tm ln (cid:16)(cid:0)1γ i(cid:1)
+tm ln (cid:16)1 − (cid:0)1γ i(cid:1)
+Diﬀerentiating ˆL1 (cid:0)1γ i (cid:1) with respect to 1 γ i and setting it to zero, we get
+= Xm
+1 − (1γ i )
+leading to 1 γ i = 1 ˜γ i .
+Treating ai
+l as a continuous variance, we can further diﬀerentiate Eq. (22) with respect to ai
+l and set it to zero,
+which gives
+
+tm (cid:0)1γ i (cid:1)
+1 θi
+
+tm (cid:17) + 1 Y i
+
+tm (cid:17) i.
+
+Xm
+
+1 θ i
+tm .
+
+1X i
+
+1Y i
+
+1 θ i
+tm
+
+(26)
+
+1 θ i
+tm
+
+tm ,
+
+1 θi
+
+1 θ i
+
+1 θ i
+
+tm
+
+tm
+
+P
+
+ai
+
+j
+
+1 sj
+tm
+
+j
+
+j 6=i
+
+j 6=i
+
+ai
+
+P
+
+tm
+
+tm
+
+1 sl
+
+1 sl
+
+tm .
+
+1 sj
+tm
+
+1Y i
+
+1X i
+
+Xm
+
+tm (cid:0)1 − λi (cid:1)
+= Xm
+1 − (1 − λi )
+To obtain analytical solutions of Eq. (27) is not feasible due to its nonlinear and high-dimensional nature. We thus
+resort to the ﬁrst-order Taylor expansion. In particular, we expand ax/(1 − ax ) in the limit x → x0 to obtain
+ax
+ax0 ln a
+ax0 ln ax0
+ax0 ln a
+1 − ax ≈
++
+(1 − ax0 )2 (x − x0 ) =
+1 − ax0 −
+(1 − ax0 )2 +
+(1 − ax0 )2 x.
+1 − ax0
+tm , a = 1 − λi , and x0 =
+tm [Eq. (24) implies that x ≈ x0 ], we have
+ax0 = (cid:0)1 ˜γ i(cid:1)
+
+Setting x = Pj 6=i
+
+1 θ i
+tm
+
+1 sj
+
+(28)
+
+(27)
+
+ax0
+
+ax0
+
+1 θi
+
+N −1
+
+ai
+
+1 ki
+
+j
+
+16
+
+from Eq. (25). That is, the term
+
+(cid:0)1 − λi (cid:1)
+
+P
+
+j 6=i
+
+ai
+
+j
+
+1 sj
+tm
+
+1 − (1 − λi )
+in Eq. (27) can be expressed as a linear form based on Eq. (24.)
+Collecting all the approximations, we transform Eq. (27) into a solvable linear system as
+tm ln (cid:0)1 − λi (cid:1) Pj 6=i
+
+P
+
+j 6=i
+
+ai
+
+j
+
+1 sj
+tm
+
+Pm
+
+1Y i
+
+tm
+
+1Gi
+
+tm
+
+1 sl
+
+ai
+
+j
+
+1 sj
+tm = Pm (cid:0)1X i
+tm − 1 Y i
+
+tm
+
+1F i
+tm (cid:1) 1 sl
+
+tm ,
+
+(29)
+
+where
+
+1F i
+
+tm = (cid:0)1 ˜γ i(cid:1)
+1 − (1 ˜γ i )
+(cid:0)1 ˜γ i(cid:1)
+(cid:16)1 − (1 ˜γ i )
+
+1 θ i
+tm
+tm −
+1 θ i
+
+(cid:0)1 ˜γ i(cid:1)
+(cid:16)1 − (1 ˜γ i )
+
+1 θ i
+tm
+
+1 θ i
+
+tm (cid:17)2
+
+1 θi
+
+tm ln 1 ˜γ i and
+
+1Gi
+
+tm =
+
+1 θ i
+tm
+
+1 θ i
+
+tm (cid:17)2 .
+tm = 1X i
+tm − 1 Y i
+1F i
+1Φi
+1 s1
+1 si−1
+
+Setting 1Φi
+
+tm = 1Y i
+
+tm
+
+1Gi
+
+tm and 1Γi
+
+tm
+
+tm , we express Eq. (29) as
+
+
+
+
+
+
+Pm
+Pm
+Pm
+Pm
+
+1Φi
+
+tm
+
+1 s1
+
+tm
+
+1 s1
+
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+
+tm
+
+tm
+
+tm Pm
+tm Pm
+tm Pm
+tm Pm
+
+1Φi
+
+tm
+
+1 s1
+
+tm
+
+1 si+1
+
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+
+1Φi
+
+tm
+
+1 s1
+
+tm
+
+1 sN
+
+tm
+
+...
+
+...
+
+...
+
+...
+
+1Φi
+
+tm
+
+1 si−1
+
+tm
+
+1 s1
+
+1Φi
+
+tm
+
+1 si−1
+
+tm
+
+1 si−1
+
+1Φi
+
+tm
+
+1 si−1
+
+tm
+
+1 si+1
+
+1Φi
+
+tm
+
+1 si−1
+
+tm
+
+1 sN
+
+tm
+
+1Φi
+
+tm
+
+1 si+1
+
+tm
+
+1 s1
+
+1Φi
+
+tm
+
+1 si+1
+
+tm
+
+1 si−1
+
+1Φi
+
+tm
+
+1 si+1
+
+tm
+
+1 si+1
+
+1Φi
+
+tm
+
+1 si+1
+
+tm
+
+1 sN
+
+tm
+
+...
+
+...
+
+...
+
+...
+
+1Φi
+
+tm
+
+1 sN
+
+tm
+
+1 s1
+
+1Φi
+
+tm
+
+1 sN
+
+tm
+
+1 si−1
+
+1Φi
+
+tm
+
+1 sN
+
+tm
+
+1 si+1
+
+1Φi
+
+tm
+
+1 sN
+
+tm
+
+1 sN
+
+tm
+
+
+
+
+×
+
+ai
+1 ln (cid:0)1 − λi (cid:1)
+...
+ai
+i−1 ln (cid:0)1 − λi (cid:1)
+ai
+i+1 ln (cid:0)1 − λi (cid:1)
+...
+ai
+N ln (cid:0)1 − λi (cid:1)
+The matrix on the left side (labeled as Λ) and the vector (labeled as ζ ) on the right side of Eq. (30) can be calculated
+from the time series of the nodal states. The vector
+η = (cid:2)ai
+1 ln (cid:0)1 − λi (cid:1), . . . , ai
+i−1 ln (cid:0)1 − λi (cid:1), ai
+i+1 ln (cid:0)1 − λi (cid:1), . . . , ai
+N ln (cid:0)1 − λi (cid:1)(cid:3)T
+can then be solved, where T denotes transpose. Note that the quantity ln (cid:0)1 − λi (cid:1) < 0 is a constant even though λi
+is not given, implying that the value of −ai
+j ln (cid:0)1 − λi (cid:1) is positively large for ai
+j = 1 and near zero for ai
+j = 0. As a
+result, the neighbors of node i in the virtual layer can be ascertained through the solution of the vector η .
+
+
+
+
+=
+
+
+
+
+Pm
+Pm
+Pm
+Pm
+
+1Γi
+
+tm
+
+1 s1
+
+tm
+
+...
+
+1Γi
+
+tm
+
+1 si−1
+
+tm
+
+1Γi
+
+tm
+
+1 si+1
+
+tm
+
+...
+
+1Γi
+
+tm
+
+1 sN
+
+tm
+
+
+
+
+.
+
+(30)
+
+V. RECONSTRUCTION OF PHYSICAL LAYER
+
+The mean-ﬁeld approximation for the physical layer is
+
+Xj 6=i
+
+2 sj
+
+tm bi
+
+j ≈
+
+2k i
+
+N − 1
+
+2 θi
+
+tm ,
+
+(31)
+
+17
+
+where 2k i is the degree of node i and 2 θi
+
+tm = Pj 6=i
+
+2 sj
+
+tm is the number of I-nodes in the physical layer (excluding node i
+
+itself ). We set
+
+2
+
+U γ i = (cid:0)1 − U β i (cid:1)
+A γ i = (cid:0)1 − Aβ i (cid:1)
+tm ln (cid:16)(cid:0)2
+tm ln (cid:16)1 − (cid:0)2
+ˆL2 (cid:0)2
+Aγ i(cid:1) = Xm
+U γ i(cid:1)
+U γ i(cid:1)
++ h2
+tm ln (cid:16)(cid:0)2
+Aγ i(cid:1)
+tm ln (cid:16)1 − (cid:0)2
+Aγ i(cid:1)
+Taking the derivatives of ˆL2 with respect to 2
+U γ i and 2
+Aγ i and setting them to zero, we get
+U γ i (cid:1)
+1 − (2
+U γ i )
+
+2 ki
+
+N −1 and
+
+2
+
+2 ki
+N −1
+
+(32)
+
+and write Eq. (23) concisely as
+
+U γ i , 2
+
+
+
+
+h2
+
+U X i
+AX i
+
+2 θ i
+
+tm (cid:17) + 2
+tm (cid:17) + 2
+
+U Y i
+AY i
+
+2 θ i
+
+tm (cid:17)i
+tm (cid:17)i
+
+2 θ i
+
+2 θ i
+
+
+
+
+.
+
+(33)
+
+Xm
+
+2
+
+U Y i
+tm
+
+tm (cid:0)2
+2 θi
+
+2 θ i
+tm
+
+2 θ i
+tm
+
+= Xm
+
+2
+
+U X i
+tm
+
+2 θi
+
+tm
+
+(34)
+
+and
+
+Xm
+
+2
+
+AY i
+tm
+
+tm (cid:0)2
+2 θi
+
+Aγ i(cid:1)
+1 − (2
+Aγ i )
+
+2 θ i
+tm
+
+2 θ i
+tm
+
+= Xm
+
+2
+
+AX i
+tm
+
+2 θi
+
+tm ,
+
+(35)
+
+which give
+
+U γ i = 2
+2
+2
+Aγ i = 2
+
+U ˜γ i and
+A ˜γ i .
+
+Similar to the mean-ﬁeld analysis of the virtual layer, we diﬀerentiate Eq. (23) with respect to bi
+l and set it to zero:
+
+∂L2
+∂ bi
+
+l
+
+= Xm
+
+
+
+
+
+
+ln (cid:0)1 − U β i (cid:1) 2
+ln (cid:0)1 − Aβ i (cid:1) 2
+
+U X i
+tm
+
+2 sl
+
+tm − ln (cid:0)1 − U β i (cid:1) 2
+tm − ln (cid:0)1 − A β i(cid:1) 2
+
+U Y i
+tm
+
+2 sl
+
+tm (cid:0)1 − U β i (cid:1)
+1 − (1 − U β i )
+tm (cid:0)1 − Aβ i (cid:1)
+1 − (1 − Aβ i )
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+
+
+
+
+
++ Xm
+
+AX i
+tm
+
+2 sl
+
+AY i
+tm
+
+2 sl
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+= 0,
+
+which gives
+
+Xm
+
+
+
+
+ln (cid:0)1 − U β i (cid:1) 2 sl
+= Xm (cid:8)ln (cid:0)1 − U β i (cid:1) 2
+Setting
+
+tm
+
+2
+
+U Y i
+
+tm (cid:0)1 − U β i (cid:1)
+1 − (1 − U β i )
+tm + ln (cid:0)1 − Aβ i (cid:1) 2
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
++ ln (cid:0)1 − Aβ i (cid:1) 2 sl
+tm (cid:9).
+
+tm
+
+2
+
+AY i
+
+tm (cid:0)1 − Aβ i (cid:1)
+1 − (1 − Aβ i )
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+
+
+
+U X i
+tm
+
+2 sl
+
+AX i
+tm
+
+2 sl
+
+(36)
+
+ρ =
+
+ln 2
+U ˜γ i
+A ˜γ i =
+ln 2
+
+ln (cid:0)1 − U β i (cid:1)
+ln (1 − Aβ i )
+
+,
+
+we can further simplify Eq. (36) as
+
+Pm 
+
+
+ρ 2 sl
+= Pm (cid:2)ρ 2
+
+tm
+
+2
+
+U Y i
+tm
+
+(1−U β i )
+
+P
+j 6=i
+
+bi
+j
+
+2 s
+
+j
+tm
+
+1−(1−U β i )
+AX i
+tm
+
+P
+j 6=i
+
+bi
+j
+
+2 s
+
+j
+tm
+
++ 2 sl
+
+tm
+
+2
+
+AY i
+tm
+
+(1−A β i )
+
+P
+j 6=i
+
+bi
+j
+
+2 s
+
+j
+tm 
+tm
+j
+
+1−(1−A β i )
+
+P
+j 6=i
+
+bi
+j
+
+2 s
+
+
+
+U X i
+tm
+
+2 sl
+tm + 2
+
+2 sl
+
+tm (cid:3)
+
+(37)
+
+18
+
+Using Eq. (28) and setting x = Pj 6=i
+
+bi
+
+j
+
+2 sj
+
+tm and x0 =
+
+2 ki
+
+N −1
+
+2 θi
+
+tm , we obtain the following Taylor expansion:
+
+(cid:0)1 − U β i (cid:1)
+1 − (1 − U β i )
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+= 2
+
+U F i
+
+tm + 2
+
+U Gi
+
+tm ln (cid:0)1 − U β i (cid:1) Xj 6=i
+
+bi
+
+j
+
+2 sj
+
+tm ,
+
+(38)
+
+where
+
+2
+
+U F i
+
+tm = (cid:0)2
+
+U ˜γ i(cid:1)
+1 − (2
+U ˜γ i )
+U ˜γ i(cid:1)
+(cid:16)1 − (2
+U ˜γ i )
+
+2 θ i
+tm
+tm −
+2 θ i
+
+(cid:0)2
+
+U ˜γ i (cid:1)
+(cid:16)1 − (2
+U ˜γ i )
+
+2 θ i
+tm
+
+2 θ i
+
+tm (cid:17)2
+
+2 θi
+tm ln 2
+
+U ˜γ i and
+
+2
+
+U Gi
+tm =
+
+(cid:0)2
+
+2 θ i
+tm
+
+2 θ i
+
+tm (cid:17)2 .
+
+We also have
+
+(cid:0)1 − Aβ i (cid:1)
+1 − (1 − Aβ i )
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+P
+
+j 6=i
+
+bi
+
+j
+
+2 sj
+tm
+
+= 2
+
+AF i
+
+tm + 2
+
+AGi
+
+tm ln (cid:0)1 − Aβ i (cid:1) Xj 6=i
+
+bi
+
+j
+
+2 sj
+
+tm ,
+
+(39)
+
+where
+
+2
+
+AF i
+
+tm = (cid:0)2
+
+A ˜γ i(cid:1)
+1 − (2
+A ˜γ i )
+A ˜γ i(cid:1)
+(cid:16)1 − (2
+A ˜γ i )
+With these approximations, we can transform Eq. (37) into the following linear system:
+
+2 θ i
+tm
+tm −
+2 θ i
+
+(cid:0)2
+
+A ˜γ i(cid:1)
+(cid:16)1 − (2
+A ˜γ i )
+
+2 θ i
+tm
+
+2 θ i
+
+tm (cid:17)2
+
+2 θi
+tm ln 2
+
+A ˜γ i and
+
+2
+
+AGi
+tm =
+
+(cid:0)2
+
+2 θ i
+tm
+
+2 θ i
+
+tm (cid:17)2 .
+
+Pm "(cid:0)ρ2 2
+= Pm (cid:0)ρ 2
+
+U Y i
+tm
+
+2
+
+U Gi
+
+tm + 2
+tm − ρ 2
+
+AY i
+tm
+
+2
+
+AGi
+
+tm (cid:1) 2 sl
+2
+tm − 2
+
+tm ln (cid:0)1 − Aβ i (cid:1) Pj 6=i
+
+bi
+
+j
+
+2 sj
+
+tm #
+
+U X i
+
+tm + 2
+
+AX i
+
+U Y i
+tm
+
+U F i
+
+AY i
+tm
+
+2
+
+AF i
+
+tm (cid:1) 2 sl
+
+tm ,
+
+(40)
+
+where
+
+2Φi
+tm = ρ2 2
+2Γi
+tm = ρ 2
+
+U Y i
+tm
+U X i
+
+2
+
+U Gi
+AX i
+
+tm + 2
+tm − ρ 2
+
+AY i
+AGi
+tm
+U Y i
+U F i
+tm
+
+2
+
+tm and
+
+tm + 2
+
+2
+
+tm − 2
+
+AY i
+tm
+
+2
+
+AF i
+tm .
+
+19
+
+We rewrite Eq. (40) in the following matrix form:
+
+
+
+
+
+
+Pm
+Pm
+Pm
+Pm
+
+2Φi
+
+tm
+
+2 s1
+
+tm
+
+2 s1
+
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+
+2Φi
+
+tm
+
+2 s1
+
+tm
+
+2 si−1
+
+tm Pm
+tm Pm
+tm Pm
+tm Pm
+
+2Φi
+
+tm
+
+2 s1
+
+tm
+
+2 si+1
+
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+tm · · · Pm
+
+2Φi
+
+tm
+
+2 s1
+
+tm
+
+2 sN
+
+tm
+
+...
+
+...
+
+...
+
+...
+
+2Φi
+
+tm
+
+2 si−1
+
+tm
+
+2 s1
+
+2Φi
+
+tm
+
+2 si−1
+
+tm
+
+2 si−1
+
+2Φi
+
+tm
+
+2 si−1
+
+tm
+
+2 si+1
+
+2Φi
+
+tm
+
+2 si−1
+
+tm
+
+2 sN
+
+tm
+
+2Φi
+
+tm
+
+2 si+1
+
+tm
+
+2 s1
+
+2Φi
+
+tm
+
+2 si+1
+
+tm
+
+2 si−1
+
+2Φi
+
+tm
+
+2 si+1
+
+tm
+
+2 si+1
+
+2Φi
+
+tm
+
+2 si+1
+
+tm
+
+2 sN
+
+tm
+
+...
+
+...
+
+...
+
+...
+
+2Φi
+
+tm
+
+2 sN
+
+tm
+
+2 s1
+
+2Φi
+
+tm
+
+2 sN
+
+tm
+
+2 si−1
+
+2Φi
+
+tm
+
+2 sN
+
+tm
+
+2 si+1
+
+2Φi
+
+tm
+
+2 sN
+
+tm
+
+2 sN
+
+tm
+
+
+
+
+×
+
+bi
+1 ln (cid:0)1 − A β i (cid:1)
+...
+bi
+i−1 ln (cid:0)1 − Aβ i (cid:1)
+bi
+i+1 ln (cid:0)1 − Aβ i (cid:1)
+...
+bi
+N ln (cid:0)1 − Aβ i (cid:1)
+The matrix on the left side and the vector on the right side can be obtained from time series. Solution of Eq. (41)
+gives the vector
+
+
+
+
+=
+
+
+
+
+Pm
+Pm
+Pm
+Pm
+
+2Γi
+
+tm
+
+2 s1
+
+tm
+
+...
+
+2Γi
+
+tm
+
+2 si−1
+
+tm
+
+2Γi
+
+tm
+
+2 si+1
+
+tm
+
+...
+
+2Γi
+
+tm
+
+2 sN
+
+tm
+
+
+
+
+.
+
+(41)
+
+η = (cid:2)bi
+1 ln (cid:0)1 − Aβ i (cid:1) , . . . , bi
+i−1 ln (cid:0)1 − Aβ i (cid:1) , bi
+i+1 ln (cid:0)1 − A β i (cid:1) , . . . , bi
+N ln (cid:0)1 − Aβ i (cid:1) (cid:3)T
+revealing the neighbors of node i in the physical layer.
+
+,
+
+VI. SELECTION OF THRESHOLD VALUE FOR IDENTIFICATION OF EXISTENT LINKS
+
+For each node i, the values of ai
+l ln (cid:0)1 − λi (cid:1) (or of bi
+l ln (cid:0)1 − Aβ i (cid:1)) can be obtained from Eq. (30) [or Eq. (41)].
+From Figs. 8(a,b), we have that the values of −ai
+l ln (cid:0)1 − λi (cid:1) [or −bi
+l ln (cid:0)1 − Aβ i (cid:1)] are unequivocally above zero for
+the actual links, while their values are close to zero for nonexistent links, with a gap between the two sets of values.
+Representing the values listed in each column as a histogram, we have that the peak centered about zero corresponds
+to nonexistent links and the other corresponds to existent links. A threshold value can be placed between the two
+peaks [25], as shown in Fig. 8(c). A pair of nodes i and l are connected if the corresponding value of −ai
+l ln (cid:0)1 − λi (cid:1)
+[−bi
+l ln (cid:0)1 − λi (cid:1)] is larger than the threshold. Take node 46 as an example. We wish to infer its neighbors in the
+physical layer [highlighted by the red dashed frame in Fig. 8(b)]. Figure 8(d) shows that the values larger than the
+threshold correspond to the existent links.
+
+VII. RECONSTRUCTION OF DUPLEX NETWORKS WITH HETEROGENEOUS RATES OF
+SPREADING DYNAMICS
+
+Figure 9 demonstrates that our framework can reconstruct duplex networks with heterogeneous rates of spreading
+dynamics. In particular, transmission rates λi and U β i are randomly chosen from the ranges (0.2, 0.4) and (0.3, 0.5),
+respectively. The recovery rates δ i and µi are randomly picked up from the ranges (0.6, 1) and (0.6, 1), respectively.
+Note that Aβ i = 0.5U β i .
+
+[1] Friston, K. J. Bayesian estimation of dynamical systems: an application to fMRI. NeuroImage 16, 513–530 (2002).
+[2] Gardner, T. S., di Bernardo, D., Lorenz, D. & Collins, J. J. Inferring genetic networks and identifying compound mode of
+action via expression proﬁling. Science 301, 102–105 (2003).
+[3] Pipa, G. & Gr¨un, S. Non-parametric signiﬁcance estimation of joint-spike events by shuﬄing and resampling. Neurocomp.
+52, 31–37 (2003).
+
+20
+
+FIG. 8. Reconstruction of CS-AARHUS duplex network. (a,b) Values of −ai
+
+l ln (cid:0)1 − λi (cid:1) , i 6= l and −bi
+l ln (cid:0)1 − λi (cid:1) i 6= l
+(b) for each node, respectively. Each column gives the connectivity of a node. The blue and orange points denote the existent
+and nonexistent links, respectively. (c) Illustration of the choice of the threshold with node 46 [highlighted by the red dashed
+frame in (b)]. Shown is the distribution of the values of −b46
+ln (cid:0)1 − λi (cid:1) for l 6= 46. The peak centered about zero corresponds
+to nonexistent links while the other peak corresponds to existent links. A threshold can be set within the gap between the
+two peaks. (d) The threshold is illustrated to distinguish the actual from the nonexistent links. The length of time series is
+M =30000. Other parameters are λ = 0.2, U β = 0.2, A β = 0.5U β , and µ = δ = 0.8.
+
+l
+
+[4] Brovelli, A. et al. Beta oscillations in a large-scale sensorimotor cortical network: directional inﬂuences revealed by Granger
+causality. Proc. Nat. Acad. Sci. (USA) 101, 9849–9854 (2004).
+[5] Eguiluz, V. M., Chialvo, D. R., Cecchi, G. A., Baliki, M. & Apkarian, A. V. Scale-free brain functional networks. Phys.
+Rev. Lett. 94, 018102 (2005).
+[6] Yu, D., Righero, M. & Kocarev, L. Estimating topology of networks. Phys. Rev. Lett. 97, 188701 (2006).
+[7] Bongard, J. & Lipson, H. Automated reverse engineering of nonlinear dynamical systems. Proc. Natl. Acad. Sci. (USA)
+104, 9943–9948 (2007).
+[8] Timme, M. Revealing network connectivity from response dynamics. Phys. Rev. Lett. 98, 224101 (2007).
+[9] Napoletani, D. & Sauer, T. D. Reconstructing the topology of sparsely connected dynamical networks. Phys. Rev. E 77,
+026103 (2008).
+[10] Donges, J., Zou, Y., Marwan, N. & Kurths, J. The backbone of the climate network. EPL (Europhys. Lett.) 87, 48007
+(2009).
+[11] Pa jevic, S. & Plenz, D. Eﬃcient network reconstruction from dynamical cascades identiﬁes small-world topology of neuronal
+avalanches. PLoS Comp. Biol. 5, e1000271 (2009).
+[12] Ren, J., Wang, W.-X., Li, B. & Lai, Y.-C. Noise bridges dynamical correlation and topology in coupled oscillator networks.
+Phys. Rev. Lett. 104, 058701 (2010).
+
+(cid:11)(cid:68)(cid:12)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:38)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:50)
+
+(cid:53)
+(cid:56)
+(cid:36)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:11)(cid:71)(cid:12)
+
+(cid:19)
+
+(cid:11)(cid:69)(cid:12)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:11)(cid:70)(cid:12)
+
+(cid:20)(cid:17)(cid:19)
+
+(cid:19)(cid:17)(cid:28)
+
+(cid:19)(cid:17)(cid:27)
+
+(cid:19)(cid:17)(cid:26)
+
+(cid:3)(cid:57)(cid:76)(cid:85)(cid:87)(cid:88)(cid:68)(cid:79)(cid:3)(cid:70)(cid:82)(cid:81)(cid:87)(cid:68)(cid:70)(cid:87)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:48)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:11)(cid:72)(cid:12)
+
+(cid:19)
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:19)
+
+(cid:19)(cid:17)(cid:25)
+
+(cid:11)(cid:73)(cid:12)
+
+21
+
+(cid:24)
+
+(cid:20)(cid:19)
+
+(cid:20)(cid:24)
+
+(cid:21)(cid:19)
+
+(cid:11)(cid:74)(cid:12)
+
+(cid:11)(cid:75)(cid:12)
+
+(cid:11)(cid:76)(cid:12)
+
+22
+
+[19] Su, R.-Q., Wang, W.-X. & Lai, Y.-C. Detecting hidden nodes in complex networks from time series. Phys. Rev. E 85,
+065201 (2012).
+[20] Hamilton, F., Berry, T., Peixoto, N. & Sauer, T. Real-time tracking of neuronal network structure using data assimilation.
+Phys. Rev. E 88, 052715 (2013).
+[21] Zhou, D., Xiao, Y., Zhang, Y., Xu, Z. & Cai, D. Causal and structural connectivity of pulse-coupled nonlinear networks.
+Phys. Rev. Lett. 111, 054102 (2013).
+[22] Ching, E. S. C., Lai, P.-Y. & Leung, C. Y. Extracting connectivity from dynamics of networks with uniform bidirectional
+coupling. Phys. Rev. E 88, 042817 (2013).
+[23] Timme, M. & Casadiego, J. Revealing networks from dynamics: an introduction. J. Phys. A. Math. Theo. 47, 343001
+(2014).
+[24] Su, R.-Q., Lai, Y.-C. & Wang, X. Identifying chaotic FitzHugh-Nagumo neurons using compressive sensing. Entropy 16,
+3889–3902 (2014).
+[25] Shen, Z.-S., Wang, W.-X., Fan, Y., Di, Z. & Lai, Y.-C. Reconstructing propagation networks with natural diversity and
+identifying hidden sources. Nat. Commun. 5, 4323 (2014).
+[26] Ching, E. S. C., Lai, P.-Y. & Leung, C. Y. Reconstructing weighted networks from dynamics. Phys. Rev. E 91, 030801
+(2015).
+[27] Wang, W.-X., Lai, Y.-C. & Grebogi, C. Data based identiﬁcation and prediction of nonlinear and complex dynamical
+systems. Phys. Rep. 644, 1–76 (2016).
+[28] Casadiego, J., Nitzan, M., Hallerberg, S. & Timme, M. Model-free inference of direct network interactions from nonlinear
+collective dynamics. Nat. Commun. 8, 2192 (2017).
+[29] Li, X. & Li, X. Reconstruction of stochastic temporal networks through diﬀusive arrival times. Nat. Commun. 8, 15729
+(2017).
+[30] Chen, Y.-Z. & Lai, Y.-C. Sparse dynamical Boltzmann machine for reconstructing complex networks with binary dynamics.
+Phys. Rev. E 97, 032317 (2018).
+[31] Mei, G. et al. Compressive-sensing-based structure identiﬁcation for multilayer networks.
+754–764 (2018).
+[32] Nitzan, M., Casadiego, J. & Timme, M. Revealing physical interaction networks from statistics of collective dynamics.
+Sci. Adv. 3 (2017).
+[33] Ma, C., Zhang, H.-F. & Lai, Y.-C. Reconstructing complex networks without time series. Phys. Rev. E 96, 022320 (2017).
+[34] Wang, W.-X., Yang, R., Lai, Y.-C., Kovanis, V. & Harrison, M. A. F. Time-series-based prediction of complex oscillator
+networks via compressive sensing. EPL (Europhys. Lett.) 94, 48006 (2011).
+[35] Buldyrev, S. V., Parshani, R., Paul, G., Stanley, H. E. & Havlin, S. Catastrophic cascade of failures in interdependent
+networks. Nature 464, 1025 (2010).
+[36] Gao, J., Buldyrev, S. V., Stanley, H. E. & Havlin, S. Networks formed from interdependent networks. Nat. Phys. 8, 40
+(2012).
+[37] De Domenico, M. et al. Mathematical formulation of multilayer networks. Phys. Rev. X 3, 041022 (2013).
+[38] Kivel¨a, M. et al. Multilayer networks. J. Complex Net. 2, 203–271 (2014).
+[39] De Domenico, M., Granell, C., Porter, M. A. & Arenas, A. The physics of spreading processes in multilayer networks.
+Nat. Phys. 12, 901 (2016).
+[40] Granell, C., G´omez, S. & Arenas, A. Dynamical interplay between awareness and epidemic spreading in multiplex networks.
+Phys. Rev. Lett. 111, 128701 (2013).
+[41] Magnani, M., Micenkova, B. & Rossi, L. Combinatorial analysis of multiple networks. arXiv preprint arXiv:1303.4986
+(2013).
+[42] Coleman, J., Katz, E. & Menzel, H. The diﬀusion of an innovation among physicians. Sociometry 20, 253–270 (1957).
+[43] Watts, D. J. & Strogatz, S. H. Collective dynamics of small-worldnetworks. Nature 393, 440–442 (1998).
+[44] Erdos, P. & R´enyi, A. On the evolution of random graphs. Publ. Math. Inst. Hung. Acad. Sci 5, 17–60 (1960).
+[45] Barab´asi, A.-L. & Albert, R. Emergence of scaling in random networks. Science 286, 509–512 (1999).
+[46] Li, J.-W., Shen, Z.-S., Wang, W.-X., Grebogi, C. & Lai, Y.-C. Universal data-based method for reconstructing complex
+networks with binary-state dynamics. Phys. Rev. E 95, 032303 (2017).
+
+IEEE Trans. Cybernet 48,
+
+

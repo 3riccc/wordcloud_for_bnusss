@@ -1,0 +1,873 @@
+18th International Conference on Information Fusion
+Washington, DC - July 6-9, 2015
+
+Hidden network reconstruction
+from information diffusion
+
+Forrest W. Crawford
+
+Department of Biostatistics
+Yale School of Public Health
+New Haven, Connecticut 06510
+http://crawford.research.yale.edu
+
+Abstract—Learning about the structure of hidden or covert
+networks is a major challenge in epidemiology, sociology, and
+intelligence analysis. Vertices in hidden networks usually cannot
+be enumerated or sampled in a systematic way; they can only
+be revealed by tracing links emanating from already-observed
+vertices. Observers sometimes cannot follow links directly, and
+instead must rely on passive observation of a dynamic process
+to reveal vertices and edges. This paper outlines a framework
+for estimating network structures from partial observation of
+information diffusion through the network. Diffusion is modeled
+by a continuous-time Markov epidemic model. Edges are revealed
+by transmission events and new vertices are uncovered when
+information is transmitted to them. The approach is a gener-
+alization of tools developed to reconstruct drug-user networks
+from respondent-driven sampling studies in epidemiology. The
+likelihood of the diffusion process can be interpreted as an
+exponential random graph model. A Bayesian method for prob-
+abilistic reconstruction of the transmission-induced subgraph is
+described.
+
+Keywords: Covert network, diffusion, exponential random graph
+model, epidemic model, Markov process, network reconstruction
+
+I . IN TRODUC T ION
+
+Many social, organizational, and operational networks are
+obscured from view and cannot be studied by comprehensive
+census. When vertices can be randomly sampled, it is some-
+times possible to estimate global or local graph properties from
+a sampling-induced subgraph [1]–[8]. Unfortunately random
+sampling of vertices or edges in a hidden network is often
+impossible because no appropriate sampling frame is available.
+When some or all vertices of a hidden network are observed,
+explicit reconstruction often takes the form of link prediction
+[9]–[14]. When most of the network is observed, but some
+vertices are hidden or covert, it may be possible to detect
+missing vertices [15]. When vertices or edges can be observed
+in more than one sample, it is often possible to combine
+information across samples to reconstruct subgraphs or esti-
+mate global graph properties [16]–[18]. However, estimation
+techniques that are effective under random sampling do not
+necessarily perform well under other observation scenarios
+[19]. In particular, estimates of global graph properties from
+observed vertices – such as the degree distribution – may be
+strongly affected by the sampling procedure [20], [21].
+Hidden or covert networks can typically only be studied
+by tracing links from one vertex to another. Link-tracing
+
+survey techniques have gained wide use in epidemiology and
+sociology for studies of hidden or hard-to-reach populations
+[22], [23]. Often social stigma serves to obscure members of
+hidden populations; sometimes the fear of legal repercussions
+keeps individuals hidden. Respondent-driven sampling (RDS)
+[23] is a link-tracing procedure that has found wide use
+in epidemiology, sociology, and public health research on
+drug users. RDS has also been proposed to study domestic
+extremism and counterinsurgency [24]–[26].
+Link-tracing studies aim to discover new nodes and the
+connections between them. When the link-tracing process
+constitutes a sampling design, it is possible to estimate global
+properties of the network and characteristics of the population
+of vertices [27]. There is evidence that data from link-tracing
+studies can have very different properties from data obtained
+by random sampling of vertices [28]–[30]. In link-tracing
+studies, not every link between sampled nodes is observed;
+usually only links that are traced can be observed, and it is
+unclear whether analysts can hope to estimate properties of
+the local or global networks from networks observed in this
+way.
+Worse, the mechanism that reveals links is often not under
+the control of the observer. For example, in RDS subjects “re-
+cruit” other subjects to whom they are connected in the target
+population social network. As another example, an intelligence
+analyst might intercept a message diffusing through a covert
+network. In this idealization, vertices and edges are revealed
+to the observer only when an action – such as communication
+or transmission of information – happens across the edge. If
+no transmission happens across a given edge, the edge is not
+revealed to the observer. Likewise, if no transmission reaches
+a given vertex, that vertex is not revealed to the observer.
+Despite these limitations, passive observation of deterministic
+or stochastic communication processes on links has been
+effectively used to provide insight into the structure of hidden
+or partially obscured networks [31]–[34]. The key insight in
+this work is that the path and dynamics of a process on a
+hidden network can reveal properties of the network itself.
+This paper outlines a general strategy for probabilistic
+reconstruction of the edges in a hidden network from obser-
+vation of an information diffusion process on that network.
+Information diffusion is modeled by a continuous-time Markov
+susceptible-infected model [35]. This work is disctinct from
+
+978-0-9824-4386-6/15/$31.00 ©2015 IEEE
+
+180
+
+“diffusion” methods for distributed learning over networks
+[36]–[38]. The technique is a generalization of tools developed
+for epidemiological research on networks of drug users from
+data obtained by RDS link tracing [39]. First, a class of
+Markov transmission processes is deﬁned, along with the
+data observed from the process. Vertices are observed when
+information is transmitted to them; edges are visible only
+when a transmission event takes place across them. The notion
+of “transmission” is general:
+it can refer to any one-way
+communication process that changes the state of the individual
+who receives the transmission, and in which the receiver can
+also transmit the information to its network neighbors. Passive
+observation of this type of communication processes can reveal
+important properties of network structures. A Bayesian method
+for probabilistic reconstruction of the transmission-induced
+subgraph is derived.
+
+I I . MARKOV D I FFU S ION PROCE S S E S ON N ETWORK S
+
+A. Preliminaries
+
+Suppose we wish to learn about the structure of an undi-
+rected graph G = (V , E ), where the vertex set V has ﬁnite
+size |V | = N < ∞ and the edge set E contains no self-
+loops or parallel edges. A vertex’s degree is the number
+of edges incident to it that connect to other vertices in the
+hidden network G. The terms “graph” and “network”, “vertex”
+and “node”, and “edge” and “link” are used interchangeably.
+The graph could represent a social network, an organizational
+structure, or relationships between any entities of interest.
+A stochastic model of one-way information diffusion on the
+edges of G is constructed in a manner analogous to the
+susceptible-infected model of infectious disease epidemiology
+[35]. The term “diffusion” refers to the spread or transmission
+of a state, message, or object along the edges of G.
+Suppose that each vertex i ∈ V has a property or state Xi (t)
+which is a function of time t > 0. In this paper, it is assumed
+for simplicity that Xi (t) ∈ {0, 1}, but this restriction could be
+relaxed. A vertex in state 1 at time t has already received the
+message, and can transmit it; a vertex in state 0 has not yet
+received it. Assume that at time t = 0, the set of vertices M
+with Xi (0) = 1 for i ∈ M , is known. We refer to members
+of M as “seeds”.
+
+Deﬁnition 1 (Susceptible vertices and edges). A vertex j ∈ V
+is susceptible to transmission at time t if Xj (t) = 0 and there
+exists least one i ∈ V such that Xi (t) = 1 and {i, j } ∈ E .
+An edge {i, j } ∈ E is susceptible at time t if Xi (t) = 1 and
+
+Xj (t) = 0 or Xi (t) = 0 and Xj (t) = 1.
+
+The time to transmission along a susceptible edge is assumed
+to follow a common probability distribution. Consider two
+distinct vertices i ∈ V and j ∈ V with {i, j } ∈ E . At time
+t = 0, assume that Xi (0) = 1 and Xj (0) = 0. Transmission
+happens independently across the edge connecting i and j at
+a random time
+
+8
+
+7
+
+5
+
+4
+
+6
+
+2
+
+3
+
+1
+
+8
+
+7
+
+5
+
+4
+
+6
+
+2
+
+3
+
+1
+
+Fig. 1. Transmission path on the true graph and observed transmission path.
+At left is the transmission path GT overlaid on the network G. At left is
+the observed transmission path with pendant edges implied by the observed
+degrees. In particular, the analyst does not observe the full network G, nor
+the transmission-induced subgraph GS .
+
+where λ > 0 is the rate of transmission across a single
+susceptible edge.
+
+B. Observation
+
+Suppose the vertex i ∈ V becomes known to an observer
+at time ti = argmint {t : Xi (t) = 1} when it ﬁrst receives
+a transmission. The degree di of i in G is fully observed.
+By assumption, the observer does not have direct access to
+any vertices or edges in G; instead, the path of a stochastic
+transmission process on the edges of G is revealed over time.
+
+Deﬁnition 2 (Transmission graph). The directed transmission
+graph is GT = (VT , ET ), where VT ⊂ V is the set of n
+known vertices and a directed edge (i, j ) ∈ ET indicates that
+i transmitted a message to j .
+
+It is assumed that vertices cannot receive a transmission more
+than once, so GT is acyclic. This assumption can be relaxed
+with some increase in notation and computation. Furthermore,
+GT need not be connected if the set of seeds has |M | > 1.
+While the directed transmission graph GT is fully observed,
+the subgraph of observed vertices is not visible, since an edge
+between vertices in VT is not visible unless a transmission
+event took place across that edge.
+
+Deﬁnition
+3
+(Transmission-induced
+subgraph).
+The
+transmission-induced subgraph is an undirected graph
+GS = (VS , ES ), where VS = VT consists of n sampled
+vertices, and {i, j } ∈ ES if and only if i ∈ VS , j ∈ VS , and
+
+{i, j } ∈ E .
+
+From this deﬁnition, it is evident that the recruitment graph
+GT is a directed subgraph of GS .
+
+Deﬁnition 4 (Transmissibility matrix). Let T be a n×n matrix
+whose element Tij is 1 if vertex i can transmit the information
+just before the time of the j th transmission event, and zero
+otherwise. The rows and columns of T are ordered by the
+time at which each subject is observed.
+
+Let d be the time-ordered n × 1 vector of subjects’ degrees
+in the order they are observed and let t = (t1 , . . . , tn ) be the
+n × 1 vector of transmission times, where t1 < · · · < tn .
+The observed data from the transmission process consists of
+
+Tij ∼ Exponential(λ),
+
+(1)
+
+Y = (GT , d, t, T).
+
+181
+
+Figure 1 illustrates the observed data and their relationship
+to the unobserved population graph G. Since the transmission
+graph GT does not contain any edges along which a trans-
+mission event did not take place, the transmission-induced
+subgraph GS is not fully observed. However, observation of
+GT and d places constraints on the topology of GS .
+
+C. Likelihood
+
+To derive the likelihood of the observed data on a hidden
+network, it is necessary to formalize the class of reconstructed
+networks for which the likelihood makes sense.
+Deﬁnition 5 (Compatibility). A subgraph bGS = (VS , bES ) is
+compatible with the transmission graph GT if
+
+1) for each (i, j ) ∈ ET , {i, j } ∈ bES ;
+
+2) the degree of i ∈ VS in GS does not exceed the observed
+total degree di in G.
+Intuitively, an estimated subgraph bGS is compatible with GT
+if GT is a (directed) subgraph of GS and the degree of each
+vertex in GS is less than or equal to its degree in G. Let
+w = (0, t1 , t2 − t1 , . . . , tn − tn−1 ) be the n × 1 vector of inter-
+transmission waiting times and let A be the n × n adjacency
+matrix of bGS , with the rows and columns representing vertices
+in the order they were observed. Let u be an n×1 vector whose
+ith element is the number of edges connecting i to unobserved
+vertices in G, so ui = di − Pn
+Aij . Figure 2 shows the
+matrices used to compute the likelihood. The joint likelihood
+of GT and w can be expressed in a computationally convenient
+form without explicitly enumerating susceptible edges. The
+likelihood is given by
+
+j=1
+
+L(GT , w|GS , d, λ) = λn−|M | exp[−λs′w]
+
+(2)
+
+where
+
+s = lowerTri(AT)′1 + T′u
+
+(3)
+
+Crawford (2015) gives a proof [39]. The statistic s is a n × 1
+vector whose ith element is the number of susceptible edges
+in GS just before the ith transmission event.
+
+I I I . N ETWORK R ECON S TRUC T ION
+
+A. Exponential random graph models
+
+The likelihood (2) can be interpreted as a function of the
+adjacency matrix A, with w and λ held ﬁxed. We can rewrite
+(2) as
+
+Pr(A) =
+
+exp[s(A)′θ ]
+κ(θ)
+
+(4)
+
+where s(A) is a vector-valued function of A given by (3),
+θ = −λw, and κ(θ) is a normalizing constant that does
+not depend on A. The interpretation (4) reveals that
+the
+likelihood of the observed data constitutes an exponential
+random graph model (ERGM) for the unobserved portion of
+the transmission-induced subgraph GS [40], [41]. ERGMs
+have several desirable computational properties: it is straight-
+forward to simulate realizations from (4) via Gibbs sampling
+or Metropolis-Hastings steps; to compute the ratio of proba-
+bilities of two estimated graphs, only a change statistic needs
+to be calculated [42].
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+1
+
+1
+
+2
+
+2
+
+3
+
+3
+
+4
+
+4
+
+5
+
+5
+
+6
+
+6
+
+7
+
+7
+
+8
+
+8
+
+A
+
+1
+
+1
+
+2
+
+2
+
+3
+
+3
+
+4
+
+4
+
+5
+
+5
+
+6
+
+6
+
+7
+
+7
+
+8
+
+8
+
+T
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+d
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+7
+
+8
+
+u
+
+Fig. 2. Matrices used to compute the likelihood (2).
+
+B. Generating a compatible estimate
+
+Given a compatible graph GS = (VS , ES ) with correspond-
+ing vector u, another compatible estimate can be obtained by
+randomly choosing two vertices i and j with ti < tj such
+that no transmission event took place from i to j , that is,
+(i, j ) /∈ ET . If {i, j } /∈ ES , ui > 0 and uj > 0, then a new
+edge {i, j } is proposed. If {i, j } ∈ ES , then it is proposed
+to remove the edge {i, j } from ES . The resulting proposal
+graph is identical to GS except that the edge {i, j } has either
+been added or removed. Furthermore, since this procedure
+does not change transmission edges in GT , the proposal graph
+is compatible with the observed data, by Deﬁnition 5.
+The number of compatible subgraphs G∗
+S that can be
+produced from GS by this procedure is
+nchanges(GS ) = X
+
+i<j
+
+1{{i, j } /∈ ES , ui > 0, uj > 0}
+
++ 1{{i, j } ∈ ES , (i, j ) /∈ ER }.
+
+(5)
+
+The probability of producing any particular compatible sub-
+graph G∗
+S is
+
+Pr(G∗
+S |GS ) =
+
+1
+
+nchanges(GS )
+
+.
+
+(6)
+
+This probability will be useful in forming the Metropolis-
+Hastings ratio for G∗
+S below.
+
+C. Computing the likelihood ratio
+
+Suppose ﬁrst that GS has no edge between i and j , {i, j } /∈
+ES . For a proposal G+
+S ) identical to GS except
+S , the likelihood ratio is
+
+S = (VS , E+
+
+that {i, j } ∈ E+
+L(GT , w|G+
+S , d, λ)
+L(GT , w|GS , d, λ)
+
+= e2λ(tn−tj ) .
+
+(7)
+
+Now suppose GS has and edge between i and j , {i, j } ∈ ES
+with {i, j } /∈ ET . For a proposal G−
+S ) identical to
+GS except that {i, j } /∈ E−
+S , the likelihood ratio is
+
+S = (VS , E−
+
+L(GT , w|G−
+S , d, λ)
+L(GT , w|GS , d, λ)
+
+= e−2λ(tn−tj ) .
+
+(8)
+
+182
+
+Fig. 3. Example Bayesian reconstruction of transmission-induced subgraph GS from simulated transmission process. The network data are from a study of
+social, sexual, and drug use links between individuals in Colorado Springs, CO, USA from 1988-1990. An information diffusion process is simulated through
+the network with |M | = 1 seed, n = 50 total observations, and transmission rate λ = 2. The prior parameters for λ are α = 1, β = 0.57, and the sparsity
+penalty is γ = 1.77. The top row shows the true transmission-induced subgraph GS , with transmission edges shown in black and unobserved edges in gray.
+The adjacency matrices of GT , GS , and a random draw bGS from the posterior distribution are also shown. The receiver-operating characteristic (ROC) curve
+is shown with the area under the curve (AUC) indicating good overall reconstruction accuracy. The posterior traces of the number of edges, λ, and susceptible
+edges are shown. True values are given in green.
+
+These expression are simple and do not require the any
+matrix computation implied by (2) and (3). Furthermore, the
+differences tn − tj can be computed in advance and stored for
+repeated use.
+
+D. Prior for GS
+
+While the likelihood (2) helps determine which edges be-
+long in GS , point estimates or Bayesian posterior estimates
+can contain more edges than the true GS . It is clear from (7)
+and (8) that addition of a new edge {i, j } in GS is favored
+over sending both pendant edges to unobserved vertices not
+in GS . A prior distribution for GS is therefore helpful to
+ensure the desired sparsity. A convenient class of priors is
+Pr(GS ) ∝ exp[−γ |ES |], where γ > 0 is chosen to penalize
+dense graphs. Given GT and d, we have the inequalities
+
+n − |M | ≤ |ES | ≤
+
+1
+2
+
+nX
+
+i=1
+
+di ,
+
+(9)
+
+and these bounds can be used to specify γ . The lower bound is
+sharp (it is the number of edges in the transmission subgraph
+GT ), while the upper bound could be tightened with speciﬁc
+knowledge of d. Let p = (cid:0)n − |M | + 1
+2 (cid:1) be
+a crude estimate of the density of GS . Then letting γ =
+− log[p/(1 − p)] gives a convenient sparsity penalty without
+imposing undue assumptions on the topology of GS .
+
+di (cid:1) /2(cid:0)n
+
+2 Pi
+
+E. Algorithm
+
+Using the results given above, it is possible to reconstruct
+the transmission-induced subgraph GS and observed vertices’
+
+connections to unobserved vertices in G with reasonable accu-
+racy. By alternately drawing from the conditional distributions
+of GS and λ, a Gibbs sampling algorithm is derived. First
+suppose λ is held ﬁxed, and GS is a compatible subgraph
+estimate. From this estimate, a new compatible subgraph G∗
+is formed using the procedure outlined in Section III-B. Then
+we compute the Metropolis-Hastings ratio
+
+S
+
+L(GT , w|G∗
+S , d, λ)
+L(GT , w|GS , d, λ)
+
+·
+
+Pr(G∗
+S )
+Pr(GS )
+
+·
+
+Pr(GS |G∗
+S )
+Pr(G∗
+S |GS )
+
+(10)
+
+and accept G∗
+S if this ratio is greater than 1. Otherwise, we
+accept G∗
+S with probability equal to this ratio.
+Next, suppose GS is ﬁxed and we wish to sample λ. We
+employ a Gamma prior for λ with π(λ) ∝ λα−1 e−βλ where
+α > 0 and β > 0. Then π(λ) is a conjugate prior for the
+likelihood (2), and the conditional posterior distribution of λ
+is Gamma(α + n − |M |, β + s′w). Therefore, we can sample
+λ directly from its conditional posterior distribution.
+
+IV. R E SU LT S
+
+Figure 3 shows an example of Bayesian reconstruction of
+GS . The network G = (V , E ) is derived from a network study
+of social, sexual, and drug use links between individuals in
+Colorado Springs, CO, USA from 1988-1990 [43]–[45] with
+|V | = 5492 and |E | = 43288. An information diffusion
+process is simulated on G with |M | = 1 seeds, n = 50
+observations, and λ = 2. The prior for λ is Gamma with
+α = 1, β = 0.57 (giving prior mean E[λ] = 2), and
+the sparsity penalty is γ = 1.77. The marginal edge-wise
+posterior distribution of GS is used to assess reconstruction
+
+183
+
+performance. The top row of Figure 3 shows the transmission-
+induced subgraph GS with transmission edges in black and
+unobserved edges in gray; GT , GS , and a random draw bGS
+from the posterior distribution are shown. The bottom row
+shows the receiver-operating characteristic (ROC) curve with
+area under the curve (AUC) 0.83, indicating good reconstruc-
+tion accuracy. Next, the number of edges in the reconstructed
+estimates bGS , estimates of λ, and the number of susceptible
+edges in bGS are shown, with true values given in green
+lines. Gray dashed lines in the trace of edge counts denote
+the minimum and maximum edge counts given GT and d
+described in (9). A modiﬁed application of this approach to
+drug user networks is given by [39].
+
+V. CONC LU S ION S
+
+Mapping of covert networks is an important task in intel-
+ligence analysis and threat detection [46], [47]. Discovery of
+nodes and links can be challenging, especially when analysts
+must rely on passive observation for insight. This paper has
+shown that observation of a diffusion process can reveal
+topological properties of a hidden network. Two features of
+the proposed method yield desirable inferential properties.
+First, compatibility (in the sense of Deﬁnition 5) induces
+strong topological constraints on estimated subgraphs, but
+without additional insight, all such compatible subgraphs have
+the same probability. Second, the likelihood of a stochastic
+diffusion process can used to distinguish between compatible
+topologies, providing more weight to those that occur with
+higher probability under the diffusion model. Furthermore, it
+may be possible to extend the proposed tools for estimating
+the transmission-induced subgraph to estimation of features of
+the unobserved parts of the super-population graph G. When a
+model is speciﬁed for the global network, the sampled portion
+of the graph can sometimes be used to probabilistically impute
+the remaining part [48].
+The stochastic model of information diffusion employed
+here is simple and parsimonious, and is based on widely used
+models of epidemic processes on graphs. More complicated
+models that
+incorporate loss of transmissibility (entailing
+changes to the structure of the transmissibility matrix T), or
+preferential transmission between certain types of vertices are
+possible with little additional computational burden. However,
+assumptions required by more complicated models may not be
+justiﬁable when aspects of the diffusion process are not known
+with certainty, and a balance is necessary between realism and
+parsimony.
+
+ACKNOW LEDGM ENT S
+
+I thank Robert Heimer, Edward M. Kaplan, Jiacheng Wu,
+and Li Zeng for valuable comments and criticism. This work is
+supported by NIH/NCATS grant KL2 TR000140, NIMH grant
+P30MH062294, and startup funds from the Yale School of
+Public Health. I acknowledge the Yale University Biomedical
+High Performance Computing Center for computing support,
+funded by NIH grants RR19895 and RR029676-01.
+
+R E F ER ENC E S
+
+[1] O. Frank, “Sampling and estimation in large social networks,” Social
+networks, vol. 1, no. 1, pp. 91–101, 1978.
+[2] ——, “Sampling and inference in a population graph,” International
+Statistical Review/Revue Internationale de Statistique, pp. 33–41, 1980.
+[3] J. Galaskiewicz, “Estimating point centrality using different network
+sampling techniques,” Social Networks, vol. 13, no. 4, pp. 347–386,
+1991.
+[4] E. Costenbader and T. W. Valente, “The stability of centrality measures
+when networks are sampled,” Social networks, vol. 25, no. 4, pp. 283–
+307, 2003.
+[5] S. P. Borgatti, K. M. Carley, and D. Krackhardt, “On the robustness of
+centrality measures under conditions of imperfect data,” Social networks,
+vol. 28, no. 2, pp. 124–136, 2006.
+[6] G. Kossinets, “Effects of missing data in social networks,” Social
+networks, vol. 28, no. 3, pp. 247–268, 2006.
+[7] S. Gonz ´alez-Bail ´on, N. Wang, A. Rivero, J. Borge-Holthoefer, and
+Y. Moreno, “Assessing the bias in samples of large online networks,”
+Social Networks, vol. 38, pp. 16–27, 2014.
+[8] R. Grannis, “Sampling effects in social network analysis,” in Encyclo-
+pedia of Social Network Analysis and Mining, R. Alhajj and J. Rokne,
+Eds. Springer, New York, 2014.
+[9] D. Liben-Nowell and J. Kleinberg, “The link-prediction problem for
+social networks,” Journal of
+the American society for information
+science and technology, vol. 58, no. 7, pp. 1019–1031, 2007.
+[10] J. Leskovec, D. Huttenlocher, and J. Kleinberg, “Predicting positive and
+negative links in online social networks,” in Proceedings of the 19th
+International Conference on World Wide Web. ACM, 2010, pp. 641–
+650.
+[11] L. L ¨u and T. Zhou, “Link prediction in complex networks: A survey,”
+Physica A: Statistical Mechanics and its Applications, vol. 390, no. 6,
+pp. 1150–1170, 2011.
+[12] Y. F. Atchade, “Estimation of network structures from partially observed
+markov random ﬁelds,” arXiv preprint arXiv:1108.2835, 2011.
+[13] J. H. Koskinen, G. L. Robins, P. Wang, and P. E. Pattison, “Bayesian
+analysis for partially observed network data, missing ties, attributes and
+actors,” Social Networks, vol. 35, no. 4, pp. 514–527, 2013.
+[14] C. A. Bliss, C. M. Danforth, and P. S. Dodds, “Estimation of global
+network statistics from incomplete data,” PloS One, vol. 9, no. 10, p.
+e108471, 2014.
+[15] Y. Maeno, “Node discovery in a networked organization,” in Systems,
+Man and Cybernetics, 2009. SMC 2009. IEEE International Conference
+on.
+IEEE, 2009, pp. 3522–3527.
+[16] O. Frank and T. Snijders, “Estimating the size of hidden populations
+using snowball sampling,” Journal of Ofﬁcial Statistics, vol. 10, pp. 53–
+53, 1994.
+[17] J. A. Smith, “Macrostructure from microstructure generating whole
+systems from ego networks,” Sociological Methodology, vol. 42, no. 1,
+pp. 155–205, 2012.
+[18] B. Yan and S. Gregory, “Identifying communities and key vertices by
+reconstructing networks from samples,” PloS one, vol. 8, no. 4, p.
+e61006, 2013.
+[19] P. Ebbes, Z. Huang, and A. Rangaswamy, “Subgraph sampling methods
+for social networks: The good, the bad, and the ugly,” HEC Paris
+Research Paper No. MKG-2014-1027, 2013.
+[20] M. P. Stumpf, C. Wiuf, and R. M. May, “Subnets of scale-free networks
+are not scale-free: sampling properties of networks,” Proceedings of the
+National Academy of Sciences of the United States of America, vol. 102,
+no. 12, pp. 4221–4224, 2005.
+[21] S. H. Lee, P.-J. Kim, and H. Jeong, “Statistical properties of sampled
+networks,” Physical Review E, vol. 73, no. 1, p. 016102, 2006.
+[22] L. A. Goodman, “Snowball sampling,” The Annals of Mathematical
+Statistics, vol. 32, no. 1, pp. 148–170, 1961.
+[23] D. D. Heckathorn, “Respondent-driven sampling: a new approach to
+the study of hidden populations,” Social Problems, vol. 44, no. 2, pp.
+174–199, 1997.
+[24] R. Silva, J. Klingner, and S. Weikart, “Measuring lethal counterin-
+surgency violence in Amritsar District, India using a referral-based
+sampling technique,” in Joint Statistical Meetings, 2010, pp. 552–580.
+[25] G. Davies and S. Dawson, “A framework for estimating the number of
+extremists in Canada,” 2014.
+
+184
+
+[26] P. Joosse, S. M. Bucerius, and S. K. Thompson, “Narratives and
+counternarratives: Somali-Canadians on recruitment as foreign ﬁghters
+to Al-Shabaab,” British Journal of Criminology, 2015.
+[27] S. K. Thompson and O. Frank, “Model-based estimation with link-
+tracing sampling designs,” Survey Methodology, vol. 26, no. 1, pp. 87–
+98, 2000.
+[28] B. H. Erickson, “Some problems of inference from chain data,” Socio-
+logical Methodology, vol. 10, no. 1, pp. 276–302, 1979.
+[29] P. Biernacki and D. Waldorf, “Snowball sampling: problems and tech-
+niques of chain referral sampling,” Sociological Methods & Research,
+vol. 10, no. 2, pp. 141–163, 1981.
+[30] M. De Choudhury, Y.-R. Lin, H. Sundaram, K. S. Candan, L. Xie, and
+A. Kelliher, “How does the data sampling strategy impact the discovery
+of information diffusion in social media?” ICWSM, vol. 10, pp. 34–41,
+2010.
+[31] M. A. Kramer, U. T. Eden, S. S. Cash, and E. D. Kolaczyk, “Network in-
+ference with conﬁdence from multivariate time series,” Physical Review
+E, vol. 79, no. 6, p. 061916, 2009.
+[32] S. G. Shandilya and M. Timme, “Inferring network topology from
+complex dynamics,” New Journal of Physics, vol. 13, no. 1, p. 013004,
+2011.
+[33] J. P. Bagrow, S. Desu, M. R. Frank, N. Manukyan, L. Mitchell,
+A. Reagan, E. E. Bloedorn, L. B. Booker, L. K. Branting, M. J. Smith
+et al., “Shadow networks: Discovering hidden nodes with models of
+information ﬂow,” arXiv preprint arXiv:1312.6122, 2013.
+[34] S. W. Linderman and R. P. Adams, “Discovering latent network structure
+in point process data,” arXiv preprint arXiv:1402.0914, 2014.
+[35] H. Andersson and T. Britton, Stochastic Epidemic Models and Their
+Statistical Analysis. Springer New York, 2000.
+[36] P. Braca, S. Marano, V. Matta, and A. H. Sayed, “Large deviations
+analysis of adaptive distributed detection,” in Acoustics, Speech and
+Signal Processing (ICASSP), 2014 IEEE International Conference on.
+IEEE, 2014, pp. 6112–6116.
+[37] A. H. Sayed, S.-Y. Tu, J. Chen, X. Zhao, and Z. J. Towﬁc, “Diffusion
+strategies for adaptation and learning over networks: an examination of
+distributed strategies and network behavior,” Signal Processing Maga-
+zine, IEEE, vol. 30, no. 3, pp. 155–171, 2013.
+
+[38] P. Braca, S. Marano, V. Matta, and A. H. Sayed, “Asymptotic perfor-
+mance of adaptive distributed detection over networks,” arXiv preprint
+arXiv:1401.5742, 2014.
+[39] F. W. Crawford, “The graphical structure of respondent-driven sam-
+pling,” ArXiv: 1406.0721, 2015.
+[40] O. Frank and D. Strauss, “Markov graphs,” Journal of the American
+Statistical Association, vol. 81, no. 395, pp. 832–842, 1986.
+[41] S. Wasserman and P. Pattison, “Logit models and logistic regressions
+for social networks: I. An introduction to Markov graphs and p∗ ,”
+Psychometrika, vol. 61, no. 3, pp. 401–425, 1996.
+[42] T. A. Snijders and M. A. Van Duijn, “Conditional maximum likelihood
+estimation under various speciﬁcations of exponential random graph
+models,” in Contributions to social network analysis, information theory,
+and other topics in statistics: A Festschrift in honour of Ove Frank,
+J. Hagberg, Ed. Stockholm, Sweden: University of Stockholm, Depart-
+ment of Statistics, 2002, pp. 117–134.
+[43] A. S. Klovdahl, J. J. Potterat, D. E. Woodhouse, J. B. Muth, S. Q.
+Muth, and W. W. Darrow, “Social networks and infectious disease: The
+Colorado Springs study,” Social Science & Medicine, vol. 38, no. 1, pp.
+79–88, 1994.
+[44] D. E. Woodhouse, R. B. Rothenberg, J. J. Potterat, W. W. Darrow, S. Q.
+Muth, A. S. Klovdahl, H. P. Zimmerman, H. L. Rogers, T. S. Maldonado,
+J. B. Muth et al., “Mapping a social network of heterosexuals at high
+risk for HIV infection,” Aids, vol. 8, no. 9, pp. 1331–1336, 1994.
+[45] R. B. Rothenberg, D. E. Woodhouse, J. J. Potterat, S. Q. Muth, W. W.
+Darrow, and A. S. Klovdahl, “Social networks in disease transmission:
+the Colorado Springs study,” in Social Networks, Drug Abuse, and
+HIV Transmission, R. Needle, S. G. Genser, and R. T. Trotter, Eds.
+US Department of Health and Human Services, Public Health Service,
+National Institutes of Health, National Institute on Drug Abuse, 1995.
+[46] V. E. Krebs, “Mapping networks of terrorist cells,” Connections, vol. 24,
+no. 3, pp. 43–52, 2002.
+[47] R. Lindelauf, P. Borm, and H. Hamers, “The inﬂuence of secrecy on the
+communication structure of covert networks,” Social Networks, vol. 31,
+no. 2, pp. 126–137, 2009.
+[48] R. Goyal, J. Blitzstein, and V. de Gruttola, “Sampling networks from
+their posterior predictive distribution,” Network Science, vol. 2, no. 01,
+pp. 107–131, 2014.
+
+185
+
+

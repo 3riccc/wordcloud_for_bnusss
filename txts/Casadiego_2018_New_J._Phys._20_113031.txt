@@ -1,0 +1,2354 @@
+(cid:160)(cid:160)(cid:160)(cid:160)(cid:160) (cid:160)(cid:160)(cid:160)(cid:160)(cid:160)PAPER • OPEN ACCESSAccelerated reference frames (ARFs) reveal networks from time seriesdataTo cite this article: Jose Casadiego and Marc Timme 2018 New J. Phys. 20 113031(cid:160)View the article online for updates and enhancements.This content was downloaded from IP address 221.218.77.118 on 13/12/2018 at 08:40OPEN ACCESS
+
+R E C E I V E D
+
+25 July 2018
+
+R E V I S E D
+
+7 October 2018
+
+A C C E P T E D F O R P U B L I C A T I O N
+
+26 October 2018
+
+P U B L I S H E D
+
+21 November 2018
+
+Original content from this
+work may be used under
+the terms of the Creative
+Commons Attribution 3.0
+licence.
+
+Any further distribution of
+this work must maintain
+attribution to the
+author(s) and the title of
+the work, journal citation
+and DOI.
+
+New J. Phys. 20 (2018) 113031
+
+https://doi.org/10.1088/1367-2630/aaebb8
+
+PAPER
+
+Accelerated reference frames (ARFs) reveal networks from time
+series data
+
+Jose Casadiego
+
+and Marc Timme
+
+Chair for Network Dynamics, Institute for Theoretical Physics and Center for Advancing Electronics Dresden (cfaed), Technical University
+of Dresden, D-01062 Dresden, Germany
+
+E-mail: jose.casadiego@tu-dresden.de and marc.timme@tu-dresden.de
+
+Keywords: network reconstruction, inverse problem, synchronization, phase-locking, topology, dynamical systems
+
+Abstract
+Inferring direct interactions in complex networked systems from time series data constitutes a
+challenging open problem of current research. Major obstacles include the often limited number of
+time points accessible, unknown or inaccurate dynamical systems models in many practical
+applications, the impossibility to infer topological information from invariant collective dynamics
+such as synchronized states, and the required computational effort. Here, we propose and analyze a
+mathematical scheme that transforms observed transient dynamics towards invariant states in to
+accelerated reference frames to reveal network interactions. The transformation yields simple linear
+constraints relating a number of short observed time series (of only a few data points) of the dynamics
+to estimates the absence, presence and strength of direct physical interactions in a computationally
+efﬁcient way. As we illustrate numerically, the scheme applies across transient dynamics towards
+periodic and chaotic, phase-locked and other synchronized states. Reconstruction robustly reveals the
+entire connectivity of network dynamical systems with increased reconstruction quality for large and
+for sparse networks.
+
+The collective dynamics of a networked system is shaped by its underlying interaction topology [1–8]. Yet,
+whereas recording the dynamics of individual units of networks is becoming more accessible in experimental
+settings, directly measuring the physical interaction topology of networks is often infeasible. Researchers
+routinely resort to indirect methods to infer the physical interactions from the networks’ collective dynamics [9].
+State-of-the-art approaches infer physical interactions via ODE modeling using large repertoire of functions
+[10–14]. Such approaches require the entire dynamics to admit a sparse representation in the chosen repertoire,
+which is difﬁcult to satisfy if no prior information is provided. More recent approaches bypass the need for
+sparsity and reconstruct the full interaction topology by either imposing functional decompositions in grouped
+variables [15], or by driving the network dynamics with known constant signals [16]. While the former strategy
+carries along a high computational complexity that may become intractable in large networks, the latter
+demands an accurate (and often infeasible) control of network dynamics.
+Moreover, the dynamics of systems in invariant sets (such as synchronized states), for mathematical reasons,
+is generically not capable of revealing complete topological interaction patterns [17–19]. This constraint comes
+about because in invariant states, the dynamics of each unit exhibits a strict functional dependence on the
+dynamics of the other units in the system such that the information contained in observed time series is
+insufﬁcient for inferring interactions, no matter how many time series and how many data points per series are
+observed. As a consequence, practical approaches [14, 20–24] exploit transient dynamics towards synchronized
+or locked states such that the dynamics are not exactly invariant and do contain sufﬁcient information for
+inferring network interactions, at least in principle. For simple classes of phase oscillators with constant, state-
+independent frequencies exhibiting exactly phase-locked or fully synchronous dynamics, transforming time
+series to a frame of reference that is co-moving with the dynamics is often possible by subtracting a term
+−Ωt, containing the collective frequency Ω of the phase dynamics of each oscillator. However, such simple
+transformations are useless if intrinsic oscillator frequencies and collective frequencies are state-dependent, if
+
+© 2018 The Author(s). Published by IOP Publishing Ltd on behalf of Deutsche Physikalische Gesellschaft
+
+individual oscillators have more than one variable and in particular if collective dynamics is non-periodic and
+for instance chaotic.
+In this article, we propose a tractable and model-free approach for inferring the interaction topology of
+networks relying only on transient dynamics towards stable attractors such as synchronized or phase-locked
+states. Speciﬁcally, we introduce the concept of accelerated reference frames (ARFs) in network dynamical
+systems and show how a nonlinear transformation of time series by subtracting reference variables that are
+accelerated and state-dependent themselves can reveal direct physical (as opposed to correlative statistical)
+interactions. Reconstruction is feasible for dynamics towards phase-locked or otherwise synchronized states
+with periodic or aperiodic and chaotic collective dynamics. Transformations in to co-moving ARFs enables
+linearizations about ﬁxed points in the transformed dynamics, and thus mapping of the original inference
+problem to one for transient relaxations towards linearly stable ﬁxed points. The ARF transformation thereby
+opens up solving a previously hardly accessible range of inference problems in a computationally effective,
+model-independent way.
+
+1. Network inference on accelerated reference frames
+
+To understand how ARFs aid in revealing the connectivity of networked systems, consider N coupled dynamical
+units of the form
+
+x
+
+f
+
+x ,
+} at time t, x
+where x ti
+represents the state of unit i
+1 , 2,
+,
+N
+d
+x
+d
+t
+denotes time derivative,
+ is an unknown continuously differentiable function determining the dynamics of i and
+f :i
+x
+x x
+,
+,
+, N
+x
+is a vector containing the state of all units in the network. The explicit dependency
+}, introduced in [15], are diagonal and their entries indicate which
+matrices
+0 , 1
+for i
+1,
+,
+N
+other units in the network directly affect the dynamics of unit i [15]. Speciﬁcally, if a unit j does not directly affect
+the dynamics of i, we have f
+¶ ¶ º for all times t, and deﬁne
+x
+0
+iL = and if it does, we have f
+0
+x
+0
+deﬁne
+iL = . Thus the diagonal entries
+1
+iL are non-zero if and only if the element Aij of an adjacency matrix A,
+deﬁning the dependency structure in a graph-theoretic setting, is non-zero.
+Our aim is to transform the dynamics (1) to new variables
+ty ( ) such that these exhibit convergence to a ﬁxed
+tx ( ) exhibit convergence to some form of synchronized state (see below for details).
+point if the original variables
+We propose to represent the dynamical units in (1) by subtracting an ARF as
+y
+x
+g x ,
+ indicates the location of ith component of the reference frame. Especially, the function
+where g :i
+g x
+g
+x
+,
+g
+x
+,
+, N
+g
+x
+represents an accelerated frame because it moves in dependence with the
+network state x. We note that the reference frame is ‘accelerated’ with acceleration identically zero if
+d
+g
+di
+t x
+0
+for all times t.
+The time evolution of units in the accelerated frame is then given by
+
+1
+
+i
+
+i
+
+i
+
+= L
+
+˙
+{
+
+(
+
+)
+
+( )
+
+Î( )
+
+Î
+
+¼
+
+i
+
+i=˙
+
+N
+
+N
+
+1
+
+2
+i
+
+T 
+
+¼
+L Î
+
+Î
+
+≔ [
+
+]
+}
+
+N N
+
+´
+
+{
+
+Î ¼{
+
+i
+
+j
+
+j
+
+i
+
+j
+
+¶ ¶ ≢ and
+
+j
+
+j
+
+2
+
+i
+
+i
+
+i
+
+= - ( )
+
+( )
+
+N
+
+N
+
+1
+
+2
+
+T 
+
+¼
+
+Î
+
+( ) ≔ [
+
+( )
+
+( )
+
+( )]
+
+2
+
+2
+
+º( )
+
+y
+
+x
+
+g x x ,
+
+3
+
+i
+
+i
+
+i
+
+= -
+
+˙
+
+˙
+
+( ) ˙
+
+( )
+
+where  is the gradient operator, and it follows that
+
+y
+
+f
+
+h
+
+x
+
+x ,
+
+4
+
+i
+
+i
+
+i
+
+i
+
+= L -
+
+˙
+
+(
+
+)
+
+( )
+
+( )
+
+with
+
+h
+
+g
+
+x
+Assuming that y is sufﬁciently small, we may approximate (4) around g x( ) to ﬁrst order in the yi as
+
+f
+
+x
+
+x
+
+x .
+
+5
+
+i
+
+k
+
+N
+
+i
+
+k
+
+k
+
+k
+
+1
+
+å ¶
+
+¶
+
+L
+
+=
+
+( ) ≔
+
+( )
+
+(
+
+)
+
+( )
+
+y
+
+f
+
+h
+
+C
+
+y
+
+g x
+
+g x
+
+g x
+
+,
+
+6
+
+i
+
+i
+
+i
+
+i
+
+j
+
+N
+
+ij
+
+j
+
+1
+
+å
+
+L
+
+-
+
++
+
+=
+
+˙
+
+(
+
+( ))
+
+( ( ))
+
+( ( ))
+
+( )
+
+where
+
+C
+
+f
+
+g x
+x
+
+h
+
+g x
+x
+
+g x
+
+.
+
+7
+
+ij
+
+i
+
+j
+
+i
+j
+
+i
+
+j
+
+¶
+
+¶
+
+L -
+
+¶
+
+¶
+
+( ( )) ≔
+
+( ( ))
+
+( ( ))
+
+( )
+
+The ﬁrst two terms on the right hand side of (6) deﬁne the intrinsic local dynamics of the transformed
+variables yi, whereas Cij, appearing in the third term and deﬁned via (7), quantiﬁes the effective coupling strength
+from unit j to i in the accelerated frame.
+
+2
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+Our goal is to identify which of the
+iL are zero and thus where there is no direct physical interaction from j
+onto i and which j
+iL are one, indicating a direct interaction. We remark that the quality of the inference options
+discussed below depend on the resulting transformation of interactions (7), as it depends on the degree the
+relative inﬂuence of the ﬁrst term versus that of the second term in (7). This quality thus depends on the
+dynamics of the accelerated frame also set by properties of the system dynamics fi, the ARF transformation
+functions gi and on the actual size and sparsity of the network, as we will discuss shortly. Independent of those
+details, the connectivity properties of the original system (1) should be identiﬁable if the second term in (7) is
+sufﬁciently small. We need to carefully choose a reference frame to enforce a (ideally very strong) correlation
+between C ij (·) and j
+iL , reﬂecting the coupling between the accelerated and original dynamical variables.
+The long term behavior of a range of systems exhibiting attractors with oscillatory, periodic or chaotic
+dynamics, may be transformed to relaxations towards ﬁxed points if appropriate reference frames are chosen.
+For instance, phase oscillators evolving towards phase-locked states (x t
+) or identically
+x t
+synchronizing oscillators (x t
+) may be considered as relaxing towards a ﬁxed point if we subtract
+x t
+0
+the average state variable across all oscillators from each individual oscillator’s state, see ﬁgure 1 below. In such
+ARFs, differences with respect to the average phase change as the system evolves towards the phase-locked state
+and remain constant once the system reaches such ﬁnal state, see ﬁgure 1 for illustration.
+In mathematical terms these properties mean that for such attractors there are functions g
+:
+for all i as t  ¥. Thus, we propose that an analogous system
+that satisfy x t
+g
+x
+t
+y
+˜ ( ( )) evolving towards a ﬁxed point in the accelerated frame may be approximated around that point
+y t
+f
+ty
+y
+y y
+,
+,
+, N
+y
+as
+
+j
+
+i
+
+j
+
+ij
+
+-
+
+= D
+
+( )
+
+( )
+
+i
+
+j-
+
+=
+
+( )
+
+( )
+
+N
+
+N
+
+
+
+
+
+(·)
+
+i
+
+i
+
+i
+
+*
+
+-
+
+
+
+( )
+
+( ( ))
+
+i
+
+i=
+
+˙ ( )
+≔ [
+
+N
+
+1
+
+2
+
+T
+
+*
+
+* *
+
+*
+
+
+
+¼
+
+Î
+
+]
+
+y t
+
+A y t
+
+y ,
+
+8
+
+i
+
+j
+
+N
+
+ij
+
+j
+
+j
+
+1
+
+*
+
+å
+
+-
+
+=
+
+
+
+˙ ( )
+
+[
+
+( )
+
+]
+
+( )
+
+where f :i
+is an unknown function determining the evolution of yi and A
+as a proxy for a interaction strength from unit j to i.
+y
+y,m
+So, given a collection of M transient states
+t
+the error minimization
+
+N
+
+
+
+˜
+
+f
+
+y
+
+y
+
+ij
+
+i
+
+j
+
+*
+
+¶
+
+¶
+
+≔ ˜ (
+
+)
+
+may be used
+
+t
+
+m
+
+{ (
+
+)
+
+˙ (
+
+)} towards y*, we pose the reconstruction problem as
+
+y t
+
+A y t
+
+y
+
+J
+
+arg min
+{ }
+
+,
+
+9
+
+i
+
+J
+
+m
+
+M
+
+i m
+
+j
+
+N
+
+ij
+
+j m
+
+j
+
+1
+
+1
+
+2
+
+2
+
+ij
+
+*
+
+å
+
+å
+
+=
+
+-
+
+-
+
+=
+
+=
+
+⎛
+⎜⎜
+⎝
+
+⎞
+⎟⎟
+⎠
+
+ˆ
+
+˙ (
+
+)
+
+[
+
+(
+
+)
+
+]
+
+( )
+
+represent the inferred incoming links to unit i. In particular, minimization (9)
+where
+J
+J
+,
+J
+,
+,
+J
+may be efﬁciently solved using the Moore–Penrose pseudoinverse [25] if M>N, and it can be solved for
+different units in parallel [9].
+
+i
+
+i
+1
+
+i
+
+iN
+
+N
+
+2
+
+
+
+¼
+
+Î
+
+ˆ ≔ [ ˆ
+
+ˆ
+
+ˆ ]
+
+Figure 1. Variable transformation through accelerated reference frames (ARFs). ARFs may map (a), transient dynamics towards a
+chaotic synchronized state to (b), transient dynamics towards a (co-moving) ﬁxed point. The original unit variables xi (t) are
+( ( )) with the ARF deﬁned via the functions g. For setting (b), the deviation yi of
+transformed to new variables y t
+x t
+g
+tx
+every unit’s state with respect to the ensemble average (here by example deﬁning the ARF, via (10) below) becomes a zero constant,
+y t
+0
+as t  ¥.
+
+i
+
+i
+
+i
+
+=
+
+-
+
+( )
+
+( )
+
+i ( )
+
+3
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+2. Average network states as examples of Accelerated Reference Frames (ARFs)
+
+As an illustrative example, consider the average over the units’ states to deﬁne an appropriate ARF for a class of
+systems exhibiting transient dynamics towards phase-locked or otherwise synchronous dynamics. We start
+focusing on phase-locking where x t
+x t
+for all i
+j, as t  ¥ and illustrate more complex
+collective dynamics below. Examples of phase-locking systems are networks of phase oscillators and other
+network dynamical systems exhibiting collective synchronization (where Δij=0 for all i, j in case of identical
+synchronization).
+We compute the average network state as
+
+j
+
+i
+
+ij
+
+-
+
+ D
+
+( )
+
+( )
+
+t
+
+1
+N
+Î { } is a vector full of ones, and T denotes transpose. This deﬁnition with components
+1 N
+1
+N
+
+t
+
+g x
+
+11 x
+
+,
+
+10
+
+T
+
+=
+
+( ( ))
+
+( )
+
+(
+
+)
+
+where 1
+
+g
+
+x
+
+x
+
+11
+
+i
+
+j
+
+N
+
+j
+
+1
+
+å=
+
+=
+
+( )
+
+(
+
+)
+
+provides a reference frame that is accelerated, because
+
+d
+g
+d
+t
+
+g
+x
+
+x
+
+1
+N
+
+f x
+
+12
+
+i
+
+j
+
+N
+
+i
+
+j
+
+j
+
+j
+
+N
+
+j
+
+1
+
+1
+
+å
+
+å
+
+=
+
+¶
+¶
+
+=
+
+=
+
+=
+
+˙
+
+( )
+
+(
+
+)
+
+which in general is non-constant in time. The units’ state and rate of change deﬁned through (2) and (3) yield
+
+y t
+
+x t
+
+1
+N
+
+x t
+
+,
+
+13
+
+i
+
+i
+
+j
+
+N
+
+j
+
+1
+
+å
+
+=
+
+-
+
+=
+
+( )
+
+( )
+
+( )
+
+(
+
+)
+
+y t
+
+x t
+
+1
+N
+
+x t
+
+.
+
+14
+
+i
+
+i
+
+j
+
+N
+
+j
+
+1
+
+å
+
+=
+
+-
+
+=
+
+˙ ( )
+
+˙ ( )
+
+˙ ( )
+
+(
+
+)
+
+In particular, in locked-like states, all units move together with the same collective velocity, thereby y t
+y
+for all t (see ﬁgure 1(b)). So, any perturbation that evolves towards such state may be seen as a relaxation towards
+a ﬁxed point in the yi variables, where
+lim
+y t
+y
+0
+for all i.
+How can the optimization (9) reveal network links considering transformed variables in this ARF? We gain
+insights about the effects of the frame on the proxies Jiˆ of (9) by evaluating (7) on (10) to result in
+f
+g x
+t
+f
+g x
+t
+1
+x
+N
+x
+
+i
+
+i
+
+*º( )
+
+t
+
+i
+
+i
+
+*-
+
+=
+
+¥(
+
+( )
+
+)
+
+C
+
+t
+
+g x
+
+.
+
+15
+
+ij
+
+i
+
+j
+
+i
+j
+
+k
+
+N
+
+k
+
+j
+
+k
+j
+
+1
+
+å
+
+¶
+
+¶
+
+L -
+
+¶
+
+¶
+
+L
+
+=
+
+( ( ( ))) ≔
+
+( ( ( )))
+
+( ( ( )))
+
+(
+
+)
+
+To obtain an intuition about the conditions when inference of a present versus absent original connection
+iL ) may be feasible, assume for the sake of argument that the derivatives are of the same order of magnitude a,
+( ( ( )))
+ℓ ℓ , if they are non-zero. Then for a given link (i, j) we have
+a
+for all
+,
+n
+
+(
+
+j
+
+f
+ℓ
+
+t
+
+g x
+x
+ℓ
+
+»
+
+¶
+
+¶ ¢
+
+¢
+
+C
+
+a
+
+N
+where nj
+is the number of outgoing connections from unit j, i.e. its node degree in a graph-theoretic
+perspective. Now the task is to distinguish the case where the link is actually present in the network,
+iL = and
+1
+
+a
+
+16
+
+ij
+
+i
+j
+
+j
+
+» L -
+
++
+
+(
+
+)
+
+N
+k
+
+k
+j
+
+1
+
+= å L
+
++
+
+=
+
+j
+
+thus C
+a
+a
+, from the case where it is absent,
+iL = and thus C
+0
+a
+. Thus, the form of
+(15) intuitively suggests that the distinction between present and absent links is simpler if the network is sparser
+(and thus the nj are smaller) and, intriguingly, if the network is larger. The above analysis together with the
+intuitive arguments suggest that the average network state indeed is an appropriate ARF, at least for systems
+exhibiting synchronizing and locked-like dynamics. The numerical analyses presented below conﬁrm this
+picture.
+
+ij
+
+n
+
+N
+
+j
+
+»
+
+-
+
++
+
+∣
+
+∣
+
+j
+
+ij
+
+n
+
+N
+
+j»
+
++
+
+∣
+
+∣
+
+3. Reconstructing networks of phase-locking and synchronizing oscillators
+
+To test our theory practically, we reconstructed the connectivity of coupled oscillators from their transient time
+evolution towards some locked or synchronizing states. to start simple, we ﬁrst reconstructed directed networks
+of Kuramoto oscillators, ﬁgure 3, [26, 27] with dynamics
+
+4
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+x
+
+1
+n
+where J
+´ is given by J=LeA, the operator e stands for entry-wise-matrix product, A is the adjacency
+matrix, and both the ωi and Lij are randomly drawn from uniform distributions on the intervals
+0 , 1
+] and
+L
+0.5 , 1
+], and the initial conditions xi (0) of the system are taken from the uniform distribution
+]. Moreover, ni
+x 0
+0.5 , 0.5
+- as above indicates the number of incoming connections to unit i, ﬁgure 3.
+To also assess the generality of our theory beyond phase-locking dynamics of one-dimensional (phase)
+oscillators, we inferred the connectivity of networks of synchronizing Roessler oscillators [28] in periodic and
+chaotic regimes, of synchronizing chaotic Lorenz oscillators [29] and of periodic Goodwin oscillators [30]
+serving as simple paradigmatic models of gene regulatory circuits. Each Roessler oscillatory unit evolves
+according to a network of three-dimensional dynamical units deﬁned as
+
+J
+
+x
+
+x
+
+sin
+
+,
+
+17
+
+i
+
+i
+
+i
+
+j
+
+N
+
+ij
+
+j
+
+i
+
+1
+
+å
+
+w= +
+
+-
+
+-
+
+=
+
+˙
+
+(
+
+)
+
+(
+
+)
+
+N NÎ
+
+iw Î (
+
+ij Î [
+Î -
+
+i
+
+( )
+
+[
+
+x
+
+x
+
+x
+
+1
+n
+
+J x
+
+x
+
+18
+a
+
+,
+
+i
+
+i
+
+i
+
+i
+
+j
+
+N
+
+ij
+
+j
+
+i
+
+1
+
+2
+
+3
+
+1
+
+1
+
+1
+
+å
+
+= -
+
+-
+
++
+
+-
+
+-
+
+=
+
+˙
+
+(
+
+)
+
+(
+
+)
+
+( )
+
+( )
+
+( )
+
+( )
+
+( )
+
+x
+
+x
+
+ax
+( )
+
+18
+b
+
+( )
+,
+( )
+
+i
+
+i
+
+i
+
+2
+
+1
+
+2
+
+=
+
++
+
+˙
+˙
+
+(
+(
+
+)
+)
+
+( )
+
+( )
+
+x
+
+b
+
+x
+
+x
+
+c
+
+18
+c
+
+,
+
+i
+
+i
+
+i
+
+3
+
+3
+
+1
+
+= +
+
+-
+
+(
+
+)
+
+( )
+
+where the entries of J are set as before. The periodic and chaotic dynamics were generated with parameters
+(a, b, c)=(0.2, 1.7, 4.0) and (0.1, 0.1, 18.0), respectively, and the initial conditions were drawn from the uniform
+( )
+( )
+( )
+distribution x
+0 ,
+x
+0 ,
+x
+0
+5 , 5
+.
+The dynamics of each Lorenz oscillator is determined by
+
+i
+
+i
+
+i
+
+1
+
+2
+
+3
+
+Î -
+
+( )
+
+( )
+
+( )
+
+[
+
+]
+
+x
+
+x
+
+x
+
+1
+n
+
+J x
+
+x
+
+19
+a
+
+,
+
+i
+
+i
+
+i
+
+i
+
+j
+
+N
+
+ij
+
+j
+
+i
+
+1
+
+2
+
+1
+
+1
+
+1
+
+1
+
+å
+
+s=
+
+-
+
++
+
+-
+
+-
+
+=
+
+˙
+
+(
+
+)
+
+(
+
+)
+
+(
+
+)
+
+( )
+
+( )
+
+( )
+
+( )
+
+( )
+
+x
+
+x
+
+x
+
+x
+
+19
+b
+
+( )
+,
+
+i
+
+i
+
+i
+
+i
+
+2
+
+1
+
+3
+
+2
+
+r
+
+=
+
+-
+
+-
+3b
+
+˙
+˙
+
+(
+
+)
+
+(
+(
+
+)
+)
+
+( )
+
+( )
+
+( )
+
+( )
+x
+x
+x
+x
+,
+with (σ, ρ, β)=(10.0, 28.0, 2.5) and initial conditions selected from the uniform distribution x
+x
+( )
+0
+5 , 0
+.
+The dynamics of each Goodwin oscillator is given by
+( )
+
+19
+c
+
+i
+
+i
+
+i
+
+i
+
+3
+
+1
+
+2
+
+=
+
+-
+
+( )
+
+( )
+
+( )
+
+x0 ,
+
+0 ,
+
+i
+
+i
+
+1
+
+2
+
+( )
+
+( )
+
+( )
+
+( )
+
+i
+
+3
+
+Î -
+
+( )
+
+[
+
+]
+
+x
+
+x
+
+ax
+
+20
+a
+
+1
+
+( )
+,
+
+i
+
+i
+
+p
+
+i
+
+1
+
+3
+
+1
+
+1
+
+= +
+
+--
+
+˙
+
+[
+
+(
+
+) ]
+
+(
+
+)
+
+( )
+
+x
+
+x
+
+bx
+
+1
+n
+
+J x
+
+x
+
+20
+b
+
+,
+
+i
+
+i
+
+i
+
+i
+
+j
+
+N
+
+ij
+
+j
+
+i
+
+2
+
+1
+
+2
+
+1
+
+2
+
+2
+
+å
+
+=
+
+-
+
++
+
+-
+
+-
+
+=
+
+˙
+
+(
+
+)
+
+(
+
+)
+
+( )
+
+( )
+
+( )
+
+( )
+
+( )
+
+( )
+x
+x
+cx
+,
+where p=17 and (a, b, c)=(0.4, 0.4, 0.4) with initial conditions drawn from the uniform distribution x
+( )
+( )
+x
+x0 ,
+0
+0 , 3
+.
+To emulate perturbations away from the locked-like state, we started the systems from random initial
+conditions and recorded R different transient trajectories towards synchrony. All simulations were performed in
+] with Δt=0.1. Only the ﬁrst M=5 time points per relaxation were used for
+a time interval t
+0 , 10
+reconstruction. Thus, the total number of time points used for reconstruction is
+
+20
+c
+
+i
+
+i
+
+i
+
+3
+
+2
+
+3
+
+=
+
+-
+
+˙
+
+(
+1 ( )
+
+)
+
+( )
+
+( )
+
+0 ,
+
+i
+
+( )
+
+i
+
+i
+
+2
+
+3
+
+Î
+
+( )
+
+( )
+
+(
+
+]
+
+Î [
+
+T MR.
+21
+Simulations of phase-locking oscillators (17) conﬁrm that (10) transforms their dynamics in to relaxations
+towards ﬁxed points, ﬁgure 2. Inferring links from such relaxations via (9) demonstrates that our theory fully
+distinguishes between existing and absent interactions, ﬁgure 3(a). Moreover, our results indicate that the
+proxies obtained for the coupling strengths are strongly correlated with the actual coupling strengths employed
+in simulations, ﬁgure 3(b).
+To study the effects of network sparsity on our framework, we systematically reconstructed networks of
+solving (9) via the Moore–Penrose pseudoinverse [25] and LASSO
+different levels of sparsity s
+1
+n N
+[31]. The latter is a standard regularization technique for ﬁtting sparse models to data. In our context, the
+network connectivity represents the sparse model to ﬁt. Furthermore, to compare both methods, we evaluated
+the quality of reconstructions in terms of the Area Under the Reciver-Operating Curve (AUC score) which is
+equal to 1 for perfect reconstruction and equal to 1/2 for reconstructions equivalent to random guessing [32].
+Our numerics show that the quality of reconstruction increases with networks of greater sparsity for both
+Moore–Penrose pseudoinverse and LASSO, ﬁgures 4(a)–(b). However, the former shows best performance
+for increasing number of trajectories (especially for dense networks), ﬁgures 4(a)–(c). Moreover, the
+
+=
+
+(
+
+)
+
+i- -
+
+≔
+
+5
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+Figure 2. Average state transforms transient dynamics towards phase-locked state in to transient dynamics towards ﬁxed point. Phase
+(blue) and frequency (red) of a single oscillator (17) (a) in x x,i
+˙ ) , and (b) in y y,i
+˙ ). Whereas the phase monotonically increases and
+the frequency saturates, i.e. x ti ( ) stays time dependent, the transformation effectively maps such dynamics as a relaxation towards a
+ﬁxed point where y y
+,
+y
+, 0
+) as t  ¥ for all i.
+
+*=
+
+(
+
+(
+
+(
+
+i
+
+i
+
+(
+
+i
+
+˙ )
+
+i
+
+i
+
+Figure 3. Proxies Jijˆ accurately map network connectivity. Reconstruction of a network of N=50 phase-locking oscillators (17) with
+ni=10 and R=70. (a) Reconstructed proxies Jijˆ versus j for a single oscillator show that our theory distinguishes existing (green)
+from absent (orange) interactions. The dashed lines illustrate threshold to distinguish both groups. (b) Reconstructed Jijˆ versus
+original Jij show that the proxies are strongly correlated with original values.
+
+Moore–Penrose pseudoinverse shows superior performance at separating existing from absent connections,
+despite not being an approach speciﬁcally designed for variable selection as LASSO [31].
+Can our theory reveal the connectivity of networks showing more complicated dynamics? Networks of
+synchronizing dynamical systems may evolve in time with a common yet variable rate of change once the
+network has relaxed back to the synchronized (locked-like) state.
+Simulations of networks of synchronizing Rössler oscillators (18a) whose rate of change on the synchronized
+state changes in time show again that (9) and (10) are effective at mapping the network evolution as ﬁxed point
+dynamics and reveal the full network topology regardless of whether the oscillators operate in periodic or chaotic
+regimes1, ﬁgure 5. These results are further supported by simulations of networks of Lorenz (19a) and Goodwin
+(20a) oscillators. Speciﬁcally, we compared the reconstruction quality on such systems using ARF and using the
+model-free algorithm for Inferring Network Interactions (ARNI) [15], ﬁgure 6. The results show that the ARF-
+based theory proposed here requires smaller data sets than ARNI to reveal the full topology of both systems.
+These results highlight the advantage of ARFs for inferring the structural connectivity of synchronizing network
+dynamical systems.
+
+1
+
+To transform the synchronizing dynamics in to ﬁxed point dynamics, we computed averages for x
+, x
+and x
+separately. In general, the
+reconstruction process may be performed in all components. We here selected the component showing a clear distinction between groups of
+existing and absent connections.
+
+(1)
+
+(2)
+
+(3)
+
+6
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+Figure 4. Increasing number of trajectories R reveal network topology regardless of sparsity level. Quality of reconstruction of
+networks of N=50 phase-locking oscillators (17) versus sparsity level for different R via (a) Moore–Penrose pseudoinverse, and
+(b) LASSO. (c) Quality of reconstruction versus R for networks of N=50 and ni=10. (d) Reconstructed Jˆ with R=60 for both
+approaches, colors stand for Jij=0 (orange) and J
+ij ¹ (green).
+0
+
+Summary and Conclusions. We presented a model-independent theory for inferring the interaction topology
+of synchronizing networks from solely recording their transient collective dynamics. Speciﬁcally, we introduced
+and exploited the concept of ARFs in the general context of network dynamical systems to reveal their full
+interaction topology under sufﬁciently weak, otherwise uncontrolled external perturbations. In particular, we
+demonstrated that accelerated frames may transform the dynamics of networked systems in to transient
+relaxation dynamics towards ﬁxed points, which can readily be used for network inference. We illustrated this
+idea on networks exhibiting phase-locking and synchronization and showed that our theory is robust to non-
+trivial dynamical features such as periodic orbits with position-dependent velocities and collective chaos. For the
+speciﬁc ARF deﬁned through network-wide state averages, the scheme exhibits optimal performance in the limit
+of large sparse networks, i.e. n N
+0
+.
+Whereas exactly synchronous or phase-locked dynamics in principle can generally not reveal the complete
+network topology, inferring from transient dynamics towards synchrony or locking was so far restricted to
+driving-response settings with known signals [16] or to general model-free approaches using a large repertoire of
+functions [11, 12, 14, 15]. While the former strategy allows to create linear mappings from recorded dynamics to
+network topology, the latter allows to infer links from transient dynamics following an unknown driving or
+perturbation.
+
+-
+
+i
+
+7
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+Figure 5. Revealing the full connectivity of synchronizing oscillators in periodic and chaotic regimes. Reconstruction of networks
+Roessler oscillators (18a) of N=50 with ni=10. y t
+1 ( ) (blue) and y t
+1˙ ( ) (red) represent the dynamics of a single oscillator (a) in
+periodic, and (c) in chaotic regimes. The evolution towards the synchronized state is effectively mapped as ﬁxed point dynamics.
+Reconstructed Jijˆ versus original Jij for oscillators (b) in periodic, and (d) chaotic regimes.
+
+i
+
+i
+
+Figure 6. ARF-based scheme requires smaller data sets than alternative model-free ARNI-based approach. Reconstruction of
+networks synchronizing (a) Lorenz (19a) and (b) Goodwin oscillators (20a) of N=50 with ni=10 by our approach (ARF) and the
+model-free algorithm for Inferring Network Interactions (ARNI) [15].
+
+8
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+The theory presented in this article combines the advantages of both strategies simultaneously (i) allowing to
+create linear mappings from dynamics to topology, and (ii) allowing to work with transients generated by
+unknown drivings. It also reﬁnes the settings (ii) in the sense that fewer data points on trajectories are needed and
+simultaneously less computational efforts. These advantages may make the ARF scheme a promising concept for
+network inference in its own right.
+Given that the theory only requires networks to operate around a steady state in some appropriate reference
+frame, this technique may well be transferable to other systems if functions g(·) are appropriately designed. For
+generalized settings such as delayed of generalized synchronization as well as other forms of spatio-temporally
+ordered dynamics, such transformation functions need to be identiﬁed in the future and perhaps be constructed
+on demand depending on the type of attractor the networked system describes, for instance by means of
+expansions in basis functions or other techniques of model selection. The proposed theory may thus pave a novel
+way for network inference applicable to a range of time series data obtained in systems where controlled driving
+is infeasible, only short transients are available, or individual measurements are costly.
+
+Acknowledgments
+
+We gratefully acknowledge support from the German Federal Ministry of Education and Research (BMBF grant
+no. 03SF0472F to MT), and the German Science Foundation (DFG) by a grant toward the Cluster of Excellence
+‘Center for Advancing Electronics Dresden’ (cfaed).
+
+ORCID iDs
+
+Jose Casadiego
+Marc Timme
+
+https://orcid.org/0000-0001-8038-1568
+https://orcid.org/0000-0002-5956-3137
+
+References
+
+[1] Strogatz S 2001 Exploring complex networks Nature 410 268–76
+[2] Sporns O, Tononi G and Kötter R 2005 The human connectome: a structural description of the human brain PLoS Comput. Biol.
+1 0245–51
+[3] Meloni S, Perra N, Arenas A, Gómez S, Moreno Y and Vespignani A 2011 Modeling human mobility responses to the large-scale
+spreading of infectious diseases Sci. Rep. 1 1–7
+[4] Jahnke S, Timme M and Memmesheimer R M 2012 Guiding synchrony through random networks Phys. Rev. X 2 41016
+[5] D X Horváth and J Kertész 2014 Spreading dynamics on networks: the role of burstiness, topology and non-stationarity New J. Phys.
+16 073037
+[6] Chen D B, Xiao R and Zeng A 2014 Predicting the evolution of spreading on complex networks Sci. Rep. 4 6108
+[7] Ronellenﬁtsch H, Lasser J, Daly D C and Katifori E 2015 Topological phenotypes constitute a new dimension in the phenotypic space of
+leaf venation networks PLoS Comput. Biol. 11 e1004680
+[8] Kirst C, Timme M and Battaglia D 2016 Dynamic information routing in complex networks Nat. Commun. 7 11061
+[9] Timme M and Casadiego J 2014 Revealing networks from dynamics: an introduction J. Phys. A 47 343001–1–36
+[10] Han X, Shen Z, Wang W-X and Di Z 2015 Robust reconstruction of complex networks from sparse data Phys. Rev. Lett. 114 028701
+[11] Brunton S L, Proctor J L and Kutz J N 2016 Discovering governing equations from data by sparse identiﬁcation of nonlinear dynamical
+systems Proc. Natl Acad. Sci. USA 113 3932–7
+[12] Mangan N M, Brunton S L, Proctor J L and Kutz J N 2016 Inferring biological networks by sparse identiﬁcation of nonlinear dynamics
+IEEE Trans. Mol. Biol. Multi-Scale Commun. 2 52–63
+[13] Wang W-X, Lai Y-C and Grebogi C 2016 Data based identiﬁcation and prediction of nonlinear and complex dynamical systems Phys.
+Rep. 644 1–76
+[14] Pikovsky A 2018 Reconstruction of a random phase dynamics network from observations Phys. Lett. A 382 152
+[15] Casadiego J, Nitzan M, Hallerberg S and Timme M 2017 Model-free inference of direct network interactions from nonlinear collective
+dynamics Nat. Commun. 8 2192
+[16] Nitzan M, Casadiego J and Timme M 2017 Revealing physical network interactions from statistics of collective dynamics Sci. Adv. 3
+e1600396
+[17] Pikovsky A, Rosenblum M, Kurths J and Kurths J 2003 Synchronization: A Universal Concept in Nonlinear Sciences vol 12 (Cambridge:
+Cambridge University Press)
+[18] Casadiego J and Timme M 2015 Network dynamics as an inverse problem In Mathematical Technology of Networks (Berlin: Springer)
+pp 39–48
+[19] Angulo M T, Moreno J A, Lippner G, Barabási A-L and Liu Y-Y 2017 Fundamental limitations of network reconstruction from
+temporal data J. R. Soc. Interface 14 20160966
+[20] Yu D, Righero M and Kocarev L 2006 Estimating topology of networks Phys. Rev. Lett. 97 188701
+[21] Timme M 2007 Revealing network connectivity from response dynamics Phys. Rev. Lett. 98 224101
+[22] Shandilya S G and Timme M 2011 Inferring network topology from complex dynamics New J. Phys. 13 013004
+[23] Levnajić Z and Pikovsky A 2011 Network reconstruction from random phase resetting Phys. Rev. Lett. 107 034101
+[24] Sun F, Peng H, Xiao J and Yang Y 2012 Identifying topology of synchronous networks by analyzing their transient processes Nonlinear.
+Dyn. 67 1457–66
+[25] Rohatgi V K, Ben-Israel A and Greville T N E 2003 Generalized Inverses: Theory and Applications vol 44 (Berlin: Springer)
+
+9
+
+New J. Phys. 20 (2018) 113031
+
+J Casadiego and M Timme
+
+[26] Strogatz S H 2000 From Kuramoto to Crawford: exploring the onset of synchronization in populations of coupled oscillators Physica D
+143 1–20
+[27] Acebrón J A, Bonilla L L, Vicente C J P, Ritort F and Spigler R 2005 The Kuramoto model: a simple paradigm for synchronization
+phenomena Rev. Mod. Phys. 77 137–85
+[28] Rössler O E 1976 An equation for continuous chaos Phys. Lett. A 57 397–8
+[29] Lorenz Edward N 1963 Deterministic nonperiodic ﬂow J. Atmos. Sci. 20 130–41
+[30] Goodwin B C 1965 Oscillatory behavior in enzymatic control processes Adv. Enzyme Regul. 3 425–38
+[31] Tibshirani R 1996 Regression selection and shrinkage via the lasso J. R. Stat. Soc. B 58 267–88
+[32] Fawcett T 2006 An introduction to ROC analysis Pattern Recognit. Lett. 27 861–74
+
+10
+
+

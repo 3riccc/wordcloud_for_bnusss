@@ -1,0 +1,2012 @@
+Neural Relational Inference for Interacting Systems
+
+Thomas Kipf * 1 Ethan Fetaya * 2 3 Kuan-Chieh Wang 2 3 Max Welling 1 4 Richard Zemel 2 3 4
+
+8
+1
+0
+2
+
+n
+u
+
+J
+
+6
+
+]
+
+L
+
+M
+
+.
+
+t
+
+a
+
+t
+
+s
+
+[
+
+2
+v
+7
+8
+6
+4
+0
+
+.
+
+2
+0
+8
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+Abstract
+
+Interacting systems are prevalent in nature, from
+dynamical systems in physics to complex societal
+dynamics. The interplay of components can give
+rise to complex behavior, which can often be ex-
+plained using a simple model of the system’s con-
+stituent parts. In this work, we introduce the neu-
+ral relational inference (NRI) model: an unsuper-
+vised model that learns to infer interactions while
+simultaneously learning the dynamics purely from
+observational data. Our model takes the form of
+a variational auto-encoder, in which the latent
+code represents the underlying interaction graph
+and the reconstruction is based on graph neural
+networks. In experiments on simulated physical
+systems, we show that our NRI model can ac-
+curately recover ground-truth interactions in an
+unsupervised manner. We further demonstrate
+that we can ﬁnd an interpretable structure and pre-
+dict complex dynamics in real motion capture and
+sports tracking data.
+
+1. Introduction
+
+A wide range of dynamical systems in physics, biology,
+sports, and other areas can be seen as groups of interacting
+components, giving rise to complex dynamics at the level of
+individual constituents and in the system as a whole. Mod-
+eling these type of dynamics is challenging: often, we only
+have access to individual trajectories, without knowledge of
+the underlying interactions or dynamical model.
+As a motivating example, let us take the movement of bas-
+ketball players on the court. It is clear that the dynamics
+of a single basketball player are inﬂuenced by the other
+players, and observing these dynamics as a human, we are
+
+*Equal contribution 1University of Amsterdam, Amsterdam,
+The Netherlands 2University of Toronto, Toronto, Canada 3Vector
+Institute, Toronto, Canada 4Canadian Institute for Advanced Re-
+search, Toronto, Canada. Correspondence to: Thomas Kipf
+<t.n.kipf@uva.nl>.
+
+Proceedings of the 35 th International Conference on Machine
+Learning, Stockholm, Sweden, PMLR 80, 2018. Copyright 2018
+by the author(s).
+
+Figure 1. Physical simulation of 2D particles coupled by invisible
+springs (left) according to a latent interaction graph (right). In this
+example, solid lines between two particle nodes denote connections
+via springs whereas dashed lines denote the absence of a coupling.
+In general, multiple, directed edge types – each with a different
+associated relation – are possible.
+
+able to reason about the different types of interactions that
+might arise, e.g. defending a player or setting a screen for a
+teammate. It might be feasible, though tedious, to manually
+annotate certain interactions given a task of interest. It is
+more promising to learn the underlying interactions, perhaps
+shared across many tasks, in an unsupervised fashion.
+Recently there has been a considerable amount of work
+on learning the dynamical model of interacting systems
+using implicit interaction models (Sukhbaatar et al., 2016;
+Guttenberg et al., 2016; Santoro et al., 2017; Watters et al.,
+2017; Hoshen, 2017; van Steenkiste et al., 2018). These
+models can be seen as graph neural networks (GNNs) that
+send messages over the fully-connected graph, where the
+interactions are modeled implicitly by the message passing
+function (Sukhbaatar et al., 2016; Guttenberg et al., 2016;
+Santoro et al., 2017; Watters et al., 2017) or with the help
+of an attention mechanism (Hoshen, 2017; van Steenkiste
+et al., 2018).
+In this work, we address the problem of inferring an explicit
+interaction structure while simultaneously learning the dy-
+namical model of the interacting system in an unsupervised
+way. Our neural relational inference (NRI) model learns the
+dynamics with a GNN over a discrete latent graph, and we
+perform inference over these latent variables. The inferred
+edge types correspond to a clustering of the interactions.
+Using a probabilistic model allows us to incorporate prior
+beliefs about the graph structure, such as sparsity, in a prin-
+cipled manner.
+
+Observed dynamicsInteraction graph 
+ 
+ 
+ 
+ 
+ 
+Neural Relational Inference for Interacting Systems
+
+In a range of experiments on physical simulations, we show
+that our NRI model possesses a favorable inductive bias that
+allows it to discover ground-truth physical interactions with
+high accuracy in a completely unsupervised way. We further
+show on real motion capture and NBA basketball data that
+our model can learn a very small number of edge types that
+enable it to accurately predict the dynamics many time steps
+into the future.
+
+2. Background: Graph Neural Networks
+
+We start by giving a brief introduction to a recent class of
+neural networks that operate directly on graph-structured
+data by passing local messages (Scarselli et al., 2009; Li
+et al., 2016; Gilmer et al., 2017). We refer to these models as
+graph neural networks (GNN). Variants of GNNs have been
+shown to be highly effective at relational reasoning tasks
+(Santoro et al., 2017), modeling interacting or multi-agent
+systems (Sukhbaatar et al., 2016; Battaglia et al., 2016),
+classiﬁcation of graphs (Bruna et al., 2014; Duvenaud et al.,
+2015; Dai et al., 2016; Niepert et al., 2016; Defferrard et al.,
+2016; Kearnes et al., 2016) and classiﬁcation of nodes in
+large graphs (Kipf & Welling, 2017; Hamilton et al., 2017).
+The expressive power of GNNs has also been studied theo-
+retically in (Zaheer et al., 2017; Herzig et al., 2018).
+Given a graph G = (V , E ) with vertices v ∈ V and edges
+e = (v , v (cid:48) ) ∈ E 1 , we deﬁne a single node-to-node message
+passing operation in a GNN as follows, similar to Gilmer
+et al. (2017):
+
+v ([(cid:80)
+v→e : hl
+e ([hl
+i , hl
+e→v : hl+1
+j = f l
+
+(i,j ) = f l
+
+(i,j ) is an
+
+i∈Nj
+where hl
+i is the embedding of node vi in layer l, hl
+embedding of the edge e(i,j ) , and xi and x(i,j ) summarize
+initial (or auxiliary) node and edge features, respectively
+(e.g. node input and edge type). Nj denotes the set of indices
+of neighbor nodes connected by an incoming edge and [·, ·]
+denotes concatenation of vectors. The functions fv and
+fe are node- and edge-speciﬁc neural networks (e.g. small
+MLPs) respectively (see Figure 2). Eqs. (1)–(2) allow for
+the composition of models that map from edge to node
+representations or vice-versa via multiple rounds of message
+passing.
+In the original GNN formulation from Scarselli et al. (2009)
+the node embedding hl
+(i,j ) depends only on hl
+i , the embed-
+ding of the sending node, and the edge type, but not on hl
+j ,
+the embedding of the receiving node. This is of course a spe-
+cial case of this formulation, and more recent works such as
+interaction networks (Battaglia et al., 2016) or message pass-
+ing neural networks (Gilmer et al., 2017) are in line with our
+
+j , x(i,j ) ])
+(i,j ) , xj ])
+
+hl
+
+(1)
+(2)
+
+Figure 2. Node-to-edge (v→e) and edge-to-node (e→v ) opera-
+tions for moving between node and edge representations in a GNN.
+v→e represents concatenation of node embeddings connected by
+an edge, whereas e→v denotes the aggregation of edge embed-
+dings from all incoming edges. In our notation in Eqs. (1)–(2),
+every such operation is followed by a small neural network (e.g. a
+2-layer MLP), here denoted by a black arrow. For clarity, we high-
+light which node embeddings are combined to form a speciﬁc edge
+embedding (v→e) and which edge embeddings are aggregated to
+a speciﬁc node embedding (e→v ).
+
+more general formulation. We further note that some recent
+e (·) into a product of two separate functions,
+works factor f l
+one of which acts as a gating or attention mechanism (Monti
+et al., 2017; Duan et al., 2017; Hoshen, 2017; Veli ˇckovi ´c
+et al., 2018; Garcia & Bruna, 2018; van Steenkiste et al.,
+2018) which in some cases can have computational beneﬁts
+or introduce favorable inductive biases.
+
+3. Neural Relational Inference Model
+
+xt = {xt
+1 , ..., xt
+
+Our NRI model consists of two parts trained jointly: An
+encoder that predicts the interactions given the trajectories,
+and a decoder that learns the dynamical model given the
+interaction graph.
+More formally, our input consists of trajectories of N
+objects. We denote by xt
+i the feature vector of object
+vi at time t, e.g. location and velocity. We denote by
+N } the set of features of all N objects at
+time t, and we denote by xi = (x1
+i ) the trajectory of
+object i, where T is the total number of time steps. Lastly,
+we mark the whole trajectories by x = (x1 , ..., xT ). We
+assume that the dynamics can be modeled by a GNN given
+an unknown graph z where zij represents the discrete edge
+type between objects vi and vj . The task is to simultane-
+ously learn to predict the edge types and learn the dynamical
+model in an unsupervised way.
+We formalize our model as a variational autoencoder (VAE)
+(Kingma & Welling, 2014; Rezende et al., 2014) that maxi-
+mizes the ELBO:
+
+i , ..., xT
+
+1Undirected graphs can be modeled by explicitly assigning two
+directed edges in opposite direction for each undirected edge.
+
+L = Eqφ (z|x) [log pθ (x|z)] − KL[qφ (z|x)||pθ (z)]
+
+(3)
+
+……Σ: Node embedding: Edge embedding: MLPLegend:Node-to-edge (v →e )Edge-to-node (e →v )h3lh4lh(4,3)lfefvllNeural Relational Inference for Interacting Systems
+
+Figure 3. The NRI model consists of two jointly trained parts: An encoder that predicts a probability distribution qφ (z|x) over the latent
+interactions given input trajectories; and a decoder that generates trajectory predictions conditioned on both the latent code of the encoder
+and the previous time step of the trajectory. The encoder takes the form of a GNN with multiple rounds of node-to-edge (v→e) and
+edge-to-node (e→v ) message passing, whereas the decoder runs multiple GNNs in parallel, one for each edge type supplied by the latent
+code of the encoder qφ (z|x).
+
+The encoder qφ (z|x) returns a factorized distribution of
+zij , where zij is a discrete categorical variable representing
+the edge type between object vi and vj . We use a one-hot
+representation of the K interaction types for zij .
+The decoder
+
+pθ (x|z) = (cid:81)T
+t=1 pθ (xt+1 |xt , ..., x1 , z)
+
+(4)
+
+models pθ (xt+1 |xt , ..., x1 , z) with a GNN given the latent
+The prior pθ (z) = (cid:81)
+graph structure z.
+i (cid:54)=j pθ (zij ) is a factorized uniform dis-
+tribution over edges types. If one edge type is “hard coded”
+to represent “non-edge” (no messages being passed along
+this edge type), we can use an alternative prior with higher
+probability on the “non-edge” label. This will encourage
+sparser graphs.
+There are some notable differences between our model and
+the original formulation of the VAE (Kingma & Welling,
+2014). First, in order to avoid the common issue in VAEs of
+the decoder ignoring the latent code z (Chen et al., 2017),
+we train the decoder to predict multiple time steps and not a
+single step as the VAE formulation requires. This is neces-
+sary since interactions often only have a small effect in the
+time scale of a single time step. Second, the latent distribu-
+tion is discrete, so we use a continuous relaxation in order
+to use the reparameterization trick. Lastly, we note that we
+do not learn the probability p(x1 ) (i.e. for t = 1) as we are
+interested in the dynamics and interactions, and this does
+not have any effect on either (but would be easy to include
+if there was a need).
+The overall model is schematically depicted in Figure 3. In
+the following, we describe the encoder and decoder compo-
+nents of the model in detail.
+
+3.1. Encoder
+
+At a high level, the goal of the encoder is to infer pair-
+wise interaction types zij given observed trajectories x =
+(x1 , ..., xT ). Since we do not know the underlying graph,
+we can use a GNN on the fully-connected graph to predict
+the latent graph structure.
+More formally, we model the encoder as qφ (zij |x) =
+
+softmax(fenc,φ (x)ij,1:K ), where fenc,φ (x) is a GNN act-
+
+ing on the fully-connected graph (without self-loops). Given
+input trajectories x1 , ..., xK our encoder computes the fol-
+lowing message passing operations:
+
+softmax(h2
+
+h2
+
+(i,j ) = f 2
+
+h1
+
+(i,j ) = f 1
+
+i (cid:54)=j h1
+(i,j ) )
+
+v→e :
+e→v :
+v→e :
+
+h1
+j = femb (xj )
+v ((cid:80)
+e ([h1
+i , h1
+j ])
+h2
+j = f 1
+e ([h2
+i , h2
+j ])
+
+(5)
+(6)
+(7)
+(8)
+Finally, we model the edge type posterior as qφ (zij |x) =
+(i,j ) ) where φ summarizes the parameters of the
+neural networks in Eqs. (5)–(8). The use of multiple passes,
+two in the model presented here, allows the model to “dis-
+entangle” multiple interactions while still using only binary
+terms. In a single pass, Eqs. (5)–(6), the embedding h1
+only depends on xi and xj ignoring interactions with other
+nodes, while h2
+j uses information from the whole graph.
+The functions f(...) are neural networks that map between
+the respective representations. In our experiments we used
+either fully-connected networks (MLPs) or 1D convolu-
+tional networks (CNNs) with attentive pooling similar to
+(Lin et al., 2017) for the f(...) functions. See supplementary
+material for further details.
+While this model falls into the general framework presented
+in Sec. 3, there is a conceptual difference in how hl
+
+(i,j )
+
+(i,j )
+
+xxtΔxt…Σ…EncoderΣDecoder…q φ(z|x)…v →eLegend:: Node emb.: Edge emb.: Concrete distribution: MLP: Samplinge →vv →ev →ee →vNeural Relational Inference for Interacting Systems
+
+hl
+
+are interpreted. Unlike in a typical GNN, the messages
+(i,j ) are no longer considered just a transient part of the
+computation, but an integral part of the model that represents
+the edge embedding used to perform edge classiﬁcation.
+
+3.2. Sampling
+
+It is straightforward to sample from qφ (zij |x), however
+we cannot use the reparametrization trick to backpropagate
+though the sampling as our latent variables are discrete.
+A recently popular approach to handle this difﬁculty is to
+sample from a continuous approximation of the discrete
+distribution (Maddison et al., 2017; Jang et al., 2017) and
+use the repramatrization trick to get (biased) gradients from
+this approximation. We used the concrete distribution (Mad-
+dison et al., 2017) where samples are drawn as:
+
+zij = softmax((h2
+(i,j ) + g)/τ )
+
+(9)
+where g ∈ RK is a vector of i.i.d. samples drawn from a
+Gumbel(0, 1) distribution and τ (softmax temperature) is
+a parameter that controls the “smoothness” of the samples.
+This distribution converges to one-hot samples from our
+categorical distribution when τ → 0.
+
+3.3. Decoder
+
+The task of the decoder is to predict the future continuation
+of the interacting system’s dynamics pθ (xt+1 |xt , ..., x1 , z).
+Since the decoder is conditioned on the graph z we can in
+general use any GNN algorithm as our decoder.
+For physics simulations the dynamics is Markovian
+
+pθ (xt+1 |xt , ..., x1 , z) = pθ (xt+1 |xt , z), if the state is lo-
+
+cation and velocity and z is the ground-truth graph. For this
+reason we use a GNN similar to interaction networks; unlike
+interaction networks we have a separate neural network for
+each edge type. More formally:
+
+(cid:88)
+
+v→e : ˜ht
+
+e→v :
+p(xt+1
+
+j
+
+zij,k
+
+(i,j ) =
+
+j + ˜fv ((cid:80)
+˜f k
+e ([xt
+i , xt
+j ])
+j = xt
+|xt , z) = N (µt+1
+, σ2 I)
+
+µt+1
+
+i (cid:54)=j
+
+˜ht
+
+k
+
+(i,j ) )
+
+j
+
+(10)
+
+(11)
+(12)
+
+e ([xt
+i , xt
+
+(i,j ) are ˜f k
+
+Note that zij,k denotes the k-th element of the vector zij
+and σ2 is a ﬁxed variance. When zij,k is a discrete one-hot
+sample the messages ˜ht
+j ]) for the selected
+edge type k , and for the continuous relaxation we get a
+weighted sum. Also note that since in Eq. 11 we add the
+present state xt
+j our model only learns the change in state
+j .
+has the form (cid:80)T
+If we look at the ELBO, Eq. 3, the reconstruction loss term
+t=1 log[p(xt |xt−1 , z)] which involves only
+
+3.4. Avoiding degenerate decoders
+
+∆xt
+
+single step predictions. One issue with optimizing this ob-
+jective is that the interactions can have a small effect on
+short-term dynamics. For example, in physics simulations
+a ﬁxed velocity assumption can be a good approximation
+for a short time period. This leads to a sub-optimal decoder
+that ignores the latent edges completely and achieves only a
+marginally worse reconstruction loss.
+We address this issue in two ways: First, we predict multiple
+steps into the future, where a “degenerate” decoder (which
+ignores the latent edges) would perform much worse. Sec-
+ond, instead of having one neural network that computes
+the messages given [xt
+j , zij ], as was done in (Battaglia
+et al., 2016), we have a separate MLP for each edge type.
+This makes the dependence on the edge type more explicit
+and harder to be ignored by the model.
+Predicting multiple steps is implemented by replacing the
+correct input xt , with the predicted mean µt for M steps
+(we used M = 10 in our experiments), then feed in the
+correct previous step and reiterate. More formally, if we
+denote our decoder as µt+1
+j ) then we have:
+
+j = fdec (xt
+
+i , xt
+
+µ2
+
+j )
+j )
+
+j = fdec (x1
+µt+1
+j = fdec (µt
+µM +2
+= fdec (xM +1
+j
+j
+µt+1
+j = fdec (µt
+
+j )
+
+· · ·
+
+t = 2, . . . , M
+
+)
+
+t = M + 2, . . . , 2M
+
+We are backpropagating through this whole process, and
+since the errors accumulate for M steps the degenerate
+decoder is now highly suboptimal.
+
+3.5. Recurrent decoder
+
+In many applications the Markovian assumption used in
+Sec. 3.3 does not hold. To handle such applications we use
+a recurrent decoder that can model pθ (xt+1 |xt , ..., x1 , z).
+Our recurrent decoder adds a GRU (Cho et al., 2014) unit
+to the GNN message passing operation. More formally:
+
+(cid:88)
+
+k
+
+zij,k
+
+v→e : ˜ht
+
+(i,j ) =
+
+˜f k
+e ([ ˜ht
+i , ˜ht
+j ])
+
+j = (cid:80)
+e→v : MSGt
+˜ht
+j = GRU([MSGt
+j , xt
+j ], ˜ht
+j )
+j = xt
+)
+p(xt+1 |xt , z) = N (µt+1 , σ2 I)
+
+j + fout ( ˜ht+1
+j
+
+˜ht+1
+µt+1
+
+i (cid:54)=j
+
+(i,j )
+
+(13)
+
+(14)
+
+(15)
+(16)
+(17)
+
+The input to the message passing operation is the recurrent
+hidden state at the previous time step. fout denotes an output
+transformation, modeled by a small MLP. For each node
+vj the input to the GRU update is the concatenation of the
+aggregated messages MSGt+1
+, the current input xt+1
+, and
+the previous hidden state ˜ht
+j .
+
+j
+
+j
+
+Neural Relational Inference for Interacting Systems
+
+If we wish to predict multiple time steps in the recurrent
+setting, the method suggested in Sec. 3.4 will be problematic.
+Feeding in the predicted (potentially incorrect) path and
+then periodically jumping back to the true path will generate
+artifacts in the learned trajectories. In order to avoid this
+j in the ﬁrst (T − M )
+issue we provide the correct input xt
+steps, and only utilize our predicted mean µt
+j as input at the
+last M time steps.
+
+3.6. Training
+
+Now that we have described all the elements, the train-
+ing goes as follows: Given training example x we ﬁrst
+run the encoder and compute qφ (zij |x), then we sample
+zij from the concrete reparameterizable approximation of
+qφ (zij |x). We then run the decoder to compute µ2 , ..., µT .
+The ELBO objective, Eq. 3, has two terms:
+the recon-
+struction error Eqφ (z|x) [log pθ (x|z)] and KL divergence
+KL[qφ (z|x)||pθ (z)]. The reconstruction error is estimated
+by:
+
++ const
+
+(18)
+
+− (cid:88)
+
+T(cid:88)
+
+||xt
+
+j ||2
+
+j − µt
+2σ2
+
+j
+
+t=2
+
+while the KL term for a uniform prior is just the sum of
+entropies (plus a constant):(cid:88)
+
+H (qφ (zij |x)) + const.
+
+(19)
+
+i (cid:54)=j
+
+As we use a reparameterizable approximation, we can com-
+pute gradients by backpropagation and optimize.
+
+4. Related Work
+
+Several recent works have studied the problem of learning
+the dynamics of a physical system from simulated trajecto-
+ries (Battaglia et al., 2016; Guttenberg et al., 2016; Chang
+et al., 2017) and from generated video data (Watters et al.,
+2017; van Steenkiste et al., 2018) with a graph neural net-
+work. Unlike our work they either assume a known graph
+structure or infer interactions implicitly.
+Recent related works on graph-based methods for human
+motion prediction include (Alahi et al., 2016) where the
+graph is not learned but is based on proximity and (Le et al.,
+2017) tries to cluster agents into roles.
+A number of recent works (Monti et al., 2017; Duan et al.,
+2017; Hoshen, 2017; Veli ˇckovi ´c et al., 2018; Garcia &
+Bruna, 2018; van Steenkiste et al., 2018) parameterize mes-
+sages in GNNs with a soft attention mechanism (Luong
+et al., 2015; Bahdanau et al., 2015). This equips these mod-
+els with the ability to focus on speciﬁc interactions with
+neighbors when aggregating messages. Our work is dif-
+ferent from this line of research, as we explicitly perform
+inference over the latent graph structure. This allows for the
+
+Figure 4. Examples of trajectories used in our experiments from
+simulations of particles connected by springs (left), charged parti-
+cles (middle), and phase-coupled oscillators (right).
+
+incorporation of prior beliefs (such as sparsity) and for an
+interpretable discrete structure with multiple relation types.
+The problem of inferring interactions or latent graph struc-
+ture has been investigated in other settings in different
+ﬁelds. For example, in causal reasoning Granger causality
+(Granger, 1969) infers causal relations. Another example
+from computational neuroscience is (Linderman et al., 2016;
+Linderman & Adams, 2014) where they infer interactions
+between neural spike trains.
+
+5. Experiments
+
+Our encoder implementation uses fully-connected networks
+(MLPs) or 1D CNNs with attentive pooling as our message
+passing function. For our decoder we used fully-connected
+networks or alternatively a recurrent decoder. Optimiza-
+tion was performed using the Adam algorithm (Kingma &
+Ba, 2015). We provide full implementation details in the
+supplementary material. Our implementation uses PyTorch
+(Paszke et al., 2017) and is available online2 .
+
+5.1. Physics simulations
+
+We experimented with three simulated systems: particles
+connected by springs, charged particles and phase-coupled
+oscillators (Kuramoto model) (Kuramoto, 1975). These
+settings allow us to attempt to learn the dynamics and in-
+teractions when the interactions are known. These systems,
+controlled by simple rules, can exhibit complex dynamics.
+For the springs and Kuramoto experiments the objects do
+or do not interact with equal probability. For the charged
+particles experiment they attract or repel with equal prob-
+ability. Example trajectories can be seen in Fig. 4. We
+generate 50k training examples, and 10k validation and test
+examples for all tasks. Further details on the data generation
+and implementation are in the supplementary material.
+We note that the simulations are differentiable and so we can
+use it as a ground-truth decoder to train the encoder. The
+charged particles simulation, however, suffers from instabil-
+
+2https://github.com/ethanfetaya/nri
+
+Springs (2D)Kuramoto (1D)Charged (2D)Neural Relational Inference for Interacting Systems
+
+Figure 5. Trajectory predictions from a trained NRI model (unsupervised). Semi-transparent paths denote the ﬁrst 49 time steps of
+ground-truth input to the model, from which the interaction graph is estimated. Solid paths denote self-conditioned model predictions.
+
+Table 1. Accuracy (in %) of unsupervised interaction recovery.
+
+Model
+
+Springs Charged Kuramoto
+
+5 objects
+
+Corr. (path)
+Corr. (LSTM)
+NRI (sim.)
+NRI (learned)
+
+52.4±0.0
+52.7±0.9
+99.8±0.0
+99.9±0.0
+
+55.8±0.0
+54.2±2.0
+59.6±0.8
+82.1±0.6
+
+62.8±0.0
+54.4±0.5
+
+–
+
+96.0±0.1
+
+Supervised
+
+99.9±0.0
+
+95.0±0.3
+
+99.7±0.0
+
+10 objects
+
+Corr. (path)
+Corr. (LSTM)
+NRI (sim.)
+NRI (learned)
+
+50.4±0.0
+54.9±1.0
+98.2±0.0
+98.4±0.0
+
+51.4±0.0
+52.7±0.2
+53.7±0.8
+70.8±0.4
+
+59.3±0.0
+56.2±0.7
+
+–
+
+75.7±0.3
+
+Supervised
+
+98.8±0.0
+
+94.6±0.2
+
+97.1±0.1
+
+ity which led to some performance issues when calculating
+gradients; see supplementary material for further details.
+We used an external code base (Laszuk, 2017) for stable
+integration of the Kuramoto ODE and therefore do not have
+access to gradient information in this particular simulation.
+
+Results We ran our NRI model on all three simulated
+physical systems and compared our performance, both in
+future state prediction and in accuracy of estimating the
+edge type in an unsupervised manner.
+For edge prediction, we compare to the “gold standard”
+i.e. training our encoder in a supervised way given the
+ground-truth labels. We also compare to the following base-
+lines: Our NRI model with the ground-truth simulation
+decoder, NRI (sim.), and two correlation based baselines,
+
+Corr. (path) and Corr. (LSTM). Corr. (path) estimates the
+interaction graph by thresholding the matrix of correlations
+between trajectory feature vectors. Corr. (LSTM) trains
+an LSTM (Hochreiter & Schmidhuber, 1997) with shared
+parameters to model each trajectory individually and calcu-
+lates correlations between the ﬁnal hidden states to arrive at
+an interaction matrix after thresholding. We provide further
+details on these baselines in the supplementary material.
+Results for the unsupervised interaction recovery task are
+summarized in Table 1 (average over 5 runs and standard
+error). As can be seen, the unsupervised NRI model, NRI
+(learned), greatly surpasses the baselines and recovers the
+ground-truth interaction graph with high accuracy on most
+tasks. For the springs model our unsupervised method is
+comparable to the supervised “gold standard” benchmark.
+We note that our supervised baseline is similar to the work
+by (Santoro et al., 2017), with the difference that we perform
+multiple rounds of message passing in the graph. Additional
+results on experiments with more than two edge types and
+non-interacting particles are described in the supplementary
+material.
+For future state prediction we compare to the static baseline,
+i.e. xt+1 = xt , two LSTM baselines, and a full graph
+baseline. One LSTM baseline, marked as “single”, runs a
+separate LSTM (with shared weights) for each object. The
+second, marked as “joint” concatenates all state vectors and
+feeds it into one LSTM that is trained to predict all future
+states simultaneously. Note that the latter will only be able
+to operate on a ﬁxed number of objects (in contrast to the
+other models).
+In the full graph baseline, we use our message passing
+decoder on the fully-connected graph without edge types,
+i.e. without inferring edges. This is similar to the model
+
+Charged (2D)Springs (2D)Kuramoto (1D)PredictionTruthPredictionTruthPredictionTruthNeural Relational Inference for Interacting Systems
+
+Table 2. Mean squared error (MSE) in predicting future states for simulations with 5 interacting objects.
+
+Prediction steps
+Static
+LSTM (single)
+LSTM (joint)
+NRI (full graph)
+NRI (learned)
+NRI (true graph)
+
+Springs
+
+10
+7.59e-3
+4.69e-4
+2.19e-5
+1.64e-3
+
+3.29e-6
+
+1
+7.93e-5
+2.27e-6
+4.13e-8
+1.66e-5
+
+3.12e-8
+
+20
+2.82e-2
+4.90e-3
+7.02e-4
+6.31e-3
+
+2.13e-5
+
+1
+5.09e-3
+2.71e-3
+1.68e-3
+
+1.09e-3
+1.05e-3
+
+Charged
+
+10
+2.26e-2
+7.05e-3
+6.45e-3
+3.78e-3
+
+3.21e-3
+
+20
+5.42e-2
+1.65e-2
+1.49e-2
+9.24e-3
+
+7.06e-3
+
+1.69e-11
+
+1.32e-9
+
+7.06e-6
+
+1.04e-3
+
+3.03e-3
+
+5.71e-3
+
+Kuramoto
+
+1
+5.75e-2
+7.81e-4
+
+3.44e-4
+
+2.15e-2
+1.40e-2
+1.35e-2
+
+10
+3.79e-1
+3.80e-2
+
+1.29e-2
+
+5.19e-2
+2.01e-2
+1.54e-2
+
+20
+3.39e-1
+8.08e-2
+4.74e-2
+8.96e-2
+
+3.26e-2
+
+2.19e-2
+
+given the true graph, while only predicting 82.6% of the
+edges accurately. This is explained by the fact that far away
+particles have weak interactions, which have only small
+effects on future prediction. An example can be seen in Fig.
+5 in the top row where the blue particle is repelled instead
+of being attracted.
+
+5.2. Motion capture data
+
+The CMU Motion Capture Database (CMU, 2003) is a large
+collection of motion capture recordings for various tasks
+(such as walking, running, and dancing) performed by hu-
+man subjects. We here focus on recorded walking motion
+data of a single subject (subject #35). The data is in the form
+of 31 3D trajectories, each tracking a single joint. We split
+the different walking trials into non-overlapping training (11
+trials), validation (4 trials) and test sets (7 trials). We provide
+both position and velocity data. See supplementary material
+for further details. We train our NRI model with an MLP
+encoder and RNN decoder on this data using 2 or 4 edge
+types where one edge type is “hard-coded” as non-edge,
+i.e. messages are only passed on the other edge types. We
+found that experiments with 2 and 4 edge types give almost
+identical results, with two edge types being comparable in
+capacity to the fully connected graph baseline while four
+edge types (with sparsity prior) are more interpretable and
+allow for easier visualization.
+
+Dynamic graph re-evaluation We ﬁnd that the learned
+
+graph depends on the particular phase of the motion (Fig. 7),
+which indicates that the ideal underlying graph is dynamic.
+To account for this, we dynamically re-evaluate the NRI
+encoder for every time step during testing, effectively result-
+ing in a dynamically changing latent graph that the decoder
+can utilize for more accurate predictions.
+
+Results The qualitative results for our method and the
+same baselines used in Sec. 5.1 can be seen in Fig. 6. As one
+can see, we outperform the fully-connected graph setting
+in long-term predictions, and both models outperform the
+LSTM baselines. Dynamic graph re-evaluation signiﬁcantly
+
+Figure 6. Test MSE comparison for motion capture (walking) data
+(left) and sports tracking (SportVU) data (right).
+
+used in (Watters et al., 2017). We also compare to the “gold
+standard” model, denoted as NRI (true graph), which is
+training only a decoder using the ground-truth graph as
+input. The latter baseline is comparable to previous works
+such as interaction networks (Battaglia et al., 2016).
+In order to have a fair comparison, we generate longer test
+trajectories and only evaluate on the last part unseen by the
+encoder. Speciﬁcally, we run the encoder on the ﬁrst 49 time
+steps (same as in training and validation), then predict with
+our decoder the following 20 unseen time steps. For the
+LSTM baselines, we ﬁrst have a “burn-in” phase where we
+feed the LSTM the ﬁrst 49 time steps, and then predict the
+next 20 time steps. This way both algorithms have access
+to the ﬁrst 49 steps when predicting the next 20 steps. We
+show mean squared error (MSE) results in Table 2, and
+note that our results are better than using LSTM for long
+term prediction. Example trajectories predicted by our NRI
+(learned) model for up to 50 time steps are shown in Fig. 5.
+For the Kuramoto model, we observe that the LSTM base-
+lines excel at smoothly continuing the shape of the wave-
+form for short time frames, but fail to model the long-term
+dynamics of the interacting system. We provide further
+qualitative analysis for these results in the supplementary
+material.
+It is interesting to note that the charged particles experiment
+achieves an MSE score which is on par with the NRI model
+
+Neural Relational Inference for Interacting Systems
+
+(a) Right hand focus
+(b) Left hand focus
+Figure 7. Learned latent graphs on motion capture data (4 edge
+types)4 . Skeleton shown for reference. Red arrowheads denote
+directionality of a learned edge. The edge type shown favors a
+speciﬁc hand depending on the state of the movement and gathers
+information mostly from other extremities.
+
+improves predictive performance for this dataset compared
+to a static baseline. One interesting observation is that the
+skeleton graph is quite suboptimal, which is surprising as
+the skeleton is the “natural” graph. When examining the
+edges found by our model (trained with 4 edge types and a
+sparsity prior) we see an edge type that mostly connects a
+hand to other extremities, especially the opposite hand, as
+seen in Fig. 7. This can seem counter-intuitive as one might
+assume that the important connections are local, however
+we note that some leading approaches for modeling motion
+capture data (Jain et al., 2016) do indeed include hand to
+hand interactions.
+
+5.3. Pick and Roll NBA data
+
+The National Basketball Association (NBA) uses the
+SportVU tracking system to collect player tracking data,
+where each frame contains the location of all ten players
+and the ball. Similar to our previous experiments, we test
+our model on the task of future trajectory prediction. Since
+the interactions between players are dynamic, and our cur-
+rent formulation assumes ﬁxed interactions during training,
+we focus on the short Pick and Roll (PnR) instances of the
+games. PnR is one of the most common offensive tactics in
+the NBA where an offensive player sets a screen for the ball
+handler, attempting to create separation between the ball
+handler and his matchup.
+We extracted 12k segments from the 2016 season and used
+10k, 1k, 1k for training, validation, and testing respectively.
+The segments are 25 frames long (i.e. 4 seconds) and con-
+sist of only 5 nodes: the ball, ball hander, screener, and
+defensive matchup for each of the players.
+
+4The ﬁrst edge type is “hard-coded” as non-edge and was
+trained with a prior probability of 0.91. All other edge types
+received a prior of 0.03 to favor sparse graphs that are easier to
+visualize. We visualize test data not seen during training.
+
+Figure 8. Distribution of learned edges between players (and the
+ball) in the basketball sports tracking (SportVU) data.
+
+We trained a CNN encoder and a RNN decoder with 2
+edge types. For fair comparison, and because the trajectory
+continuation is not PnR anymore, the encoder is trained on
+only the ﬁrst 17 time steps (as deployed in testing). Further
+details are in the supplementary material. Results for test
+MSE are shown in Figure 6. Our model outperforms a
+baseline LSTM model, and is on par with the full graph.
+To understand the latent edge types we show in Fig. 8 how
+they are distributed between the players and the ball. As we
+can see, one edge type mostly connects ball and ball handler
+(off-ball) to all other players, while the other is mostly inner
+connections between the other three players. As the ball and
+ball handler are the key elements in the PnR play, we see
+that our model does learn an important semantic structure
+by separating them from the rest.
+
+6. Conclusion
+
+In this work we introduced NRI, a method to simultaneously
+infer relational structure while learning the dynamical model
+of an interacting system. In a range of experiments with
+physical simulations we demonstrate that our NRI model is
+highly effective at unsupervised recovery of ground-truth
+interaction graphs. We further found that it can model the
+dynamics of interacting physical systems, of real motion
+tracking and of sports analytics data at a high precision,
+while learning reasonably interpretable edge types.
+Many real-world examples, in particular multi-agent sys-
+tems such as trafﬁc, can be understood as an interacting sys-
+tem where the interactions are dynamic. While our model
+is trained to discover static interaction graphs, we demon-
+strate that it is possible to apply a trained NRI model to this
+evolving case by dynamically re-estimating the latent graph.
+Nonetheless, our solution is limited to static graphs during
+training and future work will investigate an extension of the
+NRI model that can explicitly account for dynamic latent
+interactions even at training time.
+
+Neural Relational Inference for Interacting Systems
+
+Acknowledgements
+
+The authors would like to thank the Toronto Raptors and
+the NBA for the use of the SportVU data. We would further
+like to thank Christos Louizos and Elise van der Pol for
+helpful discussions. This project is supported by the SAP
+Innovation Center Network.
+
+References
+
+Alahi, A., Goel, K., Ramanathan, V., Robicquet, A., Li,
+F., and Savarese, S. Social LSTM: human trajectory
+prediction in crowded spaces. In Conference on Computer
+Vision and Pattern Recognition (CVPR), 2016.
+
+Duan, Y., Andrychowicz, M., Stadie, B. C., Ho, J., Schnei-
+der, J., Sutskever, I., Abbeel, P., and Zaremba, W. One-
+shot imitation learning. In Advances in Neural Informa-
+tion Processing Systems (NIPS), 2017.
+
+Duvenaud, D. K., Maclaurin, D., Aguilera-Iparraguirre, J.,
+G ´omez-Bombarelli, R., Hirzel, T., Aspuru-Guzik, A.,
+and Adams, R. P. Convolutional networks on graphs for
+learning molecular ﬁngerprints. In Advances in Neural
+Information Processing Systems (NIPS), 2015.
+
+Garcia, V. and Bruna, J. Few-shot learning with graph neu-
+ral networks. In International Conference on Learning
+Representations (ICLR), 2018.
+
+Bahdanau, D., Cho, K., and Bengio, Y. Neural machine
+translation by jointly learning to align and translate. In
+International Conference on Learning Representations
+(ICLR), 2015.
+
+Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., and
+Dahl, G. E. Neural message passing for quantum chem-
+istry. In International Conference on Machine Learning
+(ICML), 2017.
+
+Battaglia, P. W., Pascanu, R., Lai, M., Rezende, D. J., and
+Kavukcuoglu, K. Interaction networks for learning about
+objects, relations and physics. In Advances in Neural
+Information Processing Systems (NIPS), 2016.
+
+Bruna, J., Zaremba, W., Szlam, A., and LeCun, Y. Spectral
+networks and locally connected networks on graphs. In
+International Conference on Learning Representations
+(ICLR), 2014.
+
+Chang, M. B., Ullman, T., Torralba, A., and Tenenbaum,
+J. B. A compositional object-based approach to learn-
+ing physical dynamics. In International Conference on
+Learning Representations (ICLR), 2017.
+
+Chen, X., Kingma, D. P., Salimans, T., Duan, Y., Dhariwal,
+P., Schulman, J., Sutskever, I., and Abbeel, P. Varia-
+tional lossy autoencoder. In International Conference on
+Machine Learning, (ICML), 2017.
+
+Cho, K., Van Merri ¨enboer, B., Gulcehre, C., Bahdanau,
+D., Bougares, F., Schwenk, H., and Bengio, Y. Learn-
+ing phrase representations using rnn encoder-decoder for
+statistical machine translation. In Conference on Empiri-
+cal Methods in Natural Language Processing (EMNLP),
+2014.
+
+CMU. Carnegie-Mellon Motion Capture Database. http:
+
+//mocap.cs.cmu.edu, 2003.
+
+Granger, C. Investigating causal relations by econometric
+models and cross-spectral methods. Econometrica, 37,
+1969.
+
+Guttenberg, N., Virgo, N., Witkowski, O., Aoki, H.,
+and Kanai, R.
+Permutation-equivariant neural net-
+works applied to dynamics prediction. arXiv preprint
+arXiv:1612.04530, 2016.
+
+Hamilton, W., Ying, Z., and Leskovec, J. Inductive repre-
+sentation learning on large graphs. In Advances in Neural
+Information Processing Systems (NIPS), 2017.
+
+Herzig, R., Raboh, M., Chechik, G., Berant, J., and
+Globerson, A. Mapping images to scene graphs with
+permutation-invariant structured prediction. 2018. URL
+
+http://arxiv.org/abs/1802.05451.
+
+Hochreiter, S. and Schmidhuber, J. Long short-term memory.
+Neural computation, 9(8):1735–1780, 1997.
+
+Hoshen, Y. Vain: Attentional multi-agent predictive mod-
+eling.
+In Advances in Neural Information Processing
+Systems (NIPS), 2017.
+
+Jain, A., Zamir, A. R., Savarese, S., and Saxena, A.
+Structural-rnn: Deep learning on spatio-temporal graphs.
+In IEEE Conference on Computer Vision and Pattern
+Recognition (CVPR), 2016.
+
+Dai, H., Dai, B., and Song, L. Discriminative embeddings of
+latent variable models for structured data. In International
+Conference on Machine Learning (ICML), 2016.
+
+Jang, E., Gu, S., and Poole, B. Categorical Reparameteriza-
+tion with Gumbel-Softmax. In International Conference
+on Learning Representations (ICLR), 2017.
+
+Defferrard, M., Bresson, X., and Vandergheynst, P. Con-
+volutional neural networks on graphs with fast localized
+spectral ﬁltering.
+In Advances in Neural Information
+Processing Systems (NIPS), 2016.
+
+Kearnes, S., McCloskey, K., Berndl, M., Pande, V., and
+Riley, P. Molecular graph convolutions: moving beyond
+ﬁngerprints. Journal of computer-aided molecular design,
+30(8):595–608, 2016.
+
+Neural Relational Inference for Interacting Systems
+
+Kingma, D. P. and Ba, J. Adam: A method for stochastic
+optimization. In International Conference on Learning
+Representations (ICLR), 2015.
+
+Niepert, M., Ahmed, M., and Kutzkov, K. Learning con-
+volutional neural networks for graphs. In International
+Conference on Machine Learning (ICML), 2016.
+
+Paszke, A., Gross, S., Chintala, S., Chanan, G., Yang, E.,
+DeVito, Z., Lin, Z., Desmaison, A., Antiga, L., and Lerer,
+A. Automatic differentiation in PyTorch. NIPS Autodiff
+Workshop, 2017.
+
+Rezende, D. J., Mohamed, S., and Wierstra, D. Stochastic
+backpropagation and approximate inference in deep gen-
+erative models. In International Conference on Machine
+Learning (ICML), 2014.
+
+Santoro, A., Raposo, D., Barrett, D. G. T., Malinowski, M.,
+Pascanu, R., Battaglia, P., and Lillicrap, T. A simple neu-
+ral network module for relational reasoning. In Advances
+in Neural Information Processing Systems (NIPS), 2017.
+
+Scarselli, F., Gori, M., Tsoi, A. C., Hagenbuchner, M., and
+Monfardini, G. The graph neural network model. IEEE
+Trans. Neural Networks, 20(1):61–80, 2009.
+
+Sukhbaatar, S., Szlam, A., and Fergus, R. Learning multia-
+gent communication with backpropagation. In Advances
+in Neural Information Processing Systems (NIPS), 2016.
+
+van Steenkiste, S., Chang, M., Greff, K., and Schmidhuber,
+J. Relational neural expectation maximization: Unsu-
+pervised discovery of objects and their interactions. In
+International Conference on Learning Representations
+(ICLR), 2018.
+
+Veli ˇckovi ´c, P., Cucurull, G., Casanova, A., Romero, A.,
+Li `o, P., and Bengio, Y. Graph attention networks. In
+International Conference on Learning Representations
+(ICLR), 2018.
+
+Watters, N., Zoran, D., Weber, T., Battaglia, P., Pascanu, R.,
+and Tacchetti, A. Visual interaction networks: Learning
+a physics simulator from video. In Advances in Neural
+Information Processing Systems (NIPS), 2017.
+
+Zaheer, M., Kottur, S., Ravanbakhsh, S., Poczos, B.,
+Salakhutdinov, R. R., and Smola, A. J. Deep sets. In Ad-
+vances in Neural Information Processing Systems (NIPS),
+2017.
+
+Kingma, D. P. and Welling, M. Auto encoding variational
+bayes. In International Conference on Learning Repre-
+sentations (ICLR), 2014.
+
+Kipf, T. N. and Welling, M. Semi-supervised classiﬁca-
+tion with graph convolutional networks. In International
+Conference on Learning Representations (ICLR), 2017.
+
+Kuramoto, Y. Self-entrainment of a population of coupled
+nonlinear oscillators.
+In International Symposium on
+Mathematical Problems in Theoretical Physics. (Lecture
+Notes in Physics, vol. 39.), pp. 420–422, 1975.
+
+Laszuk, D. Python implementation of Kuramoto systems.
+
+http://www.laszukdawid.com/codes, 2017.
+
+Le, H. M., Yue, Y., Carr, P., and Lucey, P. Coordinated multi-
+agent imitation learning. In International Conference on
+Machine Learning, (ICML), 2017.
+
+Li, Y., Tarlow, D., Brockschmidt, M., and Zemel., R. Gated
+graph sequence neural networks. In International Con-
+ference on Learning Representations (ICLR), 2016.
+
+Lin, Z., Feng, M., Nogueira dos Santos, C., Yu, M., Xiang,
+B., Zhou, B., and Bengio, Y. A structured self-attentive
+sentence embedding.
+In International Conference on
+Learning Representations (ICLR), 2017.
+
+Linderman, S. W. and Adams, R. P. Discovering latent
+network structure in point process data. In International
+Conference on Machine Learning (ICML), 2014.
+
+Linderman, S. W., Adams, R. P., and Pillow, J. W. Bayesian
+latent structure discovery from multi-neuron recordings.
+In Advances in Neural Information Processing Systems
+(NIPS), 2016.
+
+Luong, M.-T., Pham, H., and Manning, C. D. Effective ap-
+proaches to attention-based neural machine translation. In
+Conference on Empirical Methods in Natural Language
+Processing (EMNLP), 2015.
+
+Maddison, C. J., Mnih, A., and Teh, Y. W. The Concrete
+Distribution: A Continuous Relaxation of Discrete Ran-
+dom Variables. In International Conference on Learning
+Representations (ICLR), 2017.
+
+Monti, F., Boscaini, D., and Masci, J. Geometric deep
+learning on graphs and manifolds using mixture model
+CNNs.
+In IEEE Conference on Computer Vision and
+Pattern Recognition (CVPR), 2017.
+
+Neural Relational Inference for Interacting Systems
+
+A. Further experimental analysis
+
+A.1. Kuramoto LSTM vs. NRI comparison
+
+From the results in our main paper it became evident that a
+simple LSTM model excels at predicting the dynamics of
+a network of phase-coupled oscillators (Kuramoto model)
+for short periods of time, while predictive performance de-
+teriorates for longer sequences. It is interesting to compare
+the qualitative predictive behavior of this fully recurrent
+model with our NRI (learned) model that models the state
+xt+1 at time t + 1 solely based on the state xt at time t and
+the learned latent interaction graph. In Fig. 9 we provide
+visualizations of model predictions for the LSTM (joint)
+and the NRI (learned) model, compared to the ground truth
+continuation of the simulation.
+It can be seen that the LSTM model correctly captures the
+shape of the sinusoidal waveform but fails to model the
+phase dynamics that arise due to the interactions between
+the oscillators. Our NRI (learned) model captures the quali-
+tative behavior of the original coupled model at a very high
+precision and only in some cases slightly misses the phase
+dynamics (e.g. in the purple and green curve in the lower
+right plot). The LSTM model rarely matches the phase of
+the ground truth trajectory in the last few time steps and
+often completely goes “out of sync” by up to half a wave-
+length.
+
+A.2. Spring simulation variants
+
+In addition to the experiments presented in the main paper,
+we analyze the following two variants of the spring simu-
+lation experimental setting: i) we test a trained model on
+completely non-interacting (free-ﬂoating) particles, and ii)
+we add a third edge type with a lower coupling constant.
+To test whether our model can infer an empty graph, we
+create a test set of 1000 simulations with 5 non-interacting
+particles and test an unsupervised NRI model which was
+trained on the spring simulation dataset with 5 particles as
+before. We ﬁnd that it achieves an accuracy of 98.4% in
+identifying ”no interaction” edges (i.e. the empty graph).
+The last variant explores a simulation with more than two
+known edge types. We follow the same procedure for the
+spring simulation with 5 particles as before with the ex-
+ception of adding an additional edge type with coupling
+constant kij = 0.5 (all three edge types are sampled with
+equal probability). We ﬁt an unsupervised NRI model to
+this data (K = 3 in this case, other settings as before) and
+ﬁnd that it achieves an accuracy of 99.2% in discovering the
+correct edge types.
+
+A.3. Motion capture visualizations
+
+In Fig. 10 we visualize predictions of a trained NRI model
+with learned latent graph for the motion capture dataset. We
+show 30 predicted time steps of future movement, condi-
+tioned on 49 time steps that are provided as ground truth
+to the model. It can be seen that the model can capture the
+overall form of the movement with high precision. Mistakes
+(e.g. the misplaced toe node in frame 30) are possible due
+to the accumulation of small errors when predicting over
+long sequences with little chance of recovery. Curriculum
+learning schemes where noise is gradually added to training
+sequences can potentially alleviate this issue.
+
+A.4. NBA visualizations
+
+We show examples of three pick and roll trajectories in Fig.
+11. In the left column we show the ground truth, in the
+middle we show our prediction and in the right we show
+the edges that where sampled by our encoder. As we can
+see even when our model does not predict the true future
+path, which is extremely challenging for this data, it still
+makes semantically reasonable predictions. For example in
+the middle row it predicts that the player defending the ball
+handler passes between him and the screener (going over
+the screen) which is a reasonable outcome even though in
+reality the defenders switched players.
+
+B. Simulation data
+
+B.1. Springs model
+
+We simulate N ∈ {5, 10} particles (point masses) in a 2D
+box with no external forces (besides elastic collisions with
+the box). We randomly connect, with probability 0.5, each
+pair of particles with a spring. The particles connected by
+springs interact via forces given by Hooke’s law Fij =
+−k(ri − rj ) where Fij is the force applied to particle vi
+by particle vj , k is the spring constant and ri is the 2D
+location vector of particle vi . The initial location is sampled
+from a Gaussian N (0, 0.5), and the initial velocity is a
+random vector of norm 0.5. Given the initial locations
+and velocity we can simulate the trajectories by solving
+Newton’s equations of motion PDE. We do this by leapfrog
+integration using a step size of 0.001 and then subsample
+each 100 steps to get our training and testing trajectories.
+We note that since the leapfrog integration is differentiable,
+we are able to use it as a ground-truth decoder and back-
+propagate through it to train the encoder. We implemented
+the leapfrog integration in PyTorch, which allows us to
+compare model performance with a learned decoder versus
+the ground-truth simulation decoder.
+
+Neural Relational Inference for Interacting Systems
+
+Figure 9. Qualitative comparison of model predictions for the LSTM (joint) model (left) and the NRI (learned) model (right). The ground
+truth trajectories (middle) are shown for reference.
+
+B.2. Charged particles model
+
+ri−rj
+
+Fij = C · sign(qi · qj )
+
+Similar to the springs model, we simulate N ∈ {5, 10}
+particles in a 2D box, but instead of springs now our particles
+carry positive or negative charges qi ∈ {±q}, sampled
+with uniform probability, and interact via Coulomb forces:
+||ri−rj ||3 where C is some constant.
+Unlike the springs simulations, here every two particles
+interact, although the interaction might be weak if they stay
+far apart, but they can either attract or repel each other.
+Since the forces diverge when the distance between particles
+goes to zero, this can cause issues when integrating with
+a ﬁxed step size. The problem might be solved by using a
+much smaller step size, but this would slow the generation
+considerably. To circumvent this problem, we clip the forces
+to some maximum absolute value. While not being exactly
+physically accurate, the trajectories are indistinguishable to
+a human observer and the generation process is now stable.
+The force clipping does, however, create a problem for
+the simulation ground-truth decoder, as gradients become
+zero when the forces are clipped during the simulation.
+We attempted to ﬁx this by using “soft” clipping with a
+softplus(x) = log(1 + ex ) function in the differentiable
+simulation decoder, but this similarly resulted in vanish-
+ing gradients once the model gets stuck in an unfavorable
+regime with large forces.
+
+B.3. Phase-coupled oscillators
+
+The Kuramoto model is a nonlinear system of phase-coupled
+oscillators that can exhibit a range of complicated dynamics
+
+based on the distribution of the oscillators’ internal frequen-
+cies and their coupling strengths. We use the common form
+for the Kuramoto model given by the following differential
+equation:
+
+(cid:88)
+
+j (cid:54)=i
+
+dφi
+dt
+
+= ωi +
+
+kij sin(φi − φj )
+
+(20)
+
+with phases φi , coupling constants kij , and intrinsic frequen-
+cies ωi . We simulate 1D trajectories by solving Eq. (20)
+with a fourth-order Runge-Kutta integrator with step size
+
+0.01.
+
+We simulate N ∈ {5, 10} phase-coupled oscillators in 1D
+with intrinsic frequencies ωi and initial phases φt=1
+sam-
+pled uniformly from [1, 10) and [0, 2π), respectively. We
+randomly, with probability of 0.5, connect pairs of oscilla-
+tors vi and vj (undirected) with a coupling constant kij = 1.
+All other coupling constants are set to 0. We subsample the
+simulated φi by a factor of 10 and create trajectories xi by
+concatenating dφi
+dt , sin φi , and the intrinsic frequencies ωi
+(copied for every time step as ωi are static).
+
+i
+
+C. Implementation details
+
+We will describe here the details of our encoder and decoder
+implementations.
+
+C.1. Vectorized implementation
+
+The message passing operations v→e and v→e can be evalu-
+ated in parallel for all nodes (or edges) in the graph and allow
+for an efﬁcient vectorized implementation. More speciﬁ-
+
+Ground truthNRI (learned)LSTM (joint)Neural Relational Inference for Interacting Systems
+
+(a) Test trial 1.
+
+Figure 10. Examples of predicted walking motion of an NRI model with learned latent graph compared to ground truth sequences for two
+different test set trials.
+
+(b) Test trial 2.
+
+t = 0t = 10t = 20t = 30predictiontruthpredictiontrutht = 0t = 10t = 20t = 30Neural Relational Inference for Interacting Systems
+
+Figure 11. Visualization of NBA trajectories. Left: ground truth; middle: model prediction; right: sampled edges.
+
+cally, the node-to-edge message passing function fv→e can
+be vectorized as:
+
+v ])
+
+v→eH1
+v , Mout
+v→eH1
+
+H1
+e = fe ([Min
+1 , h(cid:62)
+2 , . . . , h(cid:62)
+
+(21)
+with Hv = [h(cid:62)
+N ](cid:62) ∈ RN ×F and He ∈ RE×F
+deﬁned analogously (layer index omitted), where F and E
+are the total number of features and edges, respectively.
+(·)(cid:62) denotes transposition. Both message passing matrices
+Mv→e ∈ RE×N are dependent on the graph structure and
+can be computed in advance if the underlying graph is static.
+v→e is a sparse binary matrix with Min
+the j -th node is connected to the i-th edge (arbitrary order-
+ing) via an incoming link and 0 otherwise. Mout
+v→e is deﬁned
+analogously for outgoing edges.
+Similarly, we can vectorize the edge-to-node message pass-
+ing function fe→v as:
+
+v→e,ij = 1 when
+
+Min
+
+e )
+
+e→vH1
+
+e→v = (Min
+
+H2
+v = fv (Min
+
+(22)
+with Min
+v→e )(cid:62) . For large sparse graphs (e.g. by
+constraining interactions to nearest neighbors), it can be ben-
+eﬁcial to make use of sparse-dense matrix multiplications,
+effectively allowing for an O(E ) algorithm.
+
+C.2. MLP Encoder
+
+The basic building block of our MLP encoder is a 2-layer
+MLP with hidden and output dimension of 256, with batch
+normalization, dropout, and ELU activations. Given this, the
+forward model for our encoder is given by the code snippet
+in Fig. 12. The node2edge module returns for each edge
+
+the concatenation of the receiver and sender features. The
+edge2node module accumulates all incoming edge features
+via a sum.
+
+x = self.mlp1(x) # 2−layer ELU net per node
+x = self.node2edge(x)
+x = self.mlp2(x)
+x skip = x
+
+x = self.edge2node(x)
+x = self.mlp3(x)
+x = self.node2edge(x)
+x = torch.cat((x, x skip), dim=2)
+x = self.mlp4(x)
+return self.fully connected out(x)
+
+Figure 12. PyTorch code snippet of the MLP encoder forward pass.
+
+C.3. CNN Encoder
+
+The CNN encoder uses another block which performs 1D
+convolutions with attention. This allows for encoding with
+changing trajectory size, and is also appropriate for tasks
+like the charged particle simulations when the interaction
+can be strong for a small fraction of time. The forward
+computation of this module is presented in Fig. 13 and the
+overall decoder in Fig. 14.
+
+C.4. MLP Decoder
+
+In Fig. 15 we present the code for a single time-step predic-
+tion using our MLP decoder for Markovian data.
+
+Neural Relational Inference for Interacting Systems
+
+C.5. RNN Decoder
+
+# CNN block
+# inputs is of shape ExFxT, E: number of edges,
+# T: sequence length, F: num. features
+x = F.relu(self.conv1(inputs))
+x = self.batch norm1(x)
+x = self.pool(x)
+x = F.relu(self.conv2(x))
+x = self.batch norm2(x)
+out = self.conv out(x)
+attention = softmax(self.conv attn(x), axis=2)
+out = (out ∗ attention).mean(dim=2)
+return out
+
+Figure 13. PyTorch code snippet of the CNN block forward pass,
+used in the CNN encoder.
+
+# CNN encoder
+x = self.node2edge(x)
+x = self.cnn(x) # CNN block from above
+x = self.mlp1(x) # 2−layer ELU net per node
+x skip = x
+
+x = self.edge2node(x)
+x = self.mlp2(x)
+x = self.node2edge(x)
+x = torch.cat((x, x skip), dim=2)
+x = self.mlp3(x)
+return self.fully connected out(x)
+
+Figure 14. PyTorch code snippet of the CNN encoder model for-
+ward pass.
+
+# Single prediction step
+pre msg = self.node2edge(inputs)
+
+# Run separate MLP for every edge type
+# For non−edge: start idx=1, otherwise 0
+for i in range(start idx, num edges):
+msg = F.relu(self.msg fc1[i](pre msg))
+msg = F.relu(self.msg fc2[i](msg))
+msg = msg ∗ edge type[:, :, :, i:i + 1]
+all msgs += msg
+
+# Aggregate all msgs to receiver
+agg msgs = self.edge2node(all msgs)
+hidden = torch.cat([inputs, agg msgs], dim=−1)
+
+# Output MLP
+pred = F.relu(self.out fc1(hidden)
+pred = F.relu(self.out fc2(pred)
+pred = self.out fc3(pred)
+
+return inputs + pred
+
+Figure 15. PyTorch code snippet of a single prediction step in the
+MLP decoder.
+
+The RNN decoder adds a GRU style update to the single
+step prediction, the code snippet for the GRU module is
+presented in Fig. 16 and the overall RNN decoder in Fig. 17.
+
+# GRU block
+# Takes arguments: inputs, agg msgs, hidden
+r = F.sigmoid(self.input r(inputs) +
+self.hidden r(agg msgs))
+i = F.sigmoid(self.input i(inputs) +
+self.hidden i(agg msgs))
+n = F.tanh(self.input n(inputs) +
+r ∗ self.hidden h(agg msgs))
+hidden = (1 − i) ∗ n + i ∗ hidden
+return hidden
+
+Figure 16. PyTorch code snippet of a GRU block, used in the RNN
+decoder.
+
+# Single prediction step
+pre msg = self.node2edge(inputs)
+
+# Run separate MLP for every edge type
+# For non−edge: start idx=1, otherwise 0
+for i in range(start idx, num edges):
+msg = F.relu(self.msg fc1[i](pre msg))
+msg = F.relu(self.msg fc2[i](msg))
+msg = msg ∗ edge type[:, :, :, i:i + 1]
+# Average over types for stability
+all msgs += msg/(num edges−start idx)
+
+# Aggregate all msgs to receiver
+agg msgs = self.edge2node(all msgs)
+# GRU−style gated aggregation (see GRU block)
+hidden = self.gru(inputs, agg msgs, hidden)
+
+# Output MLP
+pred = F.relu(self.out fc1(hidden))
+pred = F.relu(self.out fc2(pred))
+pred = self.out fc3(pred)
+
+# Predict position/velocity difference
+pred = inputs + pred
+
+return pred, hidden
+
+Figure 17. PyTorch code snippet of a single prediction step in the
+RNN decoder.
+
+D. Experiment details
+
+All experiments were run using the Adam optimizer
+(Kingma & Ba, 2015) with a learning rate of 0.0005, de-
+cayed by a factor of 0.5 every 200 epochs. Unless otherwise
+noted, we train with a batch size of 128. The concrete distri-
+bution is used with τ = 0.5. During testing, we replace the
+concrete distribution with a categorical distribution to obtain
+
+Neural Relational Inference for Interacting Systems
+
+discrete latent edge types. Physical simulation and sports
+tracking experiments were run for 500 training epochs. For
+motion capture data we used 200 training epochs, as models
+tended to converge earlier. We saved model checkpoints
+after every epoch whenever the validation set performance
+(measured by path prediction MSE) improved and loaded
+the best performing model for test set evaluation. We ob-
+served that using signiﬁcantly higher learning rates than
+0.0005 often produced suboptimal decoders that ignored the
+latent graph structure.
+
+D.1. Physics simulations experiments
+
+The springs, charged particles and Kuramoto datasets each
+contain 50k training instances and 10k validation and test
+instances. Training and validation trajectories where of
+length 49 while test trajectories continue for another 20 time
+steps (50 for visualization). We train an MLP encoder for
+the springs experiment, and CNN encoder for the charged
+particles and Kuramoto experiments. All experiments used
+MLP decoders and two edge types. For the Kuramoto model
+experiments, we explicitly hard-coded the ﬁrst edge type as
+a “non-edge”, i.e. no messages are passed along edges of
+this type.
+As noted previously, all of our MLPs have hidden and output
+dimension of 256. The overall input/output dimension of
+our model is 4 for the springs and charged particles exper-
+iments (2D position and velocity) and 3 for the Kuramoto
+model experiments (phase-difference, amplitude and intrin-
+sic frequency). During training, we use teacher forcing in
+every 10-th time step (i.e. every 10th time step, the model
+receives a ground truth input, otherwise it receives its previ-
+ous prediction as input). As we always have two edge types
+in these experiments and their ordering is arbitrary (apart
+from the Kuramoto model where we assign a special role to
+edge type 1), we choose the ordering for which the accuracy
+is highest.
+
+D .1 .1 . BA SE L IN E S
+
+Edge recovery experiments
+
+In edge recovery experi-
+ments, we report the following baselines along with the
+performance of our NRI (learned) model:
+
+CiiCj j
+
+where Rij = Cij√
+
+• Corr. (path): We calculate a correlation matrix R,
+with Cij being the covariance
+between all trajectories xi and xj (for objects vi and
+vj ) in the training and validation sets. We determine
+an ideal threshold θ so that Aij = 1 if Rij > θ and
+Aij = 0 otherwise, based on predictive accuracy on
+the combined training and validation set. Aij denotes
+the presence of an interaction edge (arbitrary type) be-
+tween object vi and vj . We repeat the same procedure
+for the absolute value of Rij , i.e. Aij = 1 if |Rij | > θ (cid:48)
+
+and Aij = 0 otherwise. Lastly, we pick whichever
+of the two (θ or θ (cid:48) ) produced the best match with the
+ground truth graph (i.e. highest accuracy score) and
+report test set accuracy with this setting.
+• Corr. (LSTM): Here, we train a two-layer LSTM with
+shared parameters and 256 hidden units that models
+each trajectory individually. It is trained to predict the
+position and velocity for every time step directly and
+is conditioned on the previous time steps. The input
+to the model is passed through a two-layer MLP (256
+hidden units and ReLU activations) before it is passed
+to the LSTM, similarly we pass the LSTM output (last
+time step) through a two-layer MLP (256 hidden units
+and ReLU activation on the hidden layer). We provide
+ground truth trajectory information as input at every
+time step. We train to minimize MSE between model
+prediction and ground truth path. We train this model
+for 10 epochs and ﬁnally apply the same correlation
+matrix procedure as in Corr. (path), but this time cal-
+culating correlations between the output of the second
+LSTM layer at the last time step (instead of using the
+raw trajectory features). The LSTM is only trained on
+the training set. The optimal correlation threshold is
+estimated using the combined training and validation
+set.
+• NRI (sim.): In this setting, we replace the decoder of
+the NRI model with the ground-truth simulator (i.e. the
+integrator of the Newtonian equations of motion). We
+implement both the charged particle and the springs
+simulator in PyTorch which gives us access to gradi-
+ent information. We train the overall model with the
+same settings as the original NRI (learned) model by
+backpropagating directly through the simulator. We
+ﬁnd that for the springs simulation, a single leap-frog
+integration step is sufﬁcient to closely approximate the
+trajectory of the original simulation, which was gen-
+erated with 100 leap-frog steps per time step. For the
+charged particle simulation, 100 leap-frog steps per
+time step are necessary to match the original trajectory
+when testing the simulation decoder in isolation. We
+ﬁnd, however, that due to the force clipping necessary
+to stabilize the original charged particle simulation, gra-
+dients will often become zero, making model training
+difﬁcult or infeasible.
+• Supervised: For this baseline, we train the encoder in
+isolation and provide ground-truth interaction graphs
+as labels. We train using a cross-entropy error and
+monitor the validation accuracy (edge prediction) for
+model checkpointing. We train with dropout of p = 0.5
+on the hidden layer representation of every MLP in the
+encoder model, in order to avoid overﬁtting.
+
+Neural Relational Inference for Interacting Systems
+
+exception: For LSTM (joint) we choose a smaller hidden
+layer size of 128 units and train with a batch size of 1, as
+the model did otherwise not ﬁt in GPU memory.
+
+D.3. NBA experiments
+
+For the NBA data each example is a 25 step trajectory of a
+pick and roll (PnR) instance, subsampled from the original
+25 frames-per-second SportVU data. Unlike the physical
+simulation where the dynamics of the interactions do not
+change over time and the motion capture data where the
+dynamics are approximately periodic, the dynamics here
+change considerably over time. The middle of the trajectory
+is, more or less, the pick and roll itself and the behavior
+before and after are quite different. This poses a problem
+for fair comparison, as it is problematic to evaluate on the
+next time steps, i.e. after the PnR event, since they are quite
+different from our training data. Therefore in test time we
+feed in the ﬁrst 17 time-steps to the encoder and then predict
+the last 8 steps.
+If we train the model normally as an autoencoder, i.e. feed-
+ing in the ﬁrst N = 17 or 25 time-steps to the encoder and
+having the decoder predict the same N , then this creates
+a large difference between training and testing setting, re-
+sulting in poor predictive performance. This is expected,
+as a model trained with N = 17 never sees the post-PnR
+dynamics and the encoder trained with N = 25 has a much
+easier task than one trained on N = 17. Therefore in order
+for our training to be consistent with our testing, we feed
+during training the ﬁrst 17 steps to the encoder and predict
+all 25 with the decoder.
+We used a CNN encoder and RNN decoder with two edge
+types to have comparable capacity to the full graph model.
+If we “hard code” one edge type to represent “non-edge”
+then our model learns the full graph as all players are highly
+connected. We also experimented with 10 and 20 edge types
+which did not perform as well on validation data, probably
+due to over-ﬁtting.
+
+Path prediction experiments Here, we use the following
+
+baselines along with our NRI (learned) model:
+
+• Static: This baseline simply copies the previous state
+vector xt+1 = xt .
+• LSTM (single): Same as the LSTM model
+in
+Corr. (LSTM), but trained to predict the state vector
+difference at every time step (as in the NRI model).
+Instead of providing ground truth input at every time
+step, we use the same training protocol as for an NRI
+model with recurrent decoder (see main paper).
+• LSTM (joint): This baseline differs from LSTM (sin-
+gle) in that it concatenates the input representations
+from all objects after passing them through the input
+MLP. This concatenated representation is fed into a sin-
+gle LSTM where the hidden unit number is multiplied
+by the number of objects—otherwise same setting as
+LSTM (single). The output of the second LSTM layer
+at the last time step is then divided into vectors of same
+size, one for each object, and fed through the output
+MLP to predict the state difference for each object sep-
+arately. LSTM (joint) is trained with same training
+protocol as the LSTM (single) model.
+• NRI (full graph): For this model, we keep the latent
+graph ﬁxed (fully-connected on edge type 2; note that
+edge types are exclusive, i.e. edges of type 1 are not
+present in this case) and train the decoder in isolation in
+the otherwise same setting as the NRI (learned) model.
+• NRI (true graph): Here, we train the decoder in iso-
+lation and provide the ground truth interaction graph
+as latent graph representation.
+
+D.2. Motion capture data experiments
+
+Our extracted motion capture dataset has a total size of
+8,063 frames for 31 tracked points each. We normalize all
+features (position/velocity) to maximum absolute value of
+1. Training and validation set samples are 49 frames long
+(non-overlapping segments extracted from the respective
+trials). Test set samples are 99 frames long. In the main
+paper, we report results on the last 50 frames of this test set
+data.
+We choose the same hyperparameter settings as in the physi-
+cal simulation experiments, with the exception that we train
+models for 200 epochs and with a batch size of 8. Our
+model here uses an MLP encoder and an RNN decoder (as
+the dynamics are not Markovian). We further take sam-
+ples from the discrete distribution during the forward pass
+in training and calculate gradients via the concrete relax-
+ation. The baselines are identical to before (path prediction
+experiments for physical simulations) with the following
+
+

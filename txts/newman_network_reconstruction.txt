@@ -1,0 +1,2249 @@
+8
+1
+0
+2
+
+r
+
+a
+
+M
+
+6
+
+]
+I
+
+S
+
+.
+
+s
+
+c
+
+[
+
+1
+v
+7
+2
+4
+2
+0
+
+.
+
+3
+0
+8
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+Network reconstruction and error estimation with noisy network data
+
+Department of Physics and Center for the Study of Complex Systems,
+University of Michigan, Ann Arbor, MI 48109, USA
+
+M. E. J. Newman
+
+Most empirical studies of networks assume that the network data we are given represent a complete
+and accurate picture of the nodes and edges in the system of interest, but in real-world situations
+this is rarely the case. More often the data only specify the network structure imperfectly—like data
+in essentially every other area of empirical science, network data are prone to measurement error and
+noise. At the same time, the data may be richer than simple network measurements, incorporating
+multiple measurements, weights, lengths or strengths of edges, node or edge labels, or annotations
+of various kinds. Here we develop a general method for making estimates of network structure and
+properties from any form of network data, simple or complex, when the data are unreliable, and
+give example applications to a selection of social and biological networks.
+
+of methods that can be used to infer the true structure
+and properties of a network from rich and detailed, but
+potentially error-prone, data sets in any format.
+There has been a signiﬁcant amount of previous work
+on network error and reconstruction, including discus-
+sion of the types of errors that can occur, for instance
+in social networks [2–6], biological networks [7, 8], and
+technological networks [9, 10], and studies of simulated
+errors that aim to determine what eﬀect errors will have
+on estimates of network properties [11–16]. Methods for
+estimating true network structure from error-prone mea-
+surements have been developed in several ﬁelds, includ-
+ing sociology, statistics, physics, and computer science.
+Perhaps most closely related to the work reported here
+is that of Butts [4], who developed Bayesian methods
+for estimating how reliable social network survey respon-
+dents are in the answers they give. Our technical ap-
+proach is diﬀerent from that of Butts, but some of the
+example applications we consider address similar ques-
+tions. The methods we develop generate a posterior dis-
+tribution over possible network structures, and a num-
+ber of other previous methods have been proposed for
+doing this, by ourselves and others, albeit using diﬀer-
+ent approaches [17, 18]. There has also been work on
+error correction strategies for networks, which can be
+viewed as a form of network reconstruction. Link predic-
+tion in particular—the task of identifying missing edges
+in networks—has received considerable attention [17–21].
+In the study of citation and collaboration networks a
+number of methods have been developed for name dis-
+ambiguation, which can be thought of as a form of error
+correction for missing or extraneous nodes [22–26]. And
+a combination of methods of these kinds can be used to
+
+I.
+
+INTRODUCTION
+
+Networks are widely used as a convenient quantita-
+tive representation of patterns of connection between the
+nodes, units, agents, or elements in complex systems,
+particularly technological, biological, and social systems.
+There has been an explosion of empirical work in the
+last two decades aimed at measuring and describing the
+structure of networks such as the internet, the world wide
+web, road and airline networks, friendship networks, bio-
+chemical networks, ecological networks, and others [1].
+A fundamental
+issue with empirical studies of net-
+works, however, is that the data we have are often unre-
+liable. Most measurement techniques for network struc-
+ture suﬀer from measurement error of some kind. In bio-
+logical networks such as metabolic or protein interaction
+networks, for example, traditional laboratory experimen-
+tal error is a primary source of inaccuracy—even under
+the best controlled conditions, the exact same experiment
+repeated twice will often yield diﬀerent results. For the
+world wide web the primary source of error is incomplete
+sampling, since many parts of the network are inacces-
+sible to crawlers. In friendship networks there are many
+kinds of errors, including sub jectivity on the part of re-
+spondents in surveys, missing data, and recording and
+coding errors.
+Not all is bad news, however. Network data may be
+error-prone but they can also be very rich. Many stud-
+ies produce not just simple measurements of network
+structure but multifaceted data sets that reﬂect struc-
+ture from many diﬀerent angles. A friendship network
+might be measured repeatedly, for instance, or measured
+in multiple ways using reported interactions, observed in-
+teractions, online data, or archival records. An ecological
+network such as a food web might combine ﬁeld data of
+many diﬀerent types as well as input from curated library
+studies. A data set for the world wide web will typically
+include not only the pattern of links between web pages
+but rich data on page content including word frequencies,
+headings, word positions, anchor text, and metadata.
+In this paper we consider the problem of network re-
+construction, deriving and demonstrating a broad class
+
+ 
+ 
+ 
+ 
+ 
+ 
+other work we and others have looked at methods for
+estimating networks in the presence of community struc-
+ture [38, 39]. Here we build on this previous work and lay
+out a general formalism for inferring network structure
+from rich but noisy data sets. We focus speciﬁcally on
+the problem of inferring the positions of the edges in a
+network of given nodes. There are interesting questions
+to be asked about how one identiﬁes the nodes in the ﬁrst
+place, but these we will not tackle here.
+
+II. APPROACH
+
+The approach we present, which builds upon our pre-
+vious work in [37, 38], is based on model ﬁtting and has
+two main components: a network model that represents
+how the network structure is generated, and a data model
+that represents how that structure maps onto the ob-
+served data. Given a set of observations, the method
+allows us to infer the parameters of both models as well
+as the entire posterior distribution over possible network
+structures. Features of interest in the network can also
+be estimated, in one of two diﬀerent ways: one can in-
+spect the parameters of the network model (as is done
+in community detection, for example) or one can calcu-
+late expected values of network metrics over the posterior
+distribution (as one might for things like degree distribu-
+tions, path lengths, or correlations).
+Suppose that we are interested in a particular net-
+work of n nodes, whose structure we will represent by
+an adjacency matrix A. In the simplest case of an un-
+weighted undirected network the adjacency matrix is an
+n × n symmetric matrix with elements Aij = 1 if nodes
+i and j are connected by an edge and 0 otherwise. Our
+methods can also be applied to directed networks (rep-
+resented by asymmetric matrices), weighted networks
+(represented by matrices containing values other than 0
+and 1), and other more complicated forms if necessary,
+but for the moment we will concentrate on the undirected
+unweighted case.
+We assume that the structure A of the network is ini-
+tially unknown. This structure is sometimes called the
+ground truth. Our aim is to estimate the ground truth
+from the results of measurements of some kind. The
+measurements could take many forms: measurements of
+single edges, pathways, or subgraphs; repeated measure-
+ments or measurements made from the point of view of
+diﬀerent participants or locations; metadata concerning
+edges or nodes; nonlocal or global properties of the net-
+work as a whole, such as densities, clustering coeﬃcients,
+or spectral properties, or any of many other measurement
+types. Let us denote by D the complete set of data gen-
+erated by the measurements performed on the system.
+We speciﬁcally do not assume that the data are reliable
+(they may contain errors of various kinds) or that they
+are complete (some parts of the network may not be mea-
+sured). Our goal is to make the best estimate we can of
+the structure of the network given the available data.
+
+2
+
+This we do using probabilistic methods. We hypoth-
+esize ﬁrst that the network is created by some process
+such that the probability of generating a network with
+adjacency matrix A is P (A|γ ), where γ represents the
+parameters (if any) of the process. This is our network
+model. The model could be a very simple one—all pos-
+sible networks are generated with equal probability, for
+instance (a maximum-entropy distribution), or networks
+are generated using an elementary process such as a ran-
+dom graph. But more complex choices are also possible
+and useful in some cases. For instance, if we are inter-
+ested in performing community detection on our network
+then we might hypothesize that the network is generated
+from a stochastic block model [40]. The parameters of
+the block model can then tell us about community struc-
+ture [38, 39, 41, 42].
+Next, we hypothesize a measurement process or data
+model that describes how our empirical data D are
+generated from observations of the network, such that
+P (D |A, θ) is the probability of the data given the true
+structure of the network A and model parameters θ.
+Combining probabilities and applying Bayes rule, we
+then have
+
+P (A, γ , θ|D) =
+
+P (D |A, θ)P (A|γ )P (γ )P (θ)
+P (D)
+
+,
+
+(1)
+
+P (A, γ , θ|D).
+
+where P (γ ), P (θ), and P (D) are the prior probabilities of
+the parameters and the data (which we assume to be in-
+dependent). Summing over all possible values of the un-
+known adjacency matrix A (or integrating in the case of
+continuous valued matrix elements), we get an expression
+for the posterior probability of the parameter values γ , θ
+given the data:
+P (γ , θ|D) = XA
+Our ﬁrst goal will be to ﬁnd the most likely values of the
+parameters by maximizing this posterior probability with
+respect to γ and θ, a so-called maximum a posteriori or
+MAP estimate.
+In fact, as is often the case, it is convenient to max-
+imize not the probability itself but its logarithm, which
+has its maximum in the same place. We make use of
+Jensen’s inequality, which states that for any set of pos-
+itive quantities xi ,
+log Xi
+xi ≥ Xi
+where qi are an equal number of nonnegative quantities
+satisfying Pi qi = 1. Applying this inequality to Eq. (2)
+we have
+log P (γ , θ|D) = log XA
+P (A, γ , θ|D)
+≥ XA
+q(A) log
+
+P (A, γ , θ|D)
+q(A)
+
+xi
+qi
+
+,
+
+,
+
+(4)
+
+(2)
+
+qi log
+
+(3)
+
+where q(A) is any nonnegative function of A satisfying
+PA q(A) = 1. It will be convenient to think of q(A) as
+a probability distribution over networks A.
+It is straightforward to see that the exact equality
+in (4) is achieved, and hence the right-hand side of the
+inequality maximized, when
+
+.
+
+(5)
+
+q(A) =
+
+P (A, γ , θ|D)
+PA P (A, γ , θ|D)
+Since this choice makes the right-hand side equal to
+log P (γ , θ|D), a further maximization with respect to γ
+and θ will then give us the MAP estimate that we seek.
+To put that another way, maximization of the right-hand
+side of (4) with respect both to q and to γ and θ will give
+us the optimal values of the parameters.
+This leads to a natural
+iterative algorithm for de-
+termining the values of the parameters: we perform
+the maximization by simply maximizing repeatedly, ﬁrst
+over q with the parameters held ﬁxed, then over the pa-
+rameters with q held ﬁxed, until we converge to the ﬁnal
+answer. The maximum over q is given by Eq. (5). The
+maximum over the parameters we ﬁnd by diﬀerentiating.
+Taking derivatives of the right-hand side of Eq. (4) while
+holding q(A) constant, we get
+
+q(A)∇γ log P (A, γ , θ|D) = 0,
+
+q(A)∇θ log P (A, γ , θ|D) = 0,
+
+(6)
+
+(7)
+
+XA
+XA
+
+where ∇γ , ∇θ denote derivatives with respect to the sets
+γ , θ of parameters of the two models. Alternatively, mak-
+ing use of Eq. (1), we have
+
+(9)
+
+(8)
+
+q(A)∇γ log P (A|γ ) = 0,
+
+∇γ log P (γ ) + XA
+∇θ log P (θ) + XA
+q(A)∇θ log P (D |A, θ) = 0.
+The solution of these equations gives us our values
+for γ , θ. Note that Eq. (8) depends only on the net-
+work model and its solution gives the parameter values
+for that model. Similarly, Eq. (9) depends only on the
+data model and gives the parameters for that model.
+This is an example of an expectation–maximization or
+EM algorithm [43, 44], a standard tool for statistical in-
+ference in situations where some data are unknown or
+hidden from us—in this case the network structure A.
+Implementation of the algorithm involves choosing ran-
+dom initial values for the parameters γ , θ and then iter-
+ating Eq. (5) and Eqs. (8) and (9) until convergence is
+reached. The EM algorithm can be proved to converge
+to a local maximum of the posterior probability, but not
+necessarily to the global maximum we would like to ﬁnd.
+In practice, therefore, one often performs repeated runs
+from diﬀerent initial values to test for consistent conver-
+gence.
+
+3
+
+The output of the EM algorithm is a set of values for
+the parameters γ , θ. Normally, the next step would then
+be to use these values in Eq. (1) to ﬁnd the probability
+distribution over networks A. It turns out, however, that
+this is unnecessary, since the network structure can be
+deduced from results we have already calculated. Note
+that Eq. (5) can be written as
+
+q(A) =
+
+P (A, γ , θ|D)
+P (γ , θ|D)
+
+= P (A|D , γ , θ).
+
+(10)
+
+In other words, q(A) is the probability that the network
+has structure A given the observed data and our val-
+ues for the parameters γ , θ. Thus the EM algorithm al-
+ready gives us the entire posterior distribution over possi-
+ble ground-truth network structures. In many cases this
+posterior probability distribution is the primary ob ject
+of interest in the calculation, capturing both the network
+structure itself and the uncertainty in that structure.
+Once we have this distribution, any other network
+quantity we are interested in, including degrees, corre-
+lations, clustering coeﬃcients, and so forth, can be esti-
+mated from it. Speciﬁcally, for any quantity X (A) that
+is a function of the network structure A, the expected
+value, given the observed data and the parameter esti-
+mates, is
+
+(12)
+
+(11)
+
+X (A)P (A|D , γ , θ),
+
+[X (A) − µX ]2P (A|D , γ , θ).
+
+µX = XA
+and the variance about that value is
+σ2
+X = XA
+It is not always possible to perform the sums over A an-
+alytically. In cases where they cannot be carried out ex-
+actly, numerical approximations using Monte Carlo sam-
+pling can give good answers in reasonable time.
+The values of the model parameters may also be of
+interest, both for the network model and for the data
+model.
+In cases where the parameters of the network
+model correspond to meaningful network quantities, they
+can give us useful structural
+information, as in the
+case of community detection using the stochastic block
+model [38, 39]. More commonly, however, it is the pa-
+rameters of the data model that are of interest because
+they quantify the measurement process and hence can
+give us insight into the reliability of the data and the
+types of error they may contain.
+
+III. NETWORK MODELS
+
+Applying the methods of the previous section requires
+us to choose the models we will use: the network model,
+which describes how the network structure is generated,
+and the data model, which describes how the data are
+related to the network structure. In this and the follow-
+ing section we give some examples of possible choices,
+starting with network models.
+
+The network models most commonly used for struc-
+tural inference in networks are random graph models in
+which the edges are (conditionally) independent random
+variables. The best known examples are the (Bernoulli)
+random graph, the conﬁguration model, the stochastic
+block model, and their many variants.
+
+A. The random graph
+
+The simplest of network models is the standard ran-
+dom graph, in which every pair of distinct nodes i, j is
+connected by an edge with equal probability ω . For this
+model the probability P (A|γ ) becomes
+
+P (A|ω ) = Yi<j
+
+ωAij (1 − ω )1−Aij .
+
+(13)
+
+Despite its simplicity, this model works well for many
+of the calculations we will look at.
+In the absence of
+evidence to the contrary, simply assuming that all edges
+are equally likely is a sensible approach. We do need to
+choose a prior probability P (ω ) for the parameter ω . In
+the calculations we perform we will assume that all values
+of this parameter are equally likely, so that P (ω ) = 1.
+
+B. Edge types
+
+Various extensions of the simple random graph are pos-
+sible. For instance, one could have a model in which
+instead of just two edge states (present/not present) we
+have three or more. In a social network, for instance, one
+might divide pairs of individuals into those who are not
+acquainted, somewhat acquainted, or well acquainted.
+Such states could be represented by adjacency matrix el-
+ements with values 0, 1, and 2, with corresponding prob-
+abilities ω0 , ω1 , and ω2 . More generally any number k
+of states could be represented by Aij = 0 . . . k − 1 and
+probabilities ω0 . . . ωk−1 , sub ject to the constraint that
+m=0 ωm = 1. Then the probability of a particular net-
+work is
+
+Pk−1
+
+P (A|ω ) = Yi<j
+
+ωAij = Yi<j
+
+k−1
+Ym=0
+
+ω δm ,Aij
+m
+
+.
+
+(14)
+
+A variant of this type of model is one in which the
+edges are signed, meaning that they can have both posi-
+tive and negative values. Such signed networks are some-
+times used, for instance, to represent social networks in
+which interactions can be both positive and negative—
+friendship and animosity [45]. In the simplest case the
+elements of the adjacency matrix take three values 0, +1,
+and −1, and the probability P (A|ω ) is an obvious varia-
+tion on Eq. (14).
+
+4
+
+C. Poisson edge model
+
+In many calculations with network models one assumes
+not Bernoulli (i.e., zero/one) random variables for the
+edges but Poisson ones. That is, rather than placing
+edges with probability ω or not with probability 1 − ω ,
+one places a Poisson distributed number of edges with
+mean ω . This results in a network that can contain more
+than one edge between a given pair of nodes—a so-called
+multiedge—which is in a sense unrealistic since most ob-
+served networks do not have multiedges. However, the
+probability of having a multiedge is of order ω 2 , which
+is typically negligible in the common case of a sparse
+network where ω is small, and hence the Poisson and
+Bernoulli models generate essentially the same ensem-
+ble in the sparse case. At the same time the Poisson
+model is often signiﬁcantly easier to work with and has
+become favored for many applications. Commonly, in ad-
+dition to multiedges, one also allows self-edges, placing
+a Poisson-distributed number of such edges at each node
+with mean 1
+2 ω . By convention a self-edge is represented
+by an adjacency matrix element Aii = 2 (not 1). The
+factor of 1
+2 in the density of self-edges compensates for
+the 2 in the deﬁnition of Aii , so that the expected value
+of all adjacency matrix elements is simply ω .
+For this model the equivalent of Eq. (13) is
+
+ωAij
+
+Aij !
+
+2 ω(cid:1)Aij /2
+
+2 Aij (cid:1)!
+
+(cid:0) 1
+(cid:0) 1
+
+(15)
+
+e−ω/2 ,
+
+e−ω Yi
+
+P (A|ω ) = Yi<j
+and the log of this probability is
+log P (A|ω ) = 1
+2 Xij (cid:0)Aij log ω − ω(cid:1)
+log Aij ! − Xi (cid:2) 1
+2 Aii log 2 + log( 1
+2 Aii )!(cid:3).
+(16)
+
+− Xi<j
+
+Here we have separated out terms that do not depend
+on ω . When we perform a derivative as in Eq. (8),
+these terms will vanish, leaving an especially simple re-
+sult for ω .
+Note also that this model and the previous one both
+use values of Aij other than zero and one, but the values
+have diﬀerent meanings.
+In the model of Section III B
+they represent diﬀerent types of edges; in the model of
+this section they represent multiedges.
+
+D. Stochastic block model
+
+A more complex model, well studied in the networks
+literature, is the stochastic block model. First proposed
+in the 1980s by Holland et al. [40], the stochastic block
+model is a model of community structure in networks,
+although with large numbers of blocks it can also func-
+tion as a model of very general kinds of network struc-
+ture [46, 47]. In essence, the model consists of a set of
+
+5
+
+structure is to be inferred using the EM algorithm. In
+that case, Eq. (17) is replaced with
+
+P (A|g, µ, ω ) = Yi<j
+
+ωAij
+gi gj
+
+Aij !
+
+exp(cid:0)−ωgi gj (cid:1)
+
+× Yi
+
+and g
+
+2 ωgi gi (cid:1)Aii /2
+
+(cid:0) 1
+
+(cid:0) 1
+
+2 Aii (cid:1)!
+
+exp(cid:0)− 1
+
+2 ωgi gi (cid:1),
+
+(19)
+
+random graphs stitched together into a larger network.
+We take n nodes and divide them into some number k
+of groups labeled by integers 1 . . . k , with µr being the
+probability that a node is assigned to group r. Then we
+place undirected edges between distinct nodes indepen-
+dently such that the probability of an edge between a
+given pair of nodes depends only on the groups that the
+nodes belong to.
+The model is simplest when written using the Poisson
+formulation of Section III C: between nodes i, j belonging
+to groups r, s we place a number of edges which is Poisson
+distributed with mean ωrs , except for self-edges i = j for
+which the mean is 1
+2 ωrr . The edge frequencies ωrs thus
+dictate the relative probabilities of within- and between-
+group connections. In the most widely studied case, the
+diagonal elements ωrr are chosen to be larger than the oﬀ-
+diagonal ones, so that edges are more likely within groups
+than between them, a type of structure known as assor-
+tative mixing or homophily. Other types of structure
+are also possible, however, and are observed in some net-
+works, such as disassortative structure in which between-
+group edges are more likely than in-group ones [48].
+Let us denote by gi the label of the group to which
+node i is assigned. Then, given the parameters µr
+and ωrs , the probability of generating a complete set of
+group assignments g = {gi} and a network A in this
+model is
+
+P (g, A|µ, ω ) = Yi
+
+ωAij
+gi gj
+
+Aij !
+
+µgi Yi<j
+2 ωgi gi (cid:1)Aii /2
+
+exp(cid:0)−ωgi gj (cid:1)
+exp(cid:0)− 1
+
+(cid:0) 1
+
+× Yi
+
+(cid:0) 1
+
+2 Aii (cid:1)!
+
+2 ωgi gi (cid:1).
+
+(17)
+
+which has logarithm
+log P (g, A|µ, ω ) = Xi
+log Aij ! − Xi (cid:2) 1
+2 Aii log 2 + log(cid:0) 1
+2 Aii )!(cid:3).
+
+2 Xij (cid:0)Aij log ωgi gj − ωgi gj (cid:1)
+
+− Xi<j
+
+log µgi + 1
+
+(18)
+
+Again this separates terms that involve the parameters µ
+and ω from those that do not, making derivatives like
+those in Eq. (8) simpler.
+In the formalism considered in Section II, the struc-
+ture of the network is the only kind of unobserved data,
+but in the stochastic block model there are two kinds:
+the network A and the group assignments g. Our EM
+algorithm carries over straightforwardly to this case, but
+with the joint distribution of g and A taking the place
+of the distribution of A alone. When combined with a
+suitable data model, this approach allows us to infer both
+the network structure and the community structure from
+a single calculation. An alternative approach, considered
+by Le and Levina [39], is to assume that the community
+structure is known via other means and only the network
+
+(20)
+
+φi = 1.
+
+equivalent results, but for present purposes a convenient
+choice is to set the average of the φi equal to 1:
+1
+n Xi
+This choice has the nice feature that the average of the
+elements of the adjacency matrix is then given by
+i (cid:21) =
+2 ωφ2
+
+ωφiφj + 2 Xi
+Thus ω is the average value of an adjacency matrix ele-
+ment, just as in the earlier model of Section III C.
+Given the parameters of the model, the probabil-
+ity P (A|φ, ω ) of generating a particular network is
+
+n2 (cid:20)Xi6=j
+
+n2 Xij
+
+φiφj = ω .
+
+(21)
+
+1
+
+1
+
+ω
+
+P (A|φ, ω ) = Yi<j
+
+(ωφiφj )Aij
+Aij !
+
+e−ωφiφj
+
+× Yi
+
+and its log is
+
+i )Aii /2
+
+( 1
+2 ωφ2
+2 Aii (cid:1)!
+
+(cid:0) 1
+
+e−ωφ2
+i /2 ,
+
+(22)
+
+log P (A|φ, ω ) = 1
+
+2 Xij
+
+Aij log φi − 1
+2 n2ω
+
+Aij log ω + Xij
+log Aij ! − Xi (cid:2) 1
+2 Aii log 2 + log( 1
+2 Aii (cid:1)!(cid:3),
+(23)
+
+− Xi<j
+
+where we have made use of Eq. (20).
+One can apply the same degree correction approach
+to the stochastic block model of Section III D, which
+leads to the so-called degree-corrected stochastic block
+model [42]. In this model we again divide nodes among k
+groups with probability µr of assignment to group r, but
+now between each pair of nodes i, j we place a number
+of edges that is Poisson distributed with mean ωrsφiφj ,
+where r and s are respectively the groups to which nodes
+i and j belong. The additional factor of φiφj allows us
+to control the degrees of the nodes and give the network
+essentially any degree distribution we desire. We can ﬁx
+the normalization of the parameters in various ways, for
+example by choosing the mean of φi to be 1 within each
+individual group thus:
+nr Xi
+1
+for all r, with nr = Pi δr,gi being the number of nodes
+in group r.
+
+δr,gi φi = 1
+
+(24)
+
+IV. DATA MODELS
+
+We now turn to data models, meaning models of the
+measurement process. These models represent the way
+the data measured in our experiments depend on the
+underlying ground-truth network.
+
+6
+
+A.
+
+Independent edge measurements
+
+Perhaps the simplest data model is one in which obser-
+vations of edges are independent identically distributed
+Bernoulli random variables, conditioned only on the pres-
+ence or absence of an edge in the same place in the
+ground-truth network. That is, we make a measurement
+on a node pair i, j and it returns a simple yes-or-no an-
+swer about whether the nodes are connected by an edge,
+which depends only on the adjacency matrix element Aij
+for the same node pair and any parameters of the pro-
+cess, and is independent of other matrix elements or any
+other measurements we may make. That is not to say,
+however, that the answers we get need be accurate, and
+in general we will assume that they are not. In an error-
+prone world, our measurements will sometimes reﬂect the
+truth about whether an edge exists and sometimes they
+will not.
+Consider the simplest case in which Aij takes only the
+values zero and one. We can then parametrize the possi-
+ble outcomes of a measurement by two probabilities: the
+true positive rate α, which is the probability of observ-
+ing an edge where one truly exists, and the false posi-
+tive rate β , which is the probability of observing an edge
+where none exists. (The two remaining possibilities, of
+true negatives and false negatives, occur with probabili-
+ties 1 − β and 1 − α respectively, so no additional param-
+eters are needed to represent the rates of these events.)
+The probability of observing an edge between nodes i
+and j can then be succinctly written as αAij β 1−Aij and
+the probability of not doing so is (1 − α)Aij (1 − β )1−Aij .
+We give an application of this model to an example
+data set in Section V C.
+
+B. Multiple edge types
+
+In Section III B we introduced a network model in
+which edges have several types, representing for instance
+diﬀerent strengths of acquaintance in a social network.
+The k edge types were represented by integer values of
+adjacency matrix elements Aij = 0 . . . k − 1. Observed
+data for such a network could take several forms. For
+instance, one can imagine situations in which it might
+be possible, via a measurement of some kind, to deter-
+mine not only whether an edge exists between two nodes
+but also what type of edge it is. Such a situation could
+be represented by a set of variables that parametrize the
+probability of observing an edge of type j between a pair
+of nodes if there is an edge of type k in the ground truth.
+This, however, leads to a rather complicated data model.
+A simpler set-up is one in which measurements return
+only a yes-or-no answer about whether two nodes are
+connected by an edge and no information about edge
+type. This can be represented by a model with separate
+parameters α0 . . . αk−1 equal to the probability of observ-
+ing an edge given each of the diﬀerent ground-truth edge
+states. Then the probability of observing an edge be-
+
+tween nodes i and j is simply αAij and the probability
+of not observing one is 1 − αAij .
+
+C. Multimodal data
+
+There are many cases where the data for a network con-
+sist not merely of one type of measurement but of two
+or more. For instance a social network might be mea-
+sured by surveying participants using traditional ques-
+tionnaires or interviews, but also by collecting social me-
+dia data, email or text messages, or using observations of
+face-to-face interactions [54–56]. A protein–protein inter-
+action network might be measured using a combination of
+co-immunoprecipitation, aﬃnity puriﬁcation, yeast two-
+hybrid screens, or other methods [57]. When represented
+as networks, such data are sometimes called multilayer
+or multiplex networks [58, 59].
+Measurements of diﬀerent types can be governed by
+diﬀerent probabilities and errors. Assuming a ground-
+truth network represented by a simple binary adjacency
+matrix with Aij = 0 or 1, one could deﬁne separate true-
+and false-positive probabilities αm , βm for each type of
+measurement. That is, αm is the probability that a
+measurement of type m will reveal an edge between two
+nodes i, j where an edge truly exists (Aij = 1), and βm is
+the probability that such a measurement will reveal an
+edge where none exists (Aij = 0). Then the total proba-
+bility of observing an edge between i and j using a mea-
+surement of type m is αAij
+and the probability of
+not observing one is (1 − αm )Aij (1 − βm )1−Aij .
+
+m β 1−Aij
+m
+
+D. Directed edges and individual node errors
+
+The models we have described so far assume undirected
+edges, but it is straightforward to generalize them to the
+case of directed networks. Directed versions of the ba-
+sic network models exist already, such as directed ver-
+sions of the conﬁguration model [52] or the stochastic
+block model [60]. Data models for directed networks are
+a natural generalization of the undirected versions. For
+instance, one could assume that observed directed edges
+are independent random variables conditioned on the un-
+derlying ground-truth edges, with appropriately deﬁned
+true- and false-positive rates.
+In most cases the equa-
+tions for the models are straightforward generalizations
+of those for the undirected case. We give an example in
+Section V D.
+In some cases it is possible for the observations of edges
+to be directed even if the underlying ground-truth net-
+work is undirected, or vice versa. Perhaps the most
+prominent example of this phenomenon arises in the
+study of social networks such as friendship or acquain-
+tance networks. In studies of these networks, by far the
+most common method for collecting data is simply to
+ask people who their friends or acquaintances are. This
+results in directed edge measurements in which the fun-
+
+7
+
+damental unit of data is a statement by person i that they
+are acquainted with person j . Often, however, we would
+consider the underlying network itself to be undirected—
+either two people are acquainted or they are not. This sit-
+uation can again be represented with a relatively straight-
+forward generalization of earlier data models in which di-
+rected observations depend on the underlying undirected
+ground truth, with appropriately deﬁned true- and false-
+positive rates.
+Directed measurements like these give rise to the pos-
+sibility that two people may make contradictory state-
+ments about whether they are acquainted: person i may
+claim to know person j but person j may claim not to
+know i. Such unreciprocated claims are in fact common
+in social network studies [61].
+In surveys of friendship
+among schoolchildren, for instance, only about a half of
+all claimed friendships are reciprocated [62]. Such a situ-
+ation arises naturally in the data model: if the true- and
+false-positive rates for observations are α and β as be-
+fore, the probability of both of two individuals claiming
+acquaintance is α2Aij β 2(1−Aij ) , the probability of one but
+not the other doing so is 2[α(1 − α)]Aij [β (1 − β )]1−Aij ,
+and the probability of neither is (1−α)2Aij (1−β )2(1−Aij ) .
+An interesting alternative formulation, proposed by
+Butts [4], considers the case in which some individuals
+are more reliable in the reports they give than others.
+Variations in reliability could arise simply because some
+people take surveys more seriously than others, are more
+cooperative survey sub jects, or take more care with their
+responses. But they could also arise because people have
+diﬀerent perceptions of what it means to be acquainted:
+one person could have a relatively relaxed view in which
+they consider people to be acquaintances even if they
+barely know them, while another could adopt a stricter
+deﬁnition.
+Such a situation can be represented by a data model in
+which there is a separate true-positive rate αi and false-
+positive rate βi for each node i. Then the probability for
+instance of i saying they are friends with j but j saying
+they are not is [αi (1 − αj )]Aij [βi (1 − βj )]1−Aij , and sim-
+ilar expressions apply for other patterns of observations.
+Using this kind of model allows us to infer not only the
+structure of the underlying network but also the individ-
+ual true- and false-positive rates, which themselves may
+reveal interesting behaviors—see Section V F.
+Surveys of social networks are not the only context
+in which directed measurements of undirected networks
+arise. For instance, there have been many studies of
+messaging behavior within groups of people: who calls
+whom on the telephone, who emails whom, who sends
+text messages to whom, and so forth [56, 63–65]. One
+can hypothesize that observations such as phone calls or
+emails are a noisy measurement of an underlying network
+of acquaintance, and hence use models such as those de-
+scribed above to infer the structure of that network from
+the observed pattern of messages.
+
+E. Networks with multiedges
+
+we get
+
+8
+
+(25)
+
+(26)
+
+(27)
+
+we ﬁnd that
+
+ω =
+
+Qij ,
+
+1
+
+2 (cid:1) Xi<j
+
+(cid:0)n
+
+Some ground-truth networks may be multigraphs,
+meaning that they contain multiedges. True multigraphs
+are rare in real-world applications, but there are many
+networks which, though in reality they are composed of
+single edges only, may nonetheless be conveniently rep-
+resented as multigraphs, for instance using the Poisson
+formulation of Section III C. As described in that section,
+this formulation introduces multiedges (and self-edges)
+into our ground-truth networks but overall gives closely
+similar answers to the simple Bernoulli formulation of
+Section III A, while often being easier to work with.
+How should we deﬁne our data model when we have
+multiedges in our network? There are a number of types
+of data a measurement of such a network could return.
+It could, for instance, return an estimate of the multi-
+plicity of an edge.
+In our work, however, we make a
+simpler assumption, similar to that of Section IV B, in
+which measurements return only a yes-or-no answer that
+there either is or is not an edge at a given position. This
+situation is most completely represented by a model with
+an inﬁnite set of parameters αk , representing the prob-
+ability that upon making a measurement of a particular
+pair of nodes we observe an edge between them if there
+are exactly k edges in the corresponding position in the
+ground-truth network. In practice, since multiedges are
+normally rare in the ground truth, only the ﬁrst two of
+these parameters are usually of interest: α0 , which is the
+false-positive rate, and α1 , which is roughly, though not
+exactly, the true-positive rate.
+
+V. COMPLETE ALGORITHMS AND EXAMPLE
+APPLICATIONS
+
+Building a complete algorithm for inferring network
+structure from noisy data involves combining a suitable
+network model with a suitable data model. There are
+many such combinations we can construct from the mod-
+els introduced in the previous sections. Here we give a se-
+lection of examples, along with illustrative applications.
+
+A. Random graphs and independent measurements
+
+Perhaps the simplest example of our methods is the
+combination of the standard (Bernoulli) random graph
+of Section III A with the independent edge data model of
+Section IV A. This turns the problem of network recon-
+struction into a standard binary classiﬁcation problem.
+We will go through this case in detail.
+To derive the EM equations for this combination of
+models, we ﬁrst take the probability P (A|ω ) for the ran-
+dom graph from Eq. (13) and the uniform prior probabil-
+ity P (ω ) = 1 and substitute them into Eq. (8). Perform-
+ing the derivative with respect to the single parameter ω ,
+
+−
+
+XA
+
+(cid:20) Aij
+1 − Aij
+1 − ω (cid:21) = 0.
+q(A) Xi<j
+ω
+Swapping the order of the summations and deﬁning
+Qij = XA
+
+q(A)Aij ,
+
+where n is the number of nodes in the network, as previ-
+ously.
+The quantity Qij is equal to the posterior probability
+that there is an edge between nodes i and j—it is our
+estimate of the ground truth for this node pair given the
+observed data. Qij can be thought of as a generaliza-
+tion of the adjacency matrix. When it is exactly zero
+or one it has the same meaning as the adjacency ma-
+trix element Aij : there deﬁnitely either is or is not a
+ground-truth edge between nodes i and j . For other val-
+ues between zero and one it interpolates between these
+limits, quantifying our certainty about whether the edge
+exists. Equation (27) thus has the simple interpretation
+that the probability ω of an edge in our network is the
+average of the probabilities of the individual edges.
+Turning to the data model, a crucial point to notice
+is that if measurements of diﬀerent edges are truly in-
+dependent, so that an observation (or not) of an edge
+between one node pair tells you nothing about any other
+node pair, then single measurements of node pairs are
+not enough to estimate the parameters of the model. It
+is well known that you cannot estimate the error on a
+random variable by making only a single measurement.
+You have to make at least two measurements.
+In the
+present context, this means that at least some edges in
+the network must be measured more than once to obtain
+an estimate of the true- and false-positive rates α and β .
+Let us assume that we make some number Nij of
+measurements of node pair i, j . Each measurement
+returns a yes-or-no answer about whether the nodes
+are connected by an edge, but repeated measurements
+may not agree, precisely because the measurements are
+noisy. So suppose that out of the Nij measurements
+we make, we observe an edge on Eij of them, and no
+edge on the remaining Nij − Eij . Plugging these deﬁni-
+tions into the data model of Section IV A, we can write
+the probability of this particular set of observations as
+αEij (1 − α)Nij −Eij if there is truly an edge between i
+and j , and βEij (1 − β )Nij −Eij if there is not. Taking the
+product over all distinct node pairs, the probability for
+the entire data set can then be written
+P (D |A, α, β ) = Yi<j (cid:2)αEij (1 − α)Nij −Eij (cid:3)Aij
+
+× (cid:2)βEij (1 − β )Nij −Eij (cid:3)1−Aij .
+
+(28)
+
+Taking the log and substituting into Eq. (9), assuming
+that the priors on α and β are uniform, we get
+1 − α (cid:21) = 0,
+1 − β (cid:21) = 0,
+
+q(A) Xi<j
+α
+(1 − Aij )(cid:20) Eij
+q(A) Xi<j
+β
+
+Aij (cid:20) Eij
+
+Nij − Eij
+
+Nij − Eij
+
+XA
+
+XA
+
+(29)
+
+(30)
+
+−
+
+−
+
+9
+
+which can be rearranged to give
+
+α = Pi<j Qij Eij
+Pi<j Qij Nij
+
+,
+
+β = Pi<j (1 − Qij )Eij
+Pi<j (1 − Qij )Nij
+
+,
+
+(31)
+
+where Qij is as in Eq. (26) again.
+
+It remains to calculate the value of Qij , which we do from Eq. (5). Combining Eqs. (1), (13), and (28) and
+substituting into (5), we ﬁnd the following expression for q(A):
+
+q(A) = Qi<j (cid:2)ωαEij (1 − α)Nij −Eij (cid:3)Aij (cid:2)(1 − ω )βEij (1 − β )Nij −Eij (cid:3)1−Aij
+PA Qi<j (cid:2)ωαEij (1 − α)Nij −Eij (cid:3)Aij (cid:2)(1 − ω )βEij (1 − β )Nij −Eij (cid:3)1−Aij
+(cid:2)ωαEij (1 − α)Nij −Eij (cid:3)Aij (cid:2)(1 − ω )βEij (1 − β )Nij −Eij (cid:3)1−Aij
+= Yi<j
+ωαEij (1 − α)Nij −Eij + (1 − ω )βEij (1 − β )Nij −Eij
+
+.
+
+Qij = XA
+
+q(A)Aij =
+
+ωαEij (1 − α)Nij −Eij
+ωαEij (1 − α)Nij −Eij + (1 − ω )βEij (1 − β )Nij −Eij
+
+.
+
+(32)
+
+(33)
+
+Then
+
+The posterior distribution q(A) can be conveniently
+rewritten in terms of Qij as
+
+The variance about this value is given by Eq. (12) to be
+
+q(A) = Yi<j
+
+QAij
+ij (1 − Qij )1−Aij .
+
+(34)
+
+In other words, the probability distribution over networks
+is (in this special case) simply the product of indepen-
+dent Bernoulli distributions of the individual edges, with
+Bernoulli parameters Qij .
+The complete EM algorithm now consists of the it-
+eration of Eqs. (27), (31), and (33) from suitably cho-
+sen starting conditions until convergence. Typically one
+chooses random values of ω , α, and β for the initial con-
+ditions and proceeds from there.
+Once the algorithm has converged we can estimate net-
+work quantities of interest using Eqs. (11) and (12). As a
+simple example, consider the average degree c of a node
+in the network. For a known network with adjacency ma-
+trix A the average degree is given by c = (1/n) Pij Aij .
+The mean (expected) value of the average degree given
+our posterior distribution q(A) is thus
+
+q(A)(cid:20) 1
+σ2
+c = XA
+n Xij
+=
+n2 XA
+1
+1
+
+q(A) Xijkl
+
+=
+
+n2 Xij
+
+Aij − µc(cid:21)2
+
+Aij Akl − µ2
+c
+
+Qij (1 − Qij ).
+
+(36)
+
+The approach of this section generalizes straightfor-
+wardly to the variant random graph of Section III C in
+which there is a Poisson distributed number of edges be-
+tween each pair of nodes and the network can contain
+multiedges. Taking Eq. (16) and substituting into (8) we
+get
+
+XA
+
+q(A) Xij
+
+(cid:20) Aij
+ω
+
+− 1(cid:21) = 0.
+
+(37)
+
+q(A)
+
+1
+n Xij
+Qij .
+
+µc = XA
+1
+=
+n Xij
+
+Aij =
+
+1
+n Xij XA
+
+q(A)Aij
+
+Here we have again assumed a uniform prior on ω , which
+is not strictly allowed in this case, since ω has an inﬁnite
+range from 0 to ∞. One can, however, assume a uniform
+prior over a ﬁnite range and then make that range large
+enough to encompass the solution for ω .
+
+(35)
+
+Rearranging Eq. (37) for ω now gives
+
+q(A) Xij
+
+Aij =
+
+1
+
+n2 Xij XA
+
+q(A)
+
+∞
+
+Xk=0
+
+kδk,Aij
+
+∞
+
+Xk=0
+
+kQij (k),
+
+(38)
+
+ω =
+
+=
+
+1
+n2 XA
+1
+
+n2 Xij
+
+where
+
+q(A)δk,Aij
+
+Qij (k) = XA
+is the posterior probability that there are exactly k edges
+between nodes i and j (or 1
+2 k edges when i = j ). Alter-
+natively, and perhaps more conveniently, we can write
+the estimated value of Aij as
+
+(39)
+
+ˆAij =
+
+∞
+
+Xk=0
+
+kQij (k),
+
+(40)
+
+in which case
+
+ω =
+
+1
+
+n2 Xij
+
+ˆAij .
+
+10
+
+are k ground-truth edges between i and j . Let Eij rep-
+resent the number of yeses out of a total of Nij measure-
+ments, except for self-edges, for which the most natural
+deﬁnition is that Eii represents twice the number of yeses
+and Nii twice the number of measurements, by analogy
+with the deﬁnition of the adjacency matrix.
+With these deﬁnitions, the equivalent of Eq. (28) for
+this model is
+
+∞
+
+P (D |A, α) = Yi<j
+× Yi
+
+Yk=0(cid:2)αEij
+(1 − αk )Nij −Eij (cid:3)δk,Aij
+k
+(1 − αk )(Nii−Eii )/2 (cid:3)δk,Aii .
+Yk=0(cid:2)αEii /2
+k
+
+∞
+
+(42)
+
+Taking the log, substituting into Eq. (9), and assuming
+that the priors on the αk are uniform, we then get
+
+XA
+
+q(A) Xij
+
+δk,Aij (cid:20) Eij
+
+αk
+
+−
+
+Nij − Eij
+
+1 − αk (cid:21) = 0
+
+(43)
+
+q(A) = Yi<j
+
+Then
+
+Qij (k) =
+
+for i 6= j and
+
+(41)
+
+for all k = 0 . . . ∞. Rearranging for αk , we get
+
+As discussed in Section IV E, we will assume that, mul-
+tiedges notwithstanding, measurements on node pairs i, j
+continue to return yes-or-no answers about the presence
+of an edge, with αk being the probability of a yes if there
+
+αk = Pij Qij (k)Eij
+Pij Qij (k)Nij
+where Qij (k) is deﬁned in Eq. (39).
+
+,
+
+(44)
+
+Following similar lines of argument to those for the Bernoulli model, Eq. (5) now tells us that the posterior
+distribution over networks A is
+
+Aij
+
+ωAij /Aij !(cid:2)αEij
+(1 − αAij )Nij −Eij (cid:3)
+(1 − αk )Nij −Eij (cid:3) Yi
+k=0 ωk /k !(cid:2)αEij
+k
+
+P∞
+
+( 1
+
+2 ω )Aii /2 /( 1
+2 Aii )!(cid:2)αEii /2
+(1 − αAii )(Nii−Eii )/2 (cid:3)
+r=0 ( 1
+(1 − α2r )(Nii−Eii )/2 (cid:3)
+2r
+
+2 ω )r /r!(cid:2)αEii /2
+
+P∞
+
+Aii
+
+Qij (Aij ).
+
+= Yi≤j
+
+(45)
+
+ωk /k !(cid:2)αEij
+
+(1 − αk )Nij −Eij (cid:3)
+k
+k=0 ωk /k !(cid:2)αEij
+(1 − αk )Nij −Eij (cid:3)
+k
+
+P∞
+
+(46)
+
+Aii
+
+( 1
+
+Qii =
+
+P∞
+
+2 ω )Aii /2/( 1
+2 Aii )!(cid:2)αEii /2
+(1 − αAii )(Nii−Eii )/2 (cid:3)
+r=0 ( 1
+(1 − α2r )(Nii−Eii )/2 (cid:3)
+2r
+
+2 ω )r /r!(cid:2)αEii /2
+(47)
+In the common case of network that does not actually
+have any self-edges, however, one would not normally
+attempt to measure their presence, so Nii = Eii = 0 for
+all i and the latter expression simpliﬁes to
+
+.
+
+Qii (k) =
+
+2 ω )k/2
+
+( 1
+( 1
+2 k)!
+
+e−ω/2 ,
+
+(48)
+
+which is simply the prior distribution on self-edges as-
+suming the random graph model. In practice, for sparse
+networks where ω is small, it will often be an adequate
+approximation to simply set Qii (0) = 1 for all i and
+Qii (k) = 0 for k > 0, implying that there are no self-
+edges, which is true.
+In theory, the evaluation of Qij (k) from Eq. (46) re-
+quires us to ﬁrst calculate all of the parameters αk , of
+which there are an inﬁnite number, in order to evaluate
+the denominator. In practice, however, most networks,
+as we have said, are sparse, having small values of ω ,
+which means that all but the ﬁrst two terms in the de-
+nominator can be neglected and only α0 and α1 need be
+calculated (which represent approximately the false pos-
+itive and true positive rates for this data model). This
+in turn means that Qij (k) is negligible for k ≥ 2, so that
+Qij (0) ≃ 1 − Qij (1). Thus we only really need to calcu-
+
+late one probability Qij (1) for each node pair:
+
+C. Example application
+
+11
+
+Qij (1) ≃
+
+ωαEij
+(1 − α1 )Nij −Eij
+1
+(1 − α0 )Nij −Eij + ωαEij
+(1 − α1 )Nij −Eij
+1
+
+αEij
+0
+
+,
+
+As an example of the application of these methods, we
+turn to a data set we examined previously in [37]. The
+
+(49)
+which represents, roughly speaking, the probability that
+there is an edge between i and j , which is also (approx-
+imately) the expected value of the corresponding adja-
+cency matrix element ˆAij ≃ Qij (1).
+
+B. Conﬁguration model with independent
+measurements
+
+The developments of the previous section can be ex-
+tended in a straightforward manner to the more realistic
+conﬁguration model introduced in Section III E. Substi-
+tuting Eq. (23) into Eq. (8) and diﬀerentiating with re-
+spect to ω gives
+
+ω =
+
+=
+
+1
+n2 XA
+1
+
+n2 Xij
+
+q(A) Xij
+ˆAij ,
+
+Aij =
+
+1
+
+n2 Xij
+
+∞
+
+Xk=0
+
+kQij (k)
+
+(50)
+
+just as
+in Eqs.
+(38) and (41), with Qij (k) =
+PA q(A)δk,Aij as before and ˆAij = Pk kQij (k) being
+the estimated value of Aij , Eq. (40). At the same time,
+diﬀerentiating with respect to φi , while enforcing the
+normalization condition (20) with a Lagrange multiplier,
+gives
+
+φi = n Pj
+
+Pij
+
+ˆAij
+ˆAij
+
+.
+
+(51)
+
+The equations for the data model parameters αk are
+unchanged from the previous section, with αk still being
+given by Eq. (44). And the posterior distribution over
+networks is once again given q(A) = Qi≤j Qij (Aij ) but
+now with
+(ωφiφj )k /k !(cid:2)αEij
+k=0 (ωφiφj )k /k !(cid:2)αEij
+and Qii (k) = e−ωφ2
+2 ωφ2
+2 k)!.
+If we make the same assumption as we made at the end
+of the previous section, that ω is small and hence only
+the ﬁrst two terms in the denominator of Eq. (52) need
+be included, then one need only calculate the quantities
+
+(1 − αk )Nij −Eij (cid:3)
+(1 − αk )Nij −Eij (cid:3)
+k
+
+P∞
+
+Qij (k) =
+
+i /2 ( 1
+
+i )k/2 /( 1
+
+(52)
+
+k
+
+,
+
+Qij (1) ≃
+
+ωφiφj αEij
+(1 − α1 )Nij −Eij
+1
+(1 − α0 )Nij −Eij + ωφiφj αEij
+(1 − α1 )Nij −Eij
+1
+
+,
+
+αEij
+0
+
+(53)
+and Qij (0) ≃ 1 − Qij (1), ˆAij ≃ Qij (1) (and Qii (0) ≃ 1).
+
+12
+
+(a) Random graph + independent edges
+
+(b) Conﬁguration model + independent edges
+
+FIG. 1: Two examples of inferred networks of connections bet
+
+value of c = 3.00, again in substantial disagreement with
+our estimate from the posterior distribution.
+
+D. Multimodal data
+
+For our second example we consider the case discussed
+in Section IV C of a network whose edges are observed
+using a number of diﬀerent methods or modes, labeled by
+m = 1 . . . M . We will consider speciﬁcally a directed net-
+work, both to give an explicit example of an algorithm
+for directed edges and because it will be useful in Sec-
+tion V E, where we will apply the method to a directed
+data set. By convention, directed networks are repre-
+sented by an adjacency matrix in which Aij = 1 if there
+is an edge from node j to node i.
+We will assume that the prior probability of any di-
+rected edge is ω as previously. Then, assuming a simple
+network in which there are no multiedges or self-edges,
+we have
+
+ωAij (1 − ω )1−Aij ,
+
+P (A|ω ) = Yi6=j
+which is a trivial generalization of Eq. (13). Following
+the same line of argument as in Eq. (25) we can then
+show that
+
+(54)
+
+ω =
+
+1
+n(n − 1) Xi6=j
+
+Qij ,
+
+(55)
+
+13
+
+where Qij = PA q(A)Aij is the posterior probability of
+a directed edge from node j to node i.
+Now let the true- and false-positive rates for observa-
+tions in mode m be αm and βm respectively, as described
+in Section IV C. And let N (m)
+be the number of measure-
+ments made of the presence or absence of an edge from j
+to i (usually zero or one, but other values are possible in
+principle) and E (m)
+be the number of times an edge is in
+fact observed. Then the likelihood of the data D given
+the ground-truth network and parameters is
+
+ij
+
+ij
+
+(cid:20) M
+
+Ym=1
+
+P (D |A, α, β ) = Yi6=j
+× (cid:20) M
+
+Ym=1
+
+E (m)
+ij
+
+m (1 − αm )N (m)
+
+α
+
+ij (cid:21)Aij
+ij −E (m)
+
+E (m)
+ij
+
+m (1 − βm )N (m)
+
+ij −E (m)
+
+β
+
+ij (cid:21)1−Aij
+
+.
+
+(56)
+
+Here we are assuming that measurements made in dif-
+ferent modes are statistically independent, so that the
+probability of observing any given edge in any given com-
+bination of modes is a product over the probabilities of
+the individual modes. In the language of machine learn-
+ing such an approach is called a naive Bayes classiﬁer.
+
+Following the same line of argument as in Eq. (28), we can then show that
+
+αm = Pi6=j Qij E (m)
+ij
+Pi6=j Qij N (m)
+ij
+
+while the equivalent of Eq. (33) for Qij is
+
+,
+
+βm = Pi6=j (1 − Qij )E (m)
+ij
+Pi6=j (1 − Qij )N (m)
+ij
+
+,
+
+(57)
+
+ω Qm α
+m (1 − α)N (m)
+ω Qm α
+ij + (1 − ω ) Qm β
+The EM algorithm now consists of the iteration of Eqs. (55), (57), and (58) from suitable starting values to convergence.
+
+m (1 − αm )N (m)
+
+m (1 − βm )N (m)
+
+ij −E (m)
+ij
+
+ij −E (m)
+
+ij −E (m)
+ij
+
+Qij =
+
+E (m)
+ij
+
+E (m)
+ij
+
+(58)
+
+.
+
+E (m)
+ij
+
+E. Example application
+
+As an example of this algorithm, we consider an eco-
+logical network, a food web of predator-prey interactions
+between species. The speciﬁc example we look at is the
+early Eocene Messel Shale food web of Dunne et al. [68], a
+prehistoric food web of exactly n = 700 extinct taxa and
+their patterns of predation, reconstructed from paleonto-
+logical evidence. Like many food webs, this one is pieced
+together from data derived from a variety of sources. In
+this case, the authors used ten diﬀerent types of evidence
+to establish links between taxa, including such things as
+
+gut contents (the remains of one species were found in
+the fossilized gut of another), stratigraphic co-occurrence
+(fossils of two species were found in rocks of the same age
+and location), or body size (larger animals eat smaller
+ones, so a diﬀerence in body sizes can suggest a predator-
+prey interaction).
+What is particularly interesting about this data set
+for our purposes is that Dunne et al. made available
+not only the ﬁnal form of the network but the details
+of which particular modes were observed for each edge in
+the network—gut contents, body size, etc. Thus the data
+
+the previous section.
+Of the ten modes of observation used by Dunne et al.
+
+14
+
+15
+
+where Eij is the number of times (out of Nij total) that i
+identiﬁes j as a friend (which under normal circumstances
+will be either zero or one) or twice that number when
+i = j .
+
+edges between them in the ground-truth network. Then
+the data likelihood given the ground truth is
+
+∞
+
+P (D |A, α) = Yi6=j
+× Yi
+
+Yk=0(cid:2)αEij
+ik (1 − αik )Nij −Eij (cid:3)δk,Aij
+Yk=0(cid:2)αEii /2
+(1 − αik )(Nii−Eii )/2 (cid:3)δk,Aii ,
+ik
+
+∞
+
+(60)
+
+Following the same lines of argument as previously, we then ﬁnd that
+(ωφiφj )k /k !(cid:2)αEij
+k=0 (ωφiφj )k /k !(cid:2)αEij
+
+αik = Pj Qij (k)Eij
+Pj Qij (k)Nij
+
+Qij (k) =
+
+P∞
+
+,
+
+ik (1 − αi )Nij −Eij αEji
+jk (1 − αjk )Nji−Eji (cid:3)
+ik (1 − αi )Nij −Eij αEji
+jk (1 − αjk )Nji−Eji (cid:3)
+
+.
+
+(61)
+
+As with the model of Section V B, it will in the common
+case of a sparse network usually be adequate to compute
+only Qij (1) and assume Qij (0) = 1 − Qij (1) and ˆAij =
+Qij (1), all other probabilities Qij (k) with k ≥ 2 being
+negligible.
+
+G. Example application
+
+As an example of this algorithm we consider data
+from the US National Longitudinal Study of Adolescent
+
+16
+
+FIG. 3: The inferred network of friendships among the students in a medium-sized American high school and its feeder middle
+school. Edge thicknesses represent the inferred posterior probabilities of the edges. Node sizes represent the inferred values of
+the degree parameters φi for the conﬁguration model. Node colors represent the estimated average precision of reports made
+by the corresponding individual, precision being the probability that a reported friendship actually exists. Colors range from
+yellow (lowest precision) to red (highest precision). Only edges that are reported to exist by at least one participant are shown,
+and nodes with no reported edges are omitted.
+
+own right.
+We have given three examples of practical applications
+of our methods to previously published network data sets.
+In the ﬁrst example we inferred the structure of a social
+network from repeated observations of physical proxim-
+ity between pairs of people. In the second example we
+looked at a food web data set of predator-prey inter-
+actions among a group of species. Connections in the
+network are measured using a number of diﬀerent tech-
+niques and, though none of techniques is very reliable,
+our methods allow us to combine them to make an esti-
+mate of the structure of the network. Our third example
+focused again on a social network, in this case of de-
+clared friendships between students in a US high school
+and middle school.
+In addition to allowing us to infer
+the structure of the friendship network, our algorithm in
+this case also gives us a measure of how accurately each
+student reports their own friendships.
+
+One thing we have not done in this paper is look in
+detail at the case introduced in Section III D of networks
+that are generated from a stochastic block model (or its
+degree-corrected variant introduced in Section III E). Ap-
+plication of these models would allow us to simultane-
+ously infer both the structure of the network and its di-
+vision into communities. Calculations of this type, how-
+ever, involve signiﬁcant new techniques not covered here
+and we leave these developments for future work.
+
+Acknowledgments
+
+The author thanks Elizabeth Bruch, George Cantwell,
+Travis Martin, Gesine Reinert, and Maria Riolo for useful
+comments. This work was funded in part by the US
+National Science Foundation under grants DMS–1407207
+and DMS–1710848.
+
+17
+
+[1] M. E. J. Newman, Networks: An Introduction. Oxford
+University Press, Oxford (2010).
+[2] P. D. Killworth and H. R. Bernard, Informant accuracy
+in social network data. Human Organization 35, 269–286
+(1976).
+[3] P. V. Marsden, Network data and measurement. Annual
+Review of Sociology 16, 435–463 (1990).
+[4] C. T. Butts, Network inference, error, and informant
+(in)accuracy: A Bayesian approach. Social Networks 25,
+103–140 (2003).
+[5] M. S. Handcock and K. J. Gile, Modeling social networks
+from sampled data. Annals of Applied Statistics 4, 5–25
+(2010).
+[6] D. Lusher, J. Koskinen, and G. Robins, Exponential Ran-
+dom Graph Models for Social Networks: Theory, Meth-
+ods, and Applications. Cambridge University Press, Cam-
+bridge (2012).
+[7] N. J. Krogan et al., Global landscape of protein com-
+plexes in the yeast Saccharomyces cerevisiae. Nature 440,
+637–643 (2006).
+[8] S. J. Wodak, S. Pu, J. Vlasblom, and B. S´eraphin, Chal-
+lenges and rewards of interaction proteomics. Molecular
+& Cel lular Proteomics 8, 3–18 (2009).
+[9] A. Lakhina, J. Byers, M. Crovella, and P. Xie, Sampling
+biases in IP topology measurements. In Proceedings of
+the 22nd Annual Joint Conference of the IEEE Com-
+puter and Communications Societies, Institute of Elec-
+trical and Electronics Engineers, New York (2003).
+[10] A. Clauset and C. Moore, Accuracy and scaling phenom-
+ena in Internet mapping. Phys. Rev. Lett. 94, 018701
+(2005).
+[11] S. L. Feld and W. C. Carter, Detecting measurement
+bias in respondent reports of personal networks. Social
+Networks 24, 365–383 (2002).
+[12] S. P. Borgatti, K. M. Carley, and D. Krackhardt, On
+the robustness of centrality measures under conditions of
+imperfect data. Social Networks 28, 124–136 (2006).
+[13] G. Kossinets, Eﬀects of missing data in social networks.
+Social Networks 28, 247–268 (2006).
+[14] B. Karrer, E. Levina, and M. E. J. Newman, Robustness
+of community structure in networks. Phys. Rev. E 77,
+046119 (2008).
+[15] D. J. Wang, X. Shi, D. A. McFarland, and J. Leskovec,
+Measurement error in network data: A reclassiﬁcation.
+Social Networks 34, 396–409 (2012).
+[16] N. Erman and L. Todorovski, The eﬀects of measurement
+error in case of scientiﬁc network analysis. Scientometrics
+104, 453–473 (2015).
+[17] A. Clauset, C. Moore, and M. E. J. Newman, Hierarchical
+structure and the prediction of missing links in networks.
+Nature 453, 98–101 (2008).
+[18] R. Guimer`a and M. Sales-Pardo, Missing and spurious
+interactions and the reconstruction of complex networks.
+Proc. Natl. Acad. Sci. USA 106, 22073–22078 (2009).
+[19] D. Liben-Nowell and J. Kleinberg, The link-prediction
+problem for social networks. J. Assoc. Inf. Sci. Technol.
+58, 1019–1031 (2007).
+[20] M. Huisman, Imputation of missing network data: Some
+simple procedures. Journal of Social Structure 10, 1–29
+(2009).
+[21] M. Kim and J. Leskovec, The network completion prob-
+
+lem: Inferring missing nodes and edges in networks. In
+B. Liu, H. Liu, C. Clifton, T. Washio, and C. Kamath
+(eds.), Proceedings of the 2011 SIAM International Con-
+ference on Data Mining, pp. 47–58, Society for Industrial
+and Applied Mathematics, Philadephia (2011).
+[22] N. R. Smalheiser and V. I. Torvik, Author name dis-
+ambiguation. Annual Review of Information Science and
+Technology 43, 287–313 (2009).
+[23] C. A. D’Angelo, C. Giuﬀrida, and G. Abramo, A heuristic
+approach to author name disambiguation in bibliometrics
+databases for large-scale research assessments. J. Assoc.
+Inf. Sci. Technol. 62, 257–269 (2011).
+[24] A. A. Ferreira, M. A. Goncalves, and A. H. F. Laender,
+A brief survey of automatic methods for author name
+disambiguation. SIGMOD Record 41, 15–26 (2012).
+[25] J. Tang, A. C. M. Fong, B. Wang, and J. Zhang, A uniﬁed
+probabilistic framework for name disambiguation in dig-
+ital library. IEEE Transactions on Know ledge and Data
+Engineering 24, 975–987 (2012).
+[26] T. Martin, B. Ball, B. Karrer, and M. E. J. Newman,
+Coauthorship and citation patterns in the Physical Re-
+view. Phys. Rev. E 88, 012814 (2013).
+[27] G. M. Namata, S. Kok, and L. Getoor, Collective graph
+identiﬁcation. In Proceedings of the 17th ACM SIGKDD
+International Conference on Know ledge Discovery and
+Data Mining, Association of Computing Machinery, New
+York (2011).
+[28] X. Han, Z. Shen, W.-X. Wang, and Z. Di, Robust recon-
+struction of complex networks from sparse data. Phys.
+Rev. Lett. 114, 028701 (2015).
+[29] G. Casiraghi, V. Nanumyan,
+I. Scholtes,
+and
+F. Schweitzer, From relational data to graphs: Inferring
+signiﬁcant links using generalized hypergeometric en-
+sembles. In G. Ciampaglia, A. Mashhadi, and T. Yasseri
+(eds.), Proceedings of
+the International Conference
+on Social Informatics (SocInfo 2017), number 10540
+in Lecture Notes in Computer Science, pp. 111–120,
+Springer, Berlin (2017).
+[30] M. T. Angulo, J. A. Moreno, G. Lippner, A.-L. Barab´asi,
+and Y.-Y. Liu, Fundamental limitations of network re-
+construction from temporal data. J. Roy. Soc. Interface
+14, 20160966 (2017).
+[31] J. Forster, I. Famili, P. Fu, B. O. Palsson, and J. Nielsen,
+Genome-scale reconstruction of the Saccharomyces cere-
+visiae metabolic network. Genome Research 13, 244–253
+(2003).
+[32] Y. Liu, N. J. Liu, and H. Y. Zhao, Inferring protein-
+protein interactions through high-throughput interaction
+data from diverse organisms. Bioinformatics 21, 3279–
+3285 (2005).
+[33] J. Schafer and K. Strimmer, An empirical Bayes ap-
+proach to inferring large-scale gene association networks.
+Bioinformatics 21, 754–764 (2005).
+[34] A. A. Margolin,
+I. Nemenman, K. Basso, C. Wig-
+gins, G. Stolovitzky, R. Dalla Favera, and A. Califano,
+ARACNE: An algorithm for the reconstruction of gene
+regulatory networks in a mammalian cellular context.
+BMC Bioinformatics 7, S7 (2006).
+[35] P. Langfelder and S. Horvath, Wgcna: An R package
+for weighted correlation network analysis. BMC Bioin-
+formatics 9, 559 (2008).
+
+[36] J. D. Allen, Y. Xie, M. Chen, L. Girard, and G. Xiao,
+Comparing statistical methods for constructing large
+scale gene networks. PLOS One 7, e29348 (2012).
+[37] M. E. J. Newman, Network structure from rich but noisy
+data. Preprint arXiv:1703.07376 (2017).
+[38] T. Martin, B. Ball, and M. E. J. Newman, Structural in-
+ference for uncertain networks. Phys. Rev. E 93, 012306
+(2016).
+[39] C. M. Le and E. Levina, Estimating a network from
+multiple noisy realizations. Preprint arXiv:1710.04765
+(2017).
+[40] P. W. Holland, K. B. Laskey, and S. Leinhardt, Stochas-
+tic blockmodels: Some ﬁrst steps. Social Networks 5,
+109–137 (1983).
+[41] P. J. Bickel and A. Chen, A nonparametric view of
+network models and Newman–Girvan and other modu-
+larities. Proc. Natl. Acad. Sci. USA 106, 21068–21073
+(2009).
+[42] B. Karrer and M. E. J. Newman, Stochastic blockmodels
+and community structure in networks. Phys. Rev. E 83,
+016107 (2011).
+[43] A. P. Dempster, N. M. Laird, and D. B. Rubin, Maximum
+likelihood from incomplete data via the EM algorithm.
+J. R. Statist. Soc. B 39, 185–197 (1977).
+[44] G. J. McLachlan and T. Krishnan, The EM Algorithm
+and Extensions. Wiley-Interscience, New York, 2nd edi-
+tion (2008).
+[45] S. Wasserman and K. Faust, Social Network Analysis.
+Cambridge University Press, Cambridge (1994).
+[46] C. Borgs, J. T. Chayes, L. Lov´asz, V. T. S´os, and
+K. Vesztergombi, Convergent sequences of dense graphs
+I: Subgraph frequencies, metric properties and testing.
+Adv. Math. 219, 1801–1851 (2008).
+[47] L. Lov´asz, Large Networks and Graph Limits, volume 60
+of American Mathematical Society Col loquium Publica-
+tions. American Mathematical Society, Providence, RI
+(2012).
+[48] M. E. J. Newman, Mixing patterns in networks. Phys.
+Rev. E 67, 026126 (2003).
+[49] A.-L. Barab´asi and R. Albert, Emergence of scaling in
+random networks. Science 286, 509–512 (1999).
+[50] L. A. N. Amaral, A. Scala, M. Barth´elemy, and H. E.
+Stanley, Classes of small-world networks. Proc. Natl.
+Acad. Sci. USA 97, 11149–11152 (2000).
+[51] M. Molloy and B. Reed, A critical point for random
+graphs with a given degree sequence. Random Structures
+and Algorithms 6, 161–179 (1995).
+[52] M. E. J. Newman, S. H. Strogatz, and D. J. Watts, Ran-
+dom graphs with arbitrary degree distributions and their
+applications. Phys. Rev. E 64, 026118 (2001).
+[53] F. Chung and L. Lu, The average distances in random
+graphs with given expected degrees. Proc. Natl. Acad.
+Sci. USA 99, 15879–15882 (2002).
+[54] N. Aharony, W. Pan, C. Ip, I. Khayal, and A. Pent-
+land, Social fMRI: Investigating and shaping social mech-
+anisms in the real world. Pervasive and Mobile Comput-
+ing 7, 643–659 (2011).
+[55] J. Karikoski and M. Nelimarkka, Measuring social rela-
+tions with multiple datasets. Int. J. Social Computing
+and Cyber-Physical Systems 1, 98–113 (2011).
+[56] A. Stopczynski, V. Sekara, P. Sapiezynski, A. Cuttone,
+M. M. Madsen, J. E. Larsen, and S. Lehmann, Measuring
+large-scale social networks with high resolution. PLOS
+One 9, e95978 (2014).
+
+18
+
+[57] C. von Mering, L. J. Jensen, B. Snel, S. D. Hooper,
+M. Krupp, M. Foglierini, N. Jouﬀre, M. A. Huynen,
+and P. Bork, STRING: Known and predicted protein-
+protein associations, integrated and transferred across or-
+ganisms. Nucleic Acids Research 33, D433–D437 (2005).
+[58] S. Boccaletti, G. Bianconi, R. Criado, C. I. del Ge-
+nio, J. Gomez-Gardenes, M. Romance, I. Sendina-Nadal,
+Z. Wang, and M. Zanin, The structure and dynamics of
+multilayer networks. Physics Reports 544, 1–122 (2014).
+[59] M. De Domenico, C. Granell, M. A. Porter, and A. Are-
+nas, The physics of multilayer networks. Nature Physics
+12, 901–906 (2016).
+[60] Y. J. Wang and G. Y. Wong, Stochastic blockmodels
+for directed graphs. Journal of the American Statistical
+Association 82, 8–19 (1987).
+[61] E. Vaquera and G. Kao, Do you like me as much as I
+like you? Friendship reciprocity and its eﬀects on school
+outcomes among adolescents. Soc. Sci. Res. 37, 55–72
+(2008).
+[62] B. Ball and M. E. J. Newman, Friendship networks and
+social status. Network Science 1, 16–30 (2013).
+[63] H. Ebel, L.-I. Mielsch, and S. Bornholdt, Scale-free topol-
+ogy of e-mail networks. Phys. Rev. E 66, 035103 (2002).
+[64] J.-P. Onnela, J. Saram¨aki, J. Hyv¨onen, G. Szab´o,
+D. Lazer, K. Kaski, J. Kert´esz, and A.-L. Barab´asi,
+Structure and tie strengths in mobile communication
+networks. Proc. Natl. Acad. Sci. USA 104, 7332–7336
+(2007).
+[65] J. Leskovec and E. Horvitz, Planetary-scale views on a
+large instant-messaging network. In Proceedings of the
+17th International Conference on the World Wide Web,
+pp. 915–924, Association of Computing Machinery, New
+York (2008).
+[66] N. Eagle and A. Pentland, Reality mining: Sensing com-
+plex social systems. Journal of Personal and Ubiquitous
+Computing 10, 255–268 (2006).
+[67] N. Eagle, A. Pentland, and D. Lazer, Inferring friend-
+ship network structure by using mobile phone data. Proc.
+Natl. Acad. Sci. USA 106, 15274–15278 (2009).
+[68] J. A. Dunne, C. C. Labandeira, and R. J. Williams,
+Highly resolved early Eocene food webs show devel-
+opment of modern trophic structure after the end-
+Cretaceous extinction. Proc. R. Soc. London B 281,
+20133280 (2014).
+[69] M. D. Resnick, P. S. Bearman, R. W. Blum, K. E. Bau-
+man, K. M. Harris, J. Jones, J. Tabor, T. Beuhring, R. E.
+Sieving, M. Shew, M. Ireland, L. H. Bearinger, and J. R.
+Udry, Protecting adolescents from harm: Findings from
+the National Longitudinal Study on Adolescent Health.
+Journal of the American Medical Association 278, 823–
+832 (1997).
+[70] This research uses data from Add Health, a program
+pro ject directed by Kathleen Mullan Harris and de-
+signed by J. Richard Udry, Peter S. Bearman, and Kath-
+leen Mullan Harris at the University of North Car-
+olina at Chapel Hill, and funded by grant P01–HD31921
+from the Eunice Kennedy Shriver National Institute of
+Child Health and Human Development, with coopera-
+tive funding from 23 other federal agencies and founda-
+tions. Special acknowledgment is due Ronald R. Rind-
+fuss and Barbara Entwisle for assistance in the orig-
+inal design. Information on how to obtain the Add
+Health data ﬁles is available on the Add Health website
+
+(http://www.cpc.unc.edu/addhealth). No direct sup-
+
+port was received from grant P01–HD31921 for this anal-
+ysis.
+
+19
+
+

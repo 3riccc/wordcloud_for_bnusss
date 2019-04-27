@@ -1,0 +1,1264 @@
+Dynamical networks reconstructed from time series
+
+Zoran Levnaji ´c
+Faculty of Information Studies in Novo mesto
+Sevno 13, p.p. 299, 8000 Novo mesto, Slovenia
+
+zoran.levnajic@fis.unm.si
+
+2
+1
+0
+2
+
+t
+
+c
+
+O
+
+6
+
+]
+
+n
+
+a
+
+-
+
+a
+
+t
+
+a
+
+d
+
+.
+
+s
+
+c
+
+i
+
+s
+
+y
+h
+p
+
+[
+
+3
+v
+9
+1
+2
+0
+
+.
+
+9
+0
+2
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+Abstract. Novel method of reconstructing dynamical networks from empirically measured time series is proposed. By exam-
+ining the variable –derivative correlation of network node pairs, we derive a simple equation that directly yields the adjacency
+matrix, assuming the intra-network interaction functions to be known. We illustrate the method on a simple example, and
+discuss the dependence of the reconstruction precision on the properties of time series. Our method is applicable to any
+network, allowing for reconstruction precision to be maximized, and errors to be estimated.
+
+Keywords. complex networks, reconstruction, reverse engineering, dynamics on networks, computational models.
+
+1
+
+Introduction
+
+Complex systems are ubiquitous in nature. On all scales from genes to societies, various systems are composed of many
+units, which are able to collectively perform complicated tasks despite their simplicity [1]. In the recent years, the framework
+of complex networks was recognized as an excellent formalism for studying complex systems. By representing units as nodes
+and modeling their interactions as links [2], science of complex networks introduced graph analysis methods into physics,
+biology, engineering and even sociology [3]. This allowed for a variety of real and artiﬁcial complex systems to be exten sively
+examined, typically via computational modeling [4]. Crucial aspect of a complex network is its structure, i.e. the topology
+of connections among its nodes. Properties of network structure dictate its global behavior, and are key to understanding the
+network’s functioning and potentials for its control. For simple oscillator models, profound intertwinement between network
+structure and network dynamics was recently shown [5].
+Since the structure of many natural networks is only partially known, it is of central interest to develop methods for recon-
+structing the network structure from the available empirical information. Various experimental techniques in this directions
+are already in use, specially in the context of gene regulation networks [6]. In addition, a range of mathematical results is
+available [7]. Recently, the topology of a social network was inferred using mobile phone data [8]. Invasive reconstruction
+methods involve perturbing the network dynamics which allows for structural data to be easily extracted [9]. Although inva-
+sive methods generally give good results, it is often unpractical to interact with the on-going network dynamics. Non-invasive
+reconstruction methods focus on investigation of the observable network outputs, such as the time series quantifying the
+system’s dynamics [10, 11, 12, 13]. The relevance of non-invasive approach is increasingly recognized, particularly due its
+suitability for detecting links in biological networks [12, 13]. Alternatively, reconstruction methods also rely on techniques
+from control theory [14], and even compressive sensing [15].
+In this contribution, we propose a novel network reconstruction method, based on examining the correlations between
+the variables and the derivatives corresponding to different nodes. Our central assumption is the precise knowledge of the
+functional forms of the intra-network interactions. As we show, depending on the quantity of network information contained
+in the empirical data, our method can give very precise results even for very short time series, thus being suitable for actual
+experimental situations. Apart from being non-invasive, our method is conceptually very simple, and easy to numerically
+implement. In contrast to a recent result based on the same hypothesis [10], our method avoids solving the overdetermined
+linear system, and allows for the reconstruction error to be estimated.
+
+2 The Reconstruction Model
+
+We consider a complex system composed of N interacting units, which we represent as a network with N nodes, whose links
+model the interaction between the nodes. Each node is assigned a dynamical state de ﬁned by the real variable xi ≡ xi (t),
+where i = 1, . . . N . We assume to be in the possession of empirically obtained discrete-time trajectories xi (tm ) which
+describe the system’s dynamical evolution over a certain time interval. The available data consists of N sequences, each
+containing L values xi (t1 ), . . . xi (tL ). The measurements of xi are separated by the observation interval δt = tm+1 − tm ,
+which de ﬁnes the resolution of the time series (sampling fre quency). Time interval δt is uniform and assumed smaller than
+the characteristic dynamical time scale.
+
+ 
+ 
+ 
+ 
+ 
+ 
+We further assume the time-evolution of the node i to be given by:
+
+˙xi = fL (xi ) +
+
+Aj i fC (xj ) ,
+
+N
+
+Xj=1
+
+(1)
+
+where we describe the local dynamics via function fL (x), and the network (inter-node) interaction by the function fC . The
+network structure is encoded in the adjacency matrix Aij , whose element ij speciﬁes the strength with which the node i acts
+on the node j . The dynamics of the node i is a cumulative effect of its local dynamics and the sum of contributions from its
+networks neighbors that come with different strengths. Finally, we also assume that both interaction functions fL and fC are
+precisely known.
+We seek to reconstruct the network’s adjacency matrix Aij under the named assumptions – by having the “
+ﬁngerprint”
+of system’s behavior, we attempt to reveal its structure. The above assumptions on which we build our theory are realistic.
+Many natural systems are modeled using Eq.1: examples include gene regulation and neural interactions, for which the
+interaction functions are widely investigated, and do not vary with network links. Modern experimental techniques allow for
+high-resolution measurements of quantities such as gene expression, although thus obtained time series are typically short.
+When examining inter-dependence between dynamical quantities, one is typically interested in calculating the correlation
+between two dynamical variables. Inspired by this, we construct our theory based on investigating the correlation between a
+variable (xi ) and the derivative of another variable ( ˙xj ). We hence examine the correlation between the motion of the node i,
+and the speed of node j . We start by de ﬁning the following matrices:
+
+Bij = hxi ˙xj i ,
+Cij = hxi fL (xj )i ,
+Eij = hxi fC (xj )i ,
+
+(2)
+
+where h·i denotes the time-average of a dynamical quantity (i.e., average over the recorded time-evolution) hhi = 1
+This allows for Eq.1 to be re-written in the matrix form:
+
+m=1 h(tm ).
+
+L PL
+
+which is our main network reconstruction equation. We introduce a new set of time points:
+
+Aij = (Bik − Cik ) · E−1
+
+kj ,
+
+(3)
+
+so that
+
+and accordingly:
+
+τm =
+
+tm+1 − tm
+
+2
+
+, m = 1, . . . , L − 1 ,
+
+˙xi (τm ) =
+
+xi (tm+1 ) − xi (tm )
+δt
+
+,
+
+fL,C (τm ) =
+
+fL,C (tm+1 ) + fL,C (tm )
+
+2
+
+.
+
+This provides a more stable estimation of both interaction function values and the derivative values. We will rely on this
+calculation scheme for the implementation of our theory through Eq.3. Note that in principle, our method is applicable to any
+network, and the reconstruction is precisely correct in the limit of very long time series. However, since the empirical data
+are not only ﬁnite, but typically very short, our method will
+in general yield an approximate reconstruction.
+To discern from the original adjacency matrix Aij , we term the reconstructed adjacency matrix Rij , and quantify the
+matrix reconstruction error as follows:
+
+∆A = s Pij [Rij − Aij ]2
+
+ij
+
+.
+
+Pij A2
+
+Natural test to make for each obtained Rij is to quantify how well does it reproduce the original empirical data xi (tm ). To
+achieve this, we apply the following procedure: start the run from xi (t1 ) for all nodes, and run the dynamics using adjacency
+matrix Rij for the time interval δt , i.e. until the time t2 . Denote thus obtained values yi (t2 ), re-start the run from xi (t2 )
+running until t3 , accordingly obtaining yi (t3 ), and so on. The discrepancy that the time series yi (tm ) show in comparison to
+xi (tm ) is the most straightforward measure of the reconstruction precision for matrix Rij . We name it trajectory error ∆T ,
+and de ﬁne as follows:
+
+∆T =
+
+1
+
+N Xi s Pm [xi (tm ) − yi (tm )]2
+Pm [xi (tm ) − ¯xi ]2
+
+.
+
+This way we measure point-by-point exactness of the reconstructed trajectory, which quantiﬁes how well does it conform to
+the empirical data. Small ∆T is necessary, but not sufﬁcient for a good reconstruction – e
+asily reproducible time series (such
+as periodic orbits) always display very small ∆T regardless of ∆A , since many different networks can produce such data. On
+the other hand, hardly reproducible time series (such as transient or chaotic orbits) may show large ∆T that does not imply
+large ∆A . However, as we show, two errors are in general related, allowing for estimation of ∆A based on Rij and ∆T only.
+
+3 Results
+
+We test our reconstruction method using a simple illustrative example. A network with N = 6 nodes is constructed by placing
+L = 17 directed links between randomly chosen pairs of nodes, while requiring the resulting network to be connected. Links
+are weighted with positive and negative weights, uniformly selected at random from [−10, 10]. The studied network is
+illustrated in Fig.1, and its adjacency matrix Aij is shown in Fig.3a. The dynamics is de ﬁned on the network via H ansel-
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+Figure 1: Graphical representation of the studied network. Link thickness illustrates the interaction strength. Red/blue link
+colors (light/dark shades) indicate positive/negative inter-node interactions. Nodes are numbered in accordance with the
+adjacency matrix shown in Fig.3a.
+
+Sompolinsky model [16] by putting fL = −x and fC = tanh x in Eq.1. The complete dynamics on network reads:
+
+˙xi = −xi +
+
+6
+Xj=1
+
+Aj i tanh(xj ) .
+
+(4)
+
+For each node we randomly select an initial condition from [−1, 1], and numerically integrate Eq.4 from time t = 0 to t = 3.
+During the run, we store 15 values for each xi , equally spaced in time, starting with xi (t1 = 0). Thus obtained time series
+for all nodes are shown in Fig.2.
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+1
+
+t
+
+-2
+
+-1.8
+
+-1.6
+
+-1.4
+
+-1.2
+
+-1
+
+-0.8
+
+-0.6
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+2
+
+t
+
+-1.5
+
+-1
+
+-0.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+3
+
+t
+
+-0.4
+
+-0.2
+
+ 0
+
+ 0.2
+
+ 0.4
+
+ 0.6
+
+ 0.8
+
+ 1
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+4
+
+t
+
+ 0
+
+ 0.2
+
+ 0.4
+
+ 0.6
+
+ 0.8
+
+ 1
+
+ 1.2
+
+ 1.4
+
+ 1.6
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+5
+
+t
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+6
+
+t
+
+Figure 2: Time series for all 6 nodes for network Fig.1, obtained for the ﬁrst set of initial conditions.
+
+We assume now these time series to be obtained from an “extern al” source (e.g. coming from experimental measurement),
+and seek to employ them to reconstruct the network’s adjacency matrix as discussed in the previous Section. To this end, we
+numerically compute the matrices Bij , Cij and Eij , and obtain the reconstructed adjacency matrix Rij via Eq.3. The result
+is shown in Fig.3 – the original Aij in (a), the reconstructed Rij in (b), and link-by-link comparison of Aij and Rij in (c).
+The reconstructed matrix Rij reasonably well approximates the original Aij , both for zero and non-zero weights. The matrix
+error is ∆A = 0.18, and the trajectory error is ∆T = 0.038, indicating a good reconstruction precision.
+We now run another simulation of our dynamical system Eq.4 with the same underlying network, but this time starting
+from a different set of initial conditions. A new set of time series of equal size and resolution is obtained and shown in Fig.4,
+from which we seek to reconstruct our network again. The new results are shown in Fig.5, and organized in analogy with
+Fig.3. The new Rij has matrix error ∆A = 0.56 and a trajectory error of ∆T = 0.05, which is considerably worse than in
+the previous example, as it can also be clearly seen by comparing Fig.3c and Fig.5c.
+Despite that both sets of time series were produced by the same dynamical network, two reconstructed networks are
+different. This shows that besides depending on the length and resolution of the time series, the reconstruction precision
+crucially depends on the “quality ” of time series as well, i.
+e. on the quantity of network information contained in them.
+Easily reproducible data contains less information than hardly reproducible data. As just illustrated, a given dynamical
+network can yield different time series depending on the initial conditions. Is there a relation between the two errors that
+
+(a)
+
+(c)
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+-9
+
+-6
+
+-3
+
+ 0
+
+ 3
+
+ 6
+
+ 9
+
+(b)
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+-9
+
+-6
+
+-3
+
+ 0
+
+ 3
+
+ 6
+
+ 9
+
+-9
+
+-6
+
+-3
+
+ 0
+
+ 3
+
+ 6
+
+ 9
+
+i
+
+Aij
+
+Rij
+
+Figure 3: Original Aij and reconstructed Rij adjacency matrices in (a) and (b) respectively. Colorbar (shade) indicates the
+weights obtained from time series Fig.2. Link-by-link weights comparison of Aij (circles) and Rij (crosses) in (c). Matrix
+error ∆A = 0.18, trajectory error ∆T = 0.038.
+
+-2
+
+-1
+
+ 0
+
+ 1
+
+ 2
+
+ 3
+
+ 4
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+1
+
+t
+
+-2.5
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+ 0
+
+ 0.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+2
+
+t
+
+-2
+
+-1.5
+
+-1
+
+-0.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+3
+
+t
+
+-1
+
+-0.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+4
+
+t
+
+ 1.2
+ 1
+ 0.8
+ 0.6
+ 0.4
+ 0.2
+ 0
+-0.2
+-0.4
+-0.6
+-0.8
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+5
+
+t
+
+ 2.5
+ 2
+ 1.5
+ 1
+ 0.5
+ 0
+-0.5
+-1
+-1.5
+-2
+
+ 0
+
+ 0.5
+
+ 1
+
+ 1.5
+
+ 2
+
+ 2.5
+
+ 3
+
+x
+
+6
+
+t
+
+Figure 4: Time series for all 6 nodes for network Fig.1, obtained for the second set of initial conditions.
+
+(a)
+
+(c)
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+-9
+
+-6
+
+-3
+
+ 0
+
+ 3
+
+ 6
+
+ 9
+
+(b)
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+-9
+
+-6
+
+-3
+
+ 0
+
+ 3
+
+ 6
+
+ 9
+
+-9
+
+-6
+
+-3
+
+ 0
+
+ 3
+
+ 6
+
+ 9
+
+i
+
+Aij
+
+Rij
+
+Figure 5: Original Aij and reconstructed Rij adjacency matrices in (a) and (b) respectively. Colorbar (shade) indicates the
+weights obtained from time series Fig.4. Link-by-link weights comparison of Aij (circles) and Rij (crosses) in (c). Matrix
+error ∆A = 0.56, trajectory error ∆T = 0.05.
+
+could be used to estimate ∆A based only on ∆T , independently on the “quality ” of time series? The ﬁnal Sec
+paper is devoted to providing at least a preliminary answer to this question.
+
+tion of this
+
+4 Discussion
+
+The proposed reconstruction method in principle applies to any network whose inter-node interactions can be described via
+Eq.1. The ﬁnal reconstruction precision depends on a number of factors: (i) length and resolution of time series, also related
+to the precision of derivative estimates; (ii) quantity of network information contained in the empirical data, which can be
+seen as reproducibility of the time series, or coverage of the dynamical phase space with data; (iii) invertibility of the matrix
+Eij ; and ﬁnally, ( iv) properties of the network itself – some networks can be more reconstructable than others. In a concrete
+reconstruction problem, it is difﬁcult to isolate how much e ach factor contributes to ∆A . Instead of quantifying this, we show
+a generalization of our method, done towards improving the reconstruction precision and estimating reconstruction errors.
+Our method is based on calculating the correlations between the variable xi and other terms, as de ﬁned in Eq.2. More
+generally, we can replace xi by g (xi ), where g is an arbitrary function, without changing the main result. Eq.2 now becomes:
+
+B (g)
+C (g)
+E (g)
+
+ij = hg (xi ) ˙xj i ,
+= hg (xi )fL (xj )i ,
+= hg (xi )fC (xj )i ,
+
+ij
+
+ij
+
+(5)
+
+where notation B (g)
+
+ij
+
+indicates that the matrix Bij was calculated via Eq.5 using function g . Eq.3, which now reads:
+
+R(g)
+ij = (cid:0)B (g)
+ij − C (g)
+ij (cid:1) · E (g)
+
+ij
+
+−1 ,
+
+(6)
+
+still holds for any function g . As before, in the limit of very long time series, the reconstruction is precisely correct for any
+choice of g . For realistic scenarios involving very short time series, the reconstruction precision will depend on g , as two
+different g -s will in general yield two different R(g)
+ij -s. This means that g plays the role of a tunable parameter, which can be
+used to ﬁnd the best reconstruction. By considering a set of f unctions g , we can compute R(g)
+for each of them, and de ﬁne
+as the best reconstruction that R(g)
+ij whose reconstructed dynamics shows minimal ∆(g)
+T (we generalize matrix and trajectory
+errors to depend on g ). A good choice of g will extract more extractable network information hidden in the empirical data,
+and improve the simple reconstruction for g (x) = x. Moreover, variations of R(g)
+ij with g are related to the reconstruction
+precision – for a reliable reconstruction, the obtained R(g)
+ij will not strongly depend on changes of g . On the other hand, a
+bad reconstruction will be recognized by a drastic dependence of R(g)
+ij on g . Note that the functional properties of g itself are
+irrelevant – the only role of g is the computation of R(g)
+To illustrate the implementation of our generalized method, we examine again the second set of time series shown in
+Fig.4. We consider the set of functions g (x) = xn , where for n we take integers between -20 and 20 (except 0). The network
+is reconstructed using Eq.6 for each g , and the corresponding ∆(g)
+T are calculated. The results are shown in Fig.6,
+where each R(g)
+is represented through its ∆(g)
+A . There is a visible correlation between the two errors, suggesting
+
+A and ∆(g)
+
+T and ∆(g)
+
+ij .
+
+ij
+
+ij
+
+ 1
+
+g(x)=x
+
+)
+
+g
+
+(
+
+A
+∆
+
+g(x)=x19
+
+ 0.1
+
+ 0.01
+
+ 0.1
+
+(g)
+
+∆
+
+T
+
+Figure 6: Reconstructions using many functions g . Each point is speciﬁed by ∆(g)
+A corresponding to R(g)
+ij obtained
+via one of g (x) = xn for n integer between -20 and 20 except 0. Points obtained for g (x) = x and g (x) = x19 are indicated.
+
+T and ∆(g)
+
+that smaller ∆(g)
+T , on average, leads to a smaller ∆(g)
+A . Following this principle, for function g (x) = x19 we ﬁnd the smallest
+trajectory error ∆(g)
+A = 0.11. As indicated in Fig.6, this result is much better than what obtained
+for g (x) = x. In addition, this result is better than the one found for time series from Fig.2. For comparison, we show the
+reconstruction for g (x) = x19 in Fig.7. Note however, that this is not the best result in terms of ∆(g)
+
+T = 0.02 leading to ∆(g)
+
+A : for g (x) = x−6 we
+
+6
+
+5
+
+4
+
+3
+
+2
+
+1
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+6
+
+5
+
+4
+
+3
+
+2
+
+1
+
+ 9
+
+ 6
+
+ 3
+
+ 0
+
+-3
+
+-6
+
+-9
+
+(a)
+
+ 9
+
+ 6
+
+ 3
+
+ 0
+
+-3
+
+-6
+
+-9
+
+ 9
+
+ 6
+
+ 3
+
+ 0
+
+-3
+
+-6
+
+-9
+
+Aij
+
+Rij
+
+1
+
+2
+
+3
+
+4
+
+5
+
+6
+
+(b)
+
+i
+
+(c)
+
+Figure 7: Original Aij and reconstructed R(g)
+ij adjacency matrices in (a) and (b) respectively. Colorbar (shade) indicates the
+weights obtained from time series Fig.4, using the function g (x) = x19 . Link-by-link weights comparison of Aij (circles)
+(crosses). Matrix error ∆(g)
+A = 0.11, trajectory error ∆(g)
+
+T = 0.02.
+
+and R(g)
+
+ij
+
+ﬁnd ∆(g)
+
+A = 0.10, that however we missed since it has bigger trajectory error ∆(g)
+T = 0.033. This indicates that considering
+few g -s with the smallest ∆(g)
+T -s we can construct an error bar on each element of R(g)
+ij , thus de ﬁning a con ﬁdence interval
+for each reconstructed value of R(g)
+ij . As clear from Fig.6, a cluster of points around g (x) = x19 is a good candidate for such
+
+set of R(g)
+ij -s. Of course, considering many linearly independent g -s from a given functional family would yield a much better
+best R(g)
+ij and more con ﬁdent error bars.
+These ﬁndings suggest that through the appropriate tuning o f g , we can compensate for the “low quality ” of time series,
+which can considerably improve the reconstruction precision, and even allow for estimation of ∆A . The question of selecting
+the optimal function g which extracts all the network information contained in the time series remains open. Most straightfor-
+wardly, one can search for such g via Monte Carlo method using many linearly independent functions. An intriguing result
+would be a way to design the optimal g based on the time series and interaction functions. On the other hand, the best g might
+be obtainable through techniques such as evolutionary optimization algorithms or machine learning.
+We ﬁnish the paper by discussing the limits and proposing fur ther extensions of our method. Our strongest hypothesis
+is the precise knowledge of interaction functions. Despite the availability of good mathematical models for many natural
+interactions, lifting this assumption would greatly enhance the generality of our theory. When approximate functional forms
+are known, interaction functions can be expanded in series, facilitating their reconstruction. This would mean that for each g ,
+we obtain not just R(g)
+ij , but also f (g)
+C . This leads to a possibility of obtaining many different networks, all reproducing
+empirical data equally well, but in pair with different interaction functions. Another extension regards our assumption that the
+mathematical form of interactions is given by Eq.1. While a similar theory could be developed for any known form of Eq.1,
+the problem arises for networks whose interactions form is not known. Furthermore, since noise is present in all physical
+processes and experimental measurements, our method should be applicable to noisy empirical data. Finally, we note that our
+problem of network reconstruction is similar to the problem of designing a network with prescribed dynamics. One can use
+our method to design a network that displays given time series, by specifying the tolerance in ∆T .
+
+L and f (g)
+
+5 Acknowledgments
+
+Many thanks to Arkady for contributing the original idea, in addition to Misha, Šuki and Bernard for constructive sugges tions.
+
+References
+
+[1] A. S. Mikhailov; V. Calenbuhr. From Cells to Societies: Models of Complex Coherent Action. Springer, 2006.
+
+[2] S. N. Dorogovtsev. Lectures on Complex Networks. Oxford University Press, 2010.
+
+[3] L. F. Costa et al. Analyzing and modeling real-world phenomena with complex networks: a survey of applications. Adv.
+Phys. 60(3), 329, 2011.
+
+[4] Z. Levnaji ´c; A. Pikovsky. Phase resetting of collective rhythm in ensembles of oscillators. Phys. Rev. E 82, 056202, 2010.
+
+[5] Z. Levnaji ´c. Emergent multistability and frustration in phase-repulsive networks of oscillators. Phys. Rev. E 84, 016231,
+2011.
+
+[6] F. Geier; J. Timmer; C. Fleck. Reconstructing gene-regulatory networks from time series, knock-out data, and prior
+knowledge. BMC Sys. Biol. 1, 11, 2007. M. Hecker et al. Gene regulatory network inference: Data integration in dynamic
+models - A review. Biosystems 96(1), 86, 2009.
+
+[7] L. L ü; T. Zhou. Link prediction in complex networks: A sur vey. Physica A 390(6), 1150, 2011.
+
+[8] N. Eagle; A. Pentland; D. Lazer. Inferring friendship network structure by using mobile phone data. Proc. Nat. Acad. Sci.
+USA 106(36), 15274, 2009.
+
+[9] Z. Levnaji ´c; A. Pikovsky. Network Reconstruction from Random Phase Resetting. Phys. Rev. Lett. 107, 034101, 2011.
+M. Timme. Revealing Network Connectivity from Response Dynamics. Phys. Rev. Lett. 98, 224101, 2007.
+
+[10] S. G. Shandilya; M. Timme. Inferring network topology from complex dynamics. New J. Phys. 13, 013004, 2011.
+
+[11] B. Kralemann; A. Pikovsky; M. Rosenblum. Reconstructing phase dynamics of oscillator networks. CHAOS 21, 025104,
+2011.
+
+[12] S. Hempel et al. Inner Composition Alignment for Inferring Directed Networks from Short Time Series. Phys. Rev. Lett.
+107, 054101, 2011.
+
+[13] Q. Xia et al. Inference of gene regulatory networks with the strong-inhibition Boolean model. New J. Phys. 13, 083002,
+2011.
+
+[14] D. Yu; M. Righero; Lj. Kocarev. Estimating Topology of Networks. Phys. Rev. Lett. 97, 188701, 2006.
+
+[15] W. Wang. Network Reconstruction Based on Evolutionary-Game Data via Compressive Sensing. Phys. Rev. X 1,
+021021, 2011.
+
+[16] D. Hansel; H. Sompolinsky. Solvable Model of Spatiotemporal Chaos. Phys. Rev. Lett. 71, 2710, 1993.
+
+

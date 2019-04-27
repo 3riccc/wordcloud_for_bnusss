@@ -1,0 +1,1249 @@
+9
+1
+0
+2
+
+r
+
+a
+
+M
+
+8
+2
+
+]
+
+G
+
+L
+
+.
+
+s
+
+c
+
+[
+
+1
+v
+0
+6
+9
+1
+1
+
+.
+
+3
+0
+9
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+Learning Discrete Structures for Graph
+Neural Networks
+
+Luca Franceschi1,2, ∗, Mathias Niepert3 , Massimiliano Pontil1,2 , Xiao He3
+
+(1) Istituto Italiano di Tecnologia, Genoa, Italy
+
+{luca.franceschi,massimiliano.pontil}@iit.it
+
+(2) Dept of Computer Science, University College London, UK
+
+(3) NEC Labs Europe, Heidelberg, Germany
+
+{mathias.niepert,xiao.he}@neclab.eu
+
+Abstract
+
+Graph neural networks (GNNs) are a popular class of machine learning models whose ma jor advantage
+is their ability to incorporate a sparse and discrete dependency structure between data points.
+Unfortunately, GNNs can only be used when such a graph-structure is available. In practice, however,
+real-world graphs are often noisy and incomplete or might not be available at all. With this work,
+we propose to jointly learn the graph structure and the parameters of graph convolutional networks
+(GCNs) by approximately solving a bilevel program that learns a discrete probability distribution on
+the edges of the graph. This allows one to apply GCNs not only in scenarios where the given graph
+is incomplete or corrupted but also in those where a graph is not available. We conduct a series of
+experiments that analyze the behavior of the proposed method and demonstrate that it outperforms
+related methods by a signiﬁcant margin.
+
+1
+
+Introduction
+
+Relational learning is concerned with methods that cannot only leverage the attributes of data points but
+also their relationships. Diagnosing a patient, for example, not only depends on the patient’s vitals and
+demographic information but also on the same information about their relatives, the information about
+the hospitals they have visited, and so on. Relational learning, therefore, does not make the assumption
+of independence between data points but models their dependency explicitly. Graphs are a natural way to
+represent relational information and there is a large number of machine learning algorithms leveraging
+graph structure. Graph neural networks (GNNs) (Scarselli et al., 2009) are one such class of algorithms
+that are able to incorporate sparse and discrete dependency structures between data points.
+
+While a graph structure is available in some domains, in others it has to be inferred or constructed. A
+possible approach is to ﬁrst create a k-nearest neighbor (kNN) graph based on some measure of similarity
+between data points. This is a common strategy used by several learning methods such as LLE (Roweis &
+Saul, 2000) and Isomap (Tenenbaum et al., 2000). A ma jor shortcoming of this approach, however, is
+that the eﬃcacy of the resulting models hinges on the choice of k and, more importantly, on the choice
+
+∗Work done while visiting researcher at NEC Labs Europe.
+
+1
+
+ 
+ 
+ 
+ 
+ 
+ 
+of a suitable similarity measure over the input features. In any case, the graph creation and parameter
+learning steps are independent and require heuristics and trial and error. Alternatively, one could simply
+use a kernel matrix to model the similarity of examples implicitly at the cost, however, of introducing a
+dense dependency structure which may be problematic from a computational point of view.
+
+With this paper, we follow a diﬀerent route with the aim of learning discrete and sparse dependencies
+between data points while simultaneously training the parameters of graph convolutional networks (GCN),
+a class of GNNs. Intuitively, GCNs learn node representations by passing and aggregating messages
+between neighboring nodes (Kipf & Welling, 2017; Monti et al., 2017; Gilmer et al., 2017; Hamilton et al.,
+2017; Duran & Niepert, 2017; Velickovic et al., 2018). We propose to learn a generative probabilistic model
+for graphs, samples from which are used both during training and at prediction time. Edges are modelled
+with random variables whose parameters are treated as hyperparameters in a bilevel learning framework
+(Franceschi et al., 2018). We iteratively sample the structure while minimizing an inner ob jective (a training
+error) and optimize the edge distribution parameters by minimizing an outer ob jective (a validation error).
+
+To the best of our knowledge, this is the ﬁrst method that simultaneously learns the graph and the
+parameters of a GNN for semi-supervised classiﬁcation. Moreover, and this might be of independent interest,
+we adapt gradient-based hyperparameter optimization to work for a class of discrete hyperparameters
+(edges, in this work). The proposed approach makes GNNs applicable to problems where the graph is
+incomplete or entirely missing. We conduct a series of experiments and show that the proposed method
+is competitive with and often outperforms existing approaches. We also verify that the resulting graph
+generative models have meaningful edge probabilities.
+
+2 Background
+
+We ﬁrst provide some background on graph theory, graph neural networks, and bilevel programming.
+
+2.1 Graph Theory Basics
+
+A graph G is a pair (V , E ) with V = {v1 , ..., vN } the set of vertices and E ⊆ V × V the set of edges. Let
+otherwise. The graph Laplacian is deﬁned by L = D − A where Di,i = (cid:80)
+matrix A of size N × N , where Ai,j = 1 if there is an edge from vertex vi to vertex vj , and Ai,j = 0
+N be the number of vertices and M the number of edges. Each graph can be represented by an adjacency
+j Ai,j and Di,j = 0 if i (cid:54)= j . We
+denote the set of all N × N adjacency matrices by HN .
+
+2.2 Graph Neural Networks
+
+Graph neural networks are a popular class of machine learning models for graph-structured data. We focus
+All GNNs have the same two inputs. First, a feature matrix X ∈ XN ⊂ RN ×n where n is the number of
+speciﬁcally on graph convolutional networks (GCNs) and their application to semi-supervised learning.
+diﬀerent node features, second, a graph G = (V , E ) with adjacency matrix A ∈ HN . Given a set of class
+labels Y and a labeling function y : V → Y that maps (a subset of ) the nodes to their true class label, the
+ob jective is, given a set of training nodes VTrain , to learn a function
+fw : XN × HN → Y N
+
+2
+
+by minimizing some regularized empirical loss
+
+(cid:88)
+
+v∈VTrain
+
+L(w, A) =
+
+(cid:96)(fw (X, A)v , yv ) + Ω(w),
+
+(1)
+
+where w ∈ Rd are the parameters of fw , fw (X, A)v is the output of fw for node v , (cid:96) : Y × Y → R+ is
+a point-wise loss function, and Ω is a regularizer. An example of the function fw proposed by Kipf &
+Welling (2017) is the following two hidden layer GCN that computes the class probabilities as
+ˆA = ˜D−1/2 (A + I ) ˜D−1/2 with ˜Di,i = (cid:80)
+fw (X, A) = Softmax( ˆA ReLu( ˆA X W1 ) W2 ),
+(2)
+where w = (W1 , W2 ) are the parameters of the GCN and ˆA is the normalized adjacency matrix, given by
+i,j (A + I )j .
+
+2.3 Bilevel Programming in Machine Learning
+
+Bilevel programs are optimization problems where a set of variables occurring in the ob jective function
+are constrained to be an optimal solution of another optimization problem (see Colson et al., 2007, for an
+overwiew). Formally given two ob jective functions F and L, the outer and inner ob jectives, and two sets
+of variables, θ ∈ Rm and w ∈ Rd , the outer and inner variables, a bilevel program is given by
+F (wθ , θ) such that wθ ∈ arg min
+min
+L(w, θ).
+
+(3)
+
+θ,wθ
+
+w
+
+Bilevel programs arise in numerous situations such as hyperparmeter optimization, adversarial, multi-task,
+and meta-learning (Bennett et al., 2006; Flamary et al., 2014; Mu˜noz-Gonz´alez et al., 2017; Franceschi
+et al., 2018). For instance, in hyperparamter optimization, the inner ob jective can be a regularized training
+error while the outer ob jective can be the corresponding unregularized validation error. θ would then be
+the coeﬃcient (hyperparameter) of the regularizer and w the parameters of the model.
+
+Solving Problem (3) is challenging since the solution sets of the inner problem are usually not available in
+closed-form. A standard approach involves replacing the minimization of L with the repeated application
+of an iterative optimization dynamics Φ such as (stochastic) gradient descent (Domke, 2012; Maclaurin
+et al., 2015; Franceschi et al., 2017). Let wθ,T denote the inner variables after T iterations of the dynamics
+Φ, that is, wθ,T = Φ(wθ,T −1 , θ) = Φ(Φ(wθ,T −2 , θ), θ), and so on. Now, if θ and w are real-valued and
+the ob jectives and dynamics smooth, we can compute the gradient of the function F (wθ,T , θ) w.r.t. θ,
+denoted throughout as the hypergradient ∇θ F (wθ,T , θ), as
+∂w F (wθ,T , θ)∇θwθ,T + ∂θ F (wθ,T , θ).
+(4)
+where the symbol ∂ denotes the partial derivative (the Jacobian) and ∇ either the gradient (for scalar
+functions) or the total derivative. The ﬁrst term can be computed eﬃciently in time O(T (d + m))
+with reverse-mode algorithmic diﬀerentiation (Griewank & Walther, 2008) by unrolling the optimization
+dynamics, repeatedly substituting wΦ,t = Φ(wθ,t−1 , θ) and applying the chain rule. This technique allows
+to optimize a number of hyperparameters several orders of magnitude greater than classic methods for
+hyperparameter optimization (Feurer & Hutter, 2018).
+
+3 Learning Discrete Graph Structures
+
+With this paper we address the challenging scenarios where a graph structure is either completely missing,
+incomplete, or noisy. To this end, we learn a discrete and sparse dependency structure between data
+
+3
+
+Figure 1: Schematic representation of our approach for learning discrete graph structures for GNNs.
+
+points while simultaneously training the parameters of a GCN. We frame this as a bilevel programming
+problem whose outer variables are the parameters of a generative probabilistic model for graphs. The
+proposed approach, therefore, optimizes both the parameters of a GCN and the parameters of a graph
+generator so as to minimize the classiﬁcation error on a given dataset. We developed a practical algorithm
+based on truncated reverse-mode algorithmic diﬀerentiation (Williams & Peng, 1990) and hypergradient
+estimation to approximately solve the bilevel problem. A schematic illustration of the resulting method is
+presented in Figure 1.
+
+3.1 Jointly Learning the Structure and Parameters
+
+Let us suppose that information about the true adjacency matrix A is missing or incomplete. Since,
+ultimately, we are interested in ﬁnding a model that minimizes the generalization error, we assume the
+existence of a second subset of instances with known target, VVal (the validation set), from which we can
+estimate the generalization error. Hence, we propose to ﬁnd A ∈ HN that minimizes the function
+
+F (wA , A) =
+
+(cid:96)(fwA (X, A)v , yv )
+
+(5)
+
+(cid:88)
+
+v∈VVal
+
+where wA is the minimizer, assumed unique, of L (see Eq. (1) and Sec. 2.3) for a ﬁxed adjacency matrix
+A. We can then consider Equations (1) and (5) as the inner and outer ob jective of a mixed-integer bilevel
+programming problem where the outer ob jective aims to ﬁnd an optimal discrete graph structure and the
+inner ob jective the optimal parameters of a GCN given a graph.
+
+The resulting bilevel problem is intractable to solve exactly even for small graphs. Moreover, it contains
+both continuous and discrete-valued variables, which prevents us from directly applying Eq. (4). A possible
+solution is to construct a continuous relaxation (see e.g. Frecon et al., 2018), another is to work with
+parameters of a probability distribution over graphs. The latter is the approach we follow in this paper.
+We maintain a generative model for the graph structure and reformulate the bilevel program in terms of
+the (continuous) parameters of the resulting distribution over discrete graphs. Speciﬁcally, we propose to
+model each edge with a Bernoulli random variable. Let HN = Conv(HN ) be the convex hull of the set
+of all adjacency matrices for N nodes. By modeling all possible edges as a set of mutually independent
+Bernoulli random variables with parameter matrix θ ∈ HN we can sample graphs as HN (cid:51) A ∼ Ber(θ).
+Eqs. (1) and (5) can then be replaced, by using the expectation over graph structures. The resulting
+bilevel problem can be written as
+
+EA∼Ber(θ) [F (wθ , A)]
+minθ∈HN
+such that wθ = arg minw EA∼Ber(θ) [L(w, A)] .
+
+(6)
+
+(7)
+
+4
+
+Aτ~Pθθ... wt+1= Φ(wt,A1) = wt - γ∇Lt(wt,A1) wt+τ= wt+τ-1 - γ∇Lt+τ-1(wt+τ-1,Aτ)...wData pointsInitializeparametersSample graphsCompute hypergradients and update θ of graph generatorGCN:Graphgenerator:A1~PθCompute gradients of and update GCN parameters wt+τ wt+τ-1 wt...Validationθ∇θ 𝔼[F(wθ,τ , θ)]nodesBy taking the expectation, both the inner and the outer ob jectives become continuous (and possibly
+smooth) functions of the Bernoulli parameters. The bilevel problem given by Eqs. (6)-(7) is still challenging
+to solve eﬃciently. This is because the solution of the inner problem is not available in closed form for
+GCNs (the ob jective is non-convex); and the expectations are intractable to compute exactly1 . An eﬃcient
+algorithm, therefore, will only be able to ﬁnd approximate stochastic solutions, that is, θi,j ∈ (0, 1).
+
+Before describing a method to solve the optimization problem given by Eqs. (6)-(7) approximately with
+hypergradient descent, we ﬁrst turn to the question of obtaining a ﬁnal GCN model that we can use for
+prediction. For a given distribution Pθ over graphs with N nodes and with parameters θ, the expected
+output of a GCN is
+
+w (X ) = EA [fw (X, A)] =
+
+f exp
+
+Pθ (A)fw (X, A).
+
+(8)
+
+Unfortunately, computing this expectation is intractable even for small graphs; we can, however, compute
+an empirical estimate of the output as
+
+(cid:88)
+
+A∈HN
+
+S(cid:88)
+
+i=1
+
+ˆfw (X ) =
+
+1
+S
+
+fw (X, Ai ),
+
+(9)
+
+where S > 0 is the number of samples we wish to draw. Note that ˆf is an unbiased estimator of f exp
+w .
+Hence, to use a GCN fw learned with the bilevel formulation for prediction, we sample S graphs from the
+distribution Pθ and compute the prediction as the empirical mean of the values of fw .
+
+Given the parametrization of the graph generator with Bernoulli variables (Pθ = Ber(θ)), one can sample
+a new graph in O(N 2 ). Sampling from a large number of Bernoulli variables, however, is highly eﬃcient,
+trivially parallelizable, and possible at a rate of millions per second. Other sampling strategies such as
+MCMC sampling are possible in constant time. Given a set of sampled graphs, it is more eﬃcient to
+connected graph, where C = (cid:80)
+evaluate a sparse GCN S times than to use the Bernoulli parameters as weights of the GCN’s adjacency
+matrix2 . Indeed, for GCN models, computing ˆfw has a cost of O(SC d), rather than O(N 2d) for a fully
+ij θij is the expected number of edges for a directed graph, and d is the
+dimension of the weights. Another advantage of using a graph-generative model is that we can interpret it
+probabilistically which is not the case when learning a dense adjacency matrix.
+
+3.2 Structure Learning via Hypergradient Descent
+
+The bilevel programming formalism is a natural ﬁt for the problem of learning both a graph generative
+model and the parameters of a GNN for a speciﬁc downstream task. Here, the outer variables θ are the
+parameters of the graph generative model and the inner variables w are the parameters of the GCN.
+
+We now discuss a practical algorithm to approach the bilevel problem deﬁned by Eqs. (6) and (7).
+Regarding the inner problem, we note that the expectation
+EA∼Ber(θ) [L(w, A)] =
+
+Pθ (A)L(w, A)
+
+(10)
+
+(cid:88)
+
+A∈HN
+
+is composed of a sum of 2N 2
+terms, which is intractable even for relatively small graphs. We can, however,
+choose a tractable approximate learning dynamics Φ such as stochastic gradient descent (SGD),
+wθ,t+1 = Φ(wθ,t , At ) = wθ,t − γt∇L(wθ,t , At )
+
+(11)
+
+1This is diﬀerent than e.g. (model free) reinforcement learning, where the ob jective function is usually unknown, depending
+in an unknown way from the action and the environment.
+2Note also that Efw (X, A) (cid:54)= fw (X, EA) = fw (X, θ), as the model fw is, in general, nonlinear.
+
+5
+
+Algorithm 1 LDS
+1: Input data: X , Y , Y (cid:48) [, A]
+2: Input parameters: η , τ [, k ]
+3: [A ← kNN(X, k)]
+4: θ ← A
+5: while Stopping condition is not met do
+t ← 0
+7: while Inner ob jective decreases do
+At ∼ Ber(θ)
+t ← t + 1
+if t = 0 (mod τ ) then
+θ ← Pro jHN
+[θ − ηG]
+end if
+end while
+16: end while
+17: return w, Pθ
+
+G ← computeHG(F , Y , θ, (wθ,i )t
+
+wθ,t+1 ← Φt (wθ,t , At )
+
+i=t−τ )
+
+6:
+
+8:
+9:
+
+10:
+11:
+12:
+13:
+14:
+15:
+
+{Init. A to kNN graph if A = 0}
+{Initialize Pθ as a deterministic distribution}
+
+{Sample structure}
+{Optimize inner ob jective}
+
+{Optimize outer ob jective}
+
+{Best found weights and prob. distribution}
+
+where γt is a learning rate and At ∼ Ber(θ) is drawn at each iteration. Under appropriate assumptions
+and for t → ∞, SGD converges to a weight vector wθ that depends on the edges’ probability distribution
+(Bottou, 2010).
+Let wθ,T be an approximate minimizer of E [L] (where T may depend on θ). We now need to compute an
+estimator for the hypergradient ∇θ EA∼Ber(θ) [F ]. Recalling Eq. (4), we have
+∇θ E [F (wθ,T , A)] = E [∇θ F (wθ,T , A)] =
+E [∂w F (wθ,T , A)∇θwθ,T + ∂AF (wθ,T , A)∇θA] .
+
+(12)
+
+where we can swap the gradient and expectation operators since the expectation is over a ﬁnite random
+variable, assuming that the loss function F bounded. We use the so-called straight-through estimator
+(Bengio et al., 2013) and set ∇θA := I (which would be 0 a.e. otherwise); ∇θA appears both explicitly in
+(12) and in the computation of ∇θwθ,T , through ∂θΦ(wθ,t , At ) (see Sec. 2.3 and Franceschi et al., 2017,
+for details). Finally, we take the single sample Monte Carlo estimator of (12) to update the parameters θ
+with pro jected gradient descent on the unit hypercube.
+
+Computing the hypergradient by fully unrolling the dynamics may be too expensive both in time and
+memory3 . We propose to truncate the computation and estimate the hypergradient every τ iterations,
+where τ is a parameter of the algorithm. This is essentially an adaptation of truncated back-propagation
+through time (Werbos, 1990; Williams & Peng, 1990) and can be seen as a short-horizon optimization
+procedure with warm restart on w. A sketch of the method is presented in Algorithm 1, while a more
+complete version that includes details on the hypergradient computation can be found in the appendix.
+Inputs and operations in squared brackets are optional.
+
+The algorithm contains stopping conditions at the outer and at the inner level. While it is natural to
+implement the latter with a decrease condition on the inner ob jective4 , we ﬁnd it useful to implement the
+ﬁrst with a simple early stopping criterion. A fraction of the examples in the validation set is held-out to
+
+3Moreover, since we rely on biased estimations of the gradients, we do not expect to gain too much from a full computation.
+4We continue optimizing L until L(wt−1 , A)(1 + ε) ≥ L(wθ,t , A), for ε > 0 (ε = 10−3 in the experiments). Since L is
+non-convex, we also use a patience window of p steps.
+
+6
+
+compute, in each outer iteration, the accuracy using the predictions of the empirically expected model (9).
+The optimization procedure terminates if there is no improvement for some consecutive outer loops. This
+helps avoiding overﬁtting the outer ob jective (6), which may be a concrete risk in this context given the
+quantity of (hyper)parameters being optimized and the relative small size of the validation sets.
+
+The hypergradients estimated with Algorithm 1 at each outer iteration are biased. The bias stems from
+both the straight-trough estimator and from the truncation procedure introduced in lines 11-13 (Tallec &
+Ollivier, 2017). Nevertheless, we ﬁnd empirically that the algorithm is able to make reasonable progress,
+ﬁnding conﬁgurations in the distribution space that are beneﬁcial for the tasks at hand.
+
+4 Experiments
+
+We conducted a series of experiments with three main ob jectives. First, we evaluated LDS on node
+classiﬁcation problems where a graph structure is available but where a certain fraction of edges is missing.
+Here, we compared LDS with graph-based learning algorithms including vanilla GCNs. Second, we wanted
+to validate our hypothesis that LDS can achieve competitive results on semi-supervised classiﬁcation
+problems for which a graph is not available. To this end, we compared LDS with a number of existing
+semi-supervised classiﬁcation approaches. We also compared LDS with algorithms that ﬁrst create k-NN
+aﬃnity graphs on the data set. Third, we analyzed the learned graph generative model to understand to
+what extent LDS is able to learn meaningful edge probability distributions even when a large fraction of
+edges is missing.
+
+4.1 Datasets
+
+Cora and Citeseer are two benchmark datasets that are commonly used to evaluate relational learners in
+general and GCNs in particular (Sen et al., 2008). The input features are bag of words and the task is
+node classiﬁcation. We use the same dataset split and experimental setup of previous work (Yang et al.,
+2016; Kipf & Welling, 2017). To evaluate the robustness of LDS on incomplete graphs, we construct
+graphs with missing edges by randomly sampling 25%, 50%, and 75% of the edges. In addition to Cora
+and Citeseer where we removed all edges, we evaluate LDS on benchmark datasets that are available in
+scikit-learn (Pedregosa et al., 2011) such as Wine, Breast Cancer (Cancer), Digits, and 20 Newsgroup
+(20news). We take 10 classes from 20 Newsgroup and use words (TFIDF) with a frequency of more than
+5% as features. We also use FMA, a dataset where 140 audio features are extracted from 7,994 music
+tracks and where the problem is genre classiﬁcation (Deﬀerrard et al., 2017). The statistics of the datasets
+are listed in Table 1.
+
+4.2 Setup and Baselines
+
+For the experiments on graphs with missing edges, we compare LDS to vanilla GCNs. In addition, we
+also conceived a method (GCN-RND) where we add randomly sampled edges at each optimization step of
+a vanilla GCN. With this method we intend to show that simply adding random edges to the standard
+training procedure of a GCN model (perhaps acting as a regularization technique) is not enough to
+improve the generalization.
+
+When a graph is completely missing, GCNs boil down to feed-forward neural networks. Therefore, we
+
+7
+
+Figure 2: Mean accuracy ± standard deviation on validation (early stopping; dashed lines) and test
+(solid lines) sets for edge deletion scenarios on Cora (left) and Citeseer (center). (Right) Validation of
+the number of steps τ used to compute the hypergradient (Citeseer); τ = 1 corresponds to alternating
+minimization. All results are obtained from ﬁve runs with diﬀerent random seeds.
+
+Table 1: Summary statistics of the datasets.
+|Y | Train/Valid/Test
+Samples Features
+3
+10 / 20 / 158
+2
+10 / 20 / 539
+10
+50 / 100 / 1,647
+6
+120 / 500 / 1,000
+7
+140 / 500 / 1,000
+10
+100 / 200 / 9,307
+8
+160 / 320 / 7,514
+
+178
+569
+1,797
+3,327
+2,708
+9,607
+7,994
+
+13
+30
+64
+3,703
+1,433
+236
+140
+
+Name
+
+Wine
+Cancer
+Digits
+Citeseer
+Cora
+20news
+FMA
+
+evaluate diﬀerent strategies to induce a graph on both labeled and unlabeled samples by creating (1) a
+sparse Erd˝os-R´enyi random graph (Erdos & R´enyi, 1960) (Sparse-GCN); (2) a dense graph with equal
+edge probabilities (Dense-GCN); (3) a dense RBF kernel on the input features (RBF-GCN); and (4)
+a sparse k-nearest neighbor graph on the input features (kNN-GCN). For LDS we initialize the edge
+probabilities using the k-NN graph (kNN-LDS). We further include a dense version of LDS where we
+learn a dense similarity matrix (kNN-LDS (dense)).
+
+In this setting, we compare LDS to popular semi-supervised learning methods such as label propagation
+(LP) (Zhu et al., 2003), manifold regularization (ManiReg) (Belkin et al., 2006), and semi-supervised
+embedding (SemiEmb) (Weston et al., 2012). ManiReg and SemiEmb are given a k-NN graph as input for
+the Laplacian regularization. We also compare LDS to baselines that do not leverage a graph-structure
+such as logistic regression (LogReg), support vector machines (Linear and RBF SVM), random forests
+(RF), and feed-forward neural networks (FFNN). For comparison methods that need a kNN graph,
+k ∈ {2, 3, . . . , 20} and the metric (Euclidean or Cosine) are tuned using validation accuracy. For kNN-LDS,
+k is tuned from 10 or 20.
+
+We use the two layers GCN given by Eq. (2) with 16 hidden neurons and ReLu activation. Given a set of
+L(w, A) = − (cid:88)
+labelled training instances VTrain (nodes or examples) we use the regularized cross-entropy loss
+yv ◦ log [fw (X, A)v ] + ρ||w||2
+where yv is the one-hot encoded target vector for the v -th instance, ◦ denotes the element-wise multiplication
+
+v∈VTrain
+
+(13)
+
+8
+
+255075100Retained edges (%)6570758085AccuracyGCNLDS (=5)GCN-RND255075100Retained edges (%)62.565.067.570.072.575.0GCNLDS (=5)GCN-RND255075100Retained edges (%)666870727476LDS (=1)LDS (=5)LDS (=20)Table 2: Test accuracy (± standard deviation) in percentage on various classiﬁcation datasets. The best
+results and the statistical competitive ones (by paired t-test with α = 0.05) are in bold. All experiments
+have been repeated with 5 diﬀerent random seeds. We compare kNN-LDS to several supervised baselines
+and semi-supervised learning methods. No graph is provided as input. kNN-LDS achieves high accuracy
+results on most of the datasets and yields the highest gains on datasets with underlying graphs (Citeseer,
+Cora). kNN-LDS (d) is the dense version of LDS.
+
+Wine
+
+Cancer
+
+Digits
+
+Citeseer
+
+Cora
+
+20news
+
+FMA
+
+LogReg
+Linear SVM
+RBF SVM
+RF
+FFNN
+
+LP
+ManiReg
+SemiEmb
+
+Sparse-GCN
+Dense-GCN
+RBF-GCN
+kNN-GCN
+kNN-LDS (d)
+kNN-LDS
+
+92.1 (1.3)
+93.9 (1.6)
+94.1 (2.9)
+93.7 (1.6)
+89.7 (1.9)
+
+89.8 (3.7)
+90.5 (0.1)
+91.9 (0.1)
+
+63.5 (6.6)
+90.6 (2.8)
+90.6 (2.3)
+93.2 (3.1)
+
+93.3 (0.5)
+90.6 (4.5)
+91.7 (3.1)
+92.1 (1.7)
+92.9 (1.2)
+
+76.6 (0.5)
+81.8 (0.1)
+89.7 (0.1)
+
+72.5 (2.9)
+90.5 (2.7)
+92.6 (2.2)
+93.8 (1.4)
+
+85.5 (1.5)
+87.1 (1.8)
+86.9 (3.2)
+83.1 (2.6)
+36.3 (10.3)
+
+91.9 (3.1)
+83.9 (0.1)
+90.9 (0.1)
+
+13.4 (1.5)
+35.6 (21.8)
+70.8 (5.5)
+91.3 (0.5)
+
+62.2 (0.0)
+58.3 (0.0)
+60.2 (0.0)
+60.7 (0.7)
+56.7 (1.7)
+
+23.2 (6.7)
+67.7 (1.6)
+68.1 (0.1)
+
+33.1 (0.9)
+58.4 (1.1)
+58.1 (1.2)
+68.3 (1.3)
+
+60.8 (0.0)
+58.9 (0.0)
+59.7 (0.0)
+58.7 (0.4)
+56.1 (1.6)
+
+37.8 (0.2)
+62.3 (0.9)
+63.1 (0.1)
+
+30.6 (2.1)
+59.1 (0.6)
+57.1 (1.9)
+66.5 (0.4)
+
+42.7 (1.7)
+40.3 (1.4)
+41.0 (1.1)
+40.0 (1.1)
+38.6 (1.4)
+
+37.3 (0.7)
+35.7 (1.5)
+38.3 (1.0)
+37.9 (0.6)
+33.2 (1.3)
+
+35.3 (0.9)
+46.6 (1.5)
+46.9 (0.1)
+
+14.1 (2.1)
+34.2 (1.1)
+34.1 (1.9)
+
+24.7 (1.2)
+40.1 (1.5)
+39.3 (1.4)
+41.3 (0.6)
+
+23.4 (1.4)
+34.5 (0.9)
+33.7 (1.4)
+37.8 (0.9)
+
+97.5 (1.2)
+97.3 (0.4)
+
+94.9 (0.5)
+94.4 (1.9)
+
+92.1 (0.7)
+92.5 (0.7)
+
+70.9 (1.3)
+71.5 (1.1)
+
+70.9 (1.1)
+71.5 (0.8)
+
+45.6 (2.2)
+46.4 (1.6)
+
+38.6 (0.6)
+39.7 (1.4)
+
+and ρ is a non-negative coeﬃcient. As additional regularization technique we apply dropout (Srivastava
+et al., 2014) with β = 0.5 as in previous work. We use Adam (Kingma & Ba, 2015) for optimizing L,
+tuning the learning rate γ from {0.005, 0.01, 0.02}. The same number of hidden neurons and the same
+activation is used for SemiEmb and FFNN.
+
+For LDS, we set the initial edge parameters θi,j to 0 except for the known edges (or those found by kNN)
+which we set to 1. We then let all the parameters (including those initially set to 1) to be optimized by
+the algorithm. We further split the validation set evenly to form the validation (A) and early stopping
+(B) sets. As outer ob jective we use the un-regularized cross-entropy loss on (A) and optimize it with
+stochastic gradient descent with exponentially decreasing learning rate. Initial experiments showed that
+accelerated optimization methods such as Adam or SGD with momentum underperform in this setting.
+We tune the step size η of the outer optimization loop and the number of updates τ used to compute the
+truncated hypergradient. Finally, we draw S = 16 samples to compute the output predictions (see Eq.
+(9)). For LDS and GCN, we apply early stopping with a window size of 20 steps. An important factor for
+the successful optimization of the outer ob jective is to use vanilla SGD with an exponentially decreasing
+step size.
+
+LDS was implemented5 in TensorFlow (Abadi et al., 2015). The implementations of the supervised
+baselines and LP are those from the scikit-learn python package (Pedregosa et al., 2011). GCN, ManiReg,
+and SemiEmb are implemented in Tensorﬂow. The hyperparameters for all the methods are selected
+through the validation accuracy.
+
+5 Source code will be released soon.
+
+9
+
+Table 3: Initial number of edges and expected number of sampled edges of learned graph by LDS.
+
+% Edges
+
+25%
+
+50%
+
+75%
+
+100%
+
+Cora Initial
+Cora Learned
+
+Citeseer Initial
+Citeseer Learned
+
+1357
+3635.6
+
+1183
+3457.4
+
+2714
+4513.9
+
+2366
+4474.2
+
+4071
+5476.9
+
+3549
+7842.5
+
+5429
+6276.4
+
+4732
+6745.2
+
+Figure 3: Mean edge probabilities to nodes aggregated wrt four groups during LDS optimization, in log10
+scale for three example nodes. For each example node, all other nodes are grouped by the following criteria:
+(a) adjacent in the ground truth graph; (b) same class membership; (c) diﬀerent class membership; and
+(d) unknown class membership. Probabilities are computed with LDS (τ = 5) on Cora with 25% retained
+edges. From left to right, the example nodes belong to the training, validation, and test set, respectively.
+The vertical gray lines indicate when the inner optimization dynamics restarts, that is, when the weights
+of the GCN are reinitialized.
+
+4.3 Results
+
+The results on the incomplete graphs are shown in Figure 2 for Cora (left) and Citeseer (center). For each
+percentage of retained edges the accuracy on the validation (used for early stopping) and the test set are
+plotted. LDS achieves competitive results in all scenarios and accuracy gains of up to 7 percentage points.
+Notably, LDS improves the generalization accuracy of GCN models also when the given graph is that
+of the respective dataset (100% of edges retained), by learning additional helpful edges. The accuracy
+of 84.08% and 75.04% for Cora and Citeseer, respectively, exceed all previous state-of-the-art results.
+Conversely, adding random edges does not help decreasing the generalization error. GCN and GCN-RND
+perform similarly which indicates that adding random edges to the graph is not helpful.
+
+Figure 2 (right) depicts the impact of the number of iterations τ to compute the hypergradients. Taking
+multiple steps strongly outperforms alternating optimization (i.e. τ = 1) in all settings. For τ = 1, one
+step of optimization of L w.r.t. w, ﬁxing θ is interleaved with one step of minimization of F w.r.t. θ,
+ﬁxing w. Even if computationally lighter, this approach disregards the nested structure of (6)-(7), not
+computing the ﬁrst term of Eq. (4). Increasing τ further to the value of 20, however, does not yield
+signiﬁcant beneﬁts, while increasing the computational cost.
+
+In Table 3 we computed the expected number of edges in a sampled graph for Cora and Citeseer, to
+analyze the properties of the graphs sampled from the learned graph generator. The expected number of
+edges for LDS is higher than the original number which is to be expected since LDS has better accuracy
+
+10
+
+0250500750Inner optimization steps106105104103102101100Mean probabilityTrue links (5 nodes)Same classDifferent classesUnknown classes0250500750Inner optimization steps106105104103102101100True links (1 node)Same classDifferent classesUnknown classes0250500750Inner optimization steps106105104103102101100True links (3 node)Same classDifferent classesUnknown classesFigure 4: Normalized histograms of edges’ probabilities for the same nodes of Figure 3.
+
+Figure 5: Histograms for three Citeseer test nodes, missclassiﬁed by kNN-GCN and rightly classiﬁed by
+kNN-LDS.
+
+results than the vanilla GCN in Figure 2. Nevertheless, the learned graphs are still very sparse (e.g. for
+Cora, on average, less than 0.2% edges are present). This facilitates eﬃcient learning of the GCN in the
+inner learning loop of LDS.
+
+Table 2 lists the results for semi-supervised classiﬁcation problems. The supervised learning baselines work
+well on some datasets such as Wine and Cancer but fail to provide competitive results on others such as
+Digits, Citeseer, Cora, and 20News. The semi-supervised learning baselines LP, ManiReg and SemiEmb
+can only improve the supervised learning baselines on one, three and four datasets, respectively. The results
+for the GCN with diﬀerent input graphs show that kNN-GCN works well and provides competitive results
+compared to the supervised baselines on all datasets. kNN-LDS signiﬁcantly outperforms kNN-GCN on
+four out of seven datasets. In addition, kNN-LDS is among the most competitive methods on all datasets
+and yields the highest gains on datasets that have an underlying graph. kNN-LDS performs slightly
+better than its dense counterpart, where we learn a dense adjacency matrix. The advantage of the sparse
+graph representation, however, lies in the potential to scale to larger datasets.
+
+In Figure 3, we show the evolution of mean edge probabilities during optimization on three types of nodes
+(train, validation, test) on the Cora dataset. LDS is able to learn a graph generative model that is, on
+average, attributing 10 to 100 times more probability to edges between samples sharing the same class
+label. LDS often attributes a higher probability to edges that are present in the true held-out adjacency
+matrix (green lines in the plots). In Figure 4 we report the normalized histograms of the optimized edges
+probabilities for the same nodes of Figure 3, sorted into six bins in log10 -scale. Edges are divided in two
+groups: edges between nodes of the same class (blue) and between nodes of unknown or diﬀerent classes
+(orange). LDS is able to learn highly non-uniform edge probabilities that reﬂect the class membership of
+the nodes. Figure 5 shows similar qualitative results as Figure 4, this time for three Citeseer test nodes,
+
+11
+
+106104102100Probability bins0.00.20.40.60.8Normalized density106104102100Probability bins106104102100Probability binsSame cl.Diff./Unk.106104102100Probability bins0.00.20.40.60.8Normalized density106104102100Probability bins106104102100Probability binsSame cl.Diff./Unk.missclassiﬁed by kNN-GCN and correctly classiﬁed by kNN-LDS. Again, the learned edge probabilities
+linking to nodes of the same classes is signiﬁcantly diﬀerent to those from diﬀerent classes; but in this
+case the densities are more skewed toward the ﬁrst bin. On the datasets we considered, what seems to
+matter is to capture a useful distribution (i.e. higher probability for links between same class) rather than
+pick exact links; of course for other datasets this may vary.
+
+5 Related work
+
+Semi-supervised Learning. Early works on graph-based semi-supervised learning use graph Laplacian
+regularization and include label propagation (LP) (Zhu et al., 2003), manifold regularization (ManiReg)
+(Belkin et al., 2006), and semi-supervised embedding (SemiEmb) (Weston et al., 2012). These methods
+assume a given graph structure whose edges represent some similarity between nodes. Later, (Yang et al.,
+2016) proposed a method that uses graphs not for regularization but rather for embedding learning by
+jointly classiﬁcation and graph context prediction. Kipf & Welling (2017) presented the ﬁrst GCN for
+semi-supervised learning. There are now numerous GCN variants all of which assume a given graph
+structure. Contrary to all existing graph-based semi-supervised learning approaches, LDS simultaneously
+learns the graph structure and the parameters of a GCN for node classiﬁcation and is, therefore, able to
+work even when the graph is incomplete or entirely missing.
+
+Graph synthesis and generation. LDS learns a probabilistic generative model for graphs. The earliest
+probabilistic generative model for graphs was the Erd˝os-R´enyi random graph model (Erdos & R´enyi, 1960),
+where edge probabilities are modelled as identically distributed and mutually independent Bernoullis.
+Several network models have been proposed to model well particular graph properties such as degree
+distribution (Leskovec et al., 2005) or network diameter (Watts & Strogatz, 1998). Leskovec et al. (2010)
+proposed a generative model based on the Kronecker product that takes a real graph as input and generates
+graphs that have similar properties. Recently, deep learning based approaches have been proposed for
+graph generation (You et al., 2018; Li et al., 2018; Grover et al., 2018; De Cao & Kipf, 2018). The goal
+of these methods, however, is to learn a sophisticated generative model that reﬂects the properties of
+the training graphs. LDS, on the other hand, learns graph generative models as a means to perform
+well on classiﬁcation problems and its input is not a collection of graphs. More recent work proposed an
+unsupervised model that learns to infer interactions between entities while simultaneously learning the
+dynamics of physical systems such as spring systems (Kipf et al., 2018). Contrary to LDS, the method is
+speciﬁc to dynamical interacting systems, is unsupervised, and uses a variational encoder-decoder. Finally,
+we note that Johnson (2017) proposed a fully diﬀerentiable neural model able to process and produce
+graph structures at both input, representation and output levels; training the model requires, however,
+supervision in terms of ground truth graphs.
+
+Link prediction. Link prediction is a decades-old problem (Liben-Nowell & Kleinberg, 2007). Several
+survey papers cover the large body of work ranging from link prediction in social networks to knowledge
+base completion (L¨u & Zhou, 2011; Nickel et al., 2016). While a ma jority of the methods are based on
+some similarity measure between node pairs, there has been a number of neural network based methods
+(Zhang & Chen, 2017, 2018). The problem we study in this paper is related to link prediction as we also
+want to learn or extend a graph. However, existing link prediction methods do not simultaneously learn a
+GNN node classiﬁer. Moreover, LDS learns a generative model over edges and can not only add new
+edges but also remove incorrect ones. Statistical relational learning (SRL) (Getoor & Taskar, 2007) models
+often perform both link prediction and node classiﬁcation through the existence of binary and unary
+predicates. However, SRL models are inherently intractable and the structure and parameter learning
+steps are independent. LDS, on the other hand, learns the graph structure and the GCN’s parameters
+
+12
+
+simultaneously.
+
+Gradient estimation for discrete random variables. Due to the intractable nature of the two
+bilevel ob jectives, LDS needs to estimate the hypergradients through a stochastic computational graph
+(Schulman et al., 2015). Using the score function estimator, also known as REINFORCE (Williams, 1992),
+would treat the outer ob jective as a black-box function and would not exploit F being diﬀerentiable w.r.t.
+the sampled adjacency matrices and inner optimization dynamics. Conversely, the path-wise estimator is
+not readily applicable, since the random variables are discrete. LDS borrows from a solution proposed
+before (Bengio et al., 2013), at the cost of having biased estimates. Recently, Jang et al. (2017); Maddison
+et al. (2017) presented an approach based on continuous relaxations to reduce variance, which Tucker et al.
+(2017) combined with REINFORCE to obtain an unbiased estimator. Grathwohl et al. (2018) further
+introduced surrogate models to construct control variates for black-box functions. Unfortunately, these
+latter methods require to compute the function in the interior of the hypercube, possibly in multiple
+points (Tucker et al., 2017). This would introduce additional computational overhead6 .
+
+6 Conclusion
+
+We propose LDS, a framework that simultaneously learns the graph structure and the parameters of a
+GNN. While we have used a speciﬁc GCN variant (Kipf & Welling, 2017) in the experiments, the method
+is more generally applicable to other GNNs. The strengths of LDS are its high accuracy gains on typical
+semi-supervised classiﬁcation datasets at a reasonable computational cost. Moreover, due to the graph
+generative model LDS learns, the edge parameters have a probabilistic interpretation.
+
+The method has its limitations. While relatively eﬃcient, it cannot currently scale to large datasets: this
+would require an implementation that works with mini-batches of nodes. We evaluated LDS only in the
+transductive setting, when all data points (nodes) are available during training. Adding additional nodes
+after training (the inductive setting) would currently require retraining the entire model from scratch.
+When sampling graphs, we do not currently enforce the graphs to be connected. This is something
+we anticipate to improve the results, but this would require a more sophisticated sampling strategy.
+All of these shortcomings motivate future work. In addition, we hope that suitable variants of LDS
+algorithm will also be applied to other problems such as neural architecture search or to tune other discrete
+hyperparameters.
+
+References
+
+Abadi, M., Agarwal, A., Barham, P., Brevdo, E., Chen, Z., Citro, C., Corrado, G. S., Davis, A., Dean, J.,
+Devin, M., Ghemawat, S., Goodfellow, I., Harp, A., Irving, G., Isard, M., Jia, Y., Jozefowicz, R., Kaiser,
+L., Kudlur, M., Levenberg, J., Man´e, D., Monga, R., Moore, S., Murray, D., Olah, C., Schuster, M.,
+Shlens, J., Steiner, B., Sutskever, I., Talwar, K., Tucker, P., Vanhoucke, V., Vasudevan, V., Vi´egas, F.,
+Vinyals, O., Warden, P., Wattenberg, M., Wicke, M., Yu, Y., and Zheng, X. TensorFlow: Large-scale
+machine learning on heterogeneous systems, 2015. URL http://tensorflow.org/. Software available
+from tensorﬂow.org.
+
+Belkin, M., Niyogi, P., and Sindhwani, V. Manifold regularization: A geometric framework for learning
+from labeled and unlabeled examples. Journal of Machine Learning Research, 7:2399–2434, 2006.
+
+6Recall that F can be computed only after (approximately) solving the inner optimization problem.
+
+13
+
+Bengio, Y., L´eonard, N., and Courville, A. Estimating or propagating gradients through stochastic neurons
+for conditional computation. arXiv preprint arXiv:1308.3432, 2013.
+
+Bennett, K. P., Hu, J., Ji, X., Kunapuli, G., and Pang, J.-S. Model selection via bilevel optimization. In
+Neural Networks, 2006. IJCNN’06. International Joint Conference on, pp. 1922–1929. IEEE, 2006.
+
+Bottou, L. Large-scale machine learning with stochastic gradient descent. In Proceedings of COMP-
+STAT’2010, pp. 177–186. Springer, 2010.
+
+Colson, B., Marcotte, P., and Savard, G. An overview of bilevel optimization. Annals of operations
+research, 153(1):235–256, 2007.
+
+De Cao, N. and Kipf, T. Molgan: An implicit generative model for small molecular graphs. arXiv preprint
+arXiv:1805.11973, 2018.
+
+Deﬀerrard, M., Benzi, K., Vandergheynst, P., and Bresson, X. Fma: A dataset for music analysis. In 18th
+International Society for Music Information Retrieval Conference, 2017. URL https://arxiv.org/
+
+abs/1612.01840.
+
+Domke, J. Generic methods for optimization-based modeling. In Artiﬁcial Intel ligence and Statistics, pp.
+318–326, 2012.
+
+Duran, A. G. and Niepert, M. Learning graph representations with embedding propagation. In Advances
+in Neural Information Processing Systems, pp. 5119–5130, 2017.
+
+Erdos, P. and R´enyi, A. On the evolution of random graphs. Publ. Math. Inst. Hung. Acad. Sci, 5(1):
+17–60, 1960.
+
+Feurer, M. and Hutter, F. Hyperparameter optimization. In Hutter, F., Kotthoﬀ, L., and Vanschoren, J.
+(eds.), Automatic Machine Learning: Methods, Systems, Chal lenges, pp. 3–38. Springer, 2018. In press,
+available at http://automl.org/book.
+
+Flamary, R., Rakotomamonjy, A., and Gasso, G. Learning constrained task similarities in graph-regularized
+multi-task learning. Regularization, Optimization, Kernels, and Support Vector Machines, pp. 103,
+2014.
+
+Franceschi, L., Donini, M., Frasconi, P., and Pontil, M. Forward and reverse gradient-based hyperparameter
+optimization. ICML, 2017.
+
+Franceschi, L., Frasconi, P., Salzo, S., Grazzi, R., and Pontil, M. Bilevel programming for hyperparameter
+optimization and meta-learning. ICML, 2018.
+
+Frecon, J., Salzo, S., and Pontil, M. Bilevel learning of the group lasso structure. In Advances in Neural
+Information Processing Systems 31, pp. 8311–8321, 2018.
+
+Getoor, L. and Taskar, B. Introduction to statistical relational learning, volume 1. MIT press Cambridge,
+2007.
+
+Gilmer, J., Schoenholz, S. S., Riley, P. F., Vinyals, O., and Dahl, G. E. Neural message passing for
+quantum chemistry. arXiv preprint arXiv:1704.01212, 2017.
+
+Grathwohl, W., Choi, D., Wu, Y., Roeder, G., and Duvenaud, D. Backpropagation through the void:
+Optimizing control variates for black-box gradient estimation. ICLR, 2018.
+
+Griewank, A. and Walther, A. Evaluating derivatives: principles and techniques of algorithmic diﬀerentia-
+tion, volume 105. Siam, 2008.
+
+14
+
+Grover, A., Zweig, A., and Ermon, S. Graphite: Iterative generative modeling of graphs. arXiv preprint
+arXiv:1803.10459, 2018.
+
+Hamilton, W., Ying, Z., and Leskovec, J. Inductive representation learning on large graphs. In Advances
+in Neural Information Processing Systems, pp. 1024–1034, 2017.
+
+Jang, E., Gu, S., and Poole, B. Categorical reparameterization with gumbel-softmax. ICLR, 2017.
+
+Johnson, D. D. Learning graphical state transitions. ICLR, 2017.
+
+Kingma, D. P. and Ba, J. Adam: A method for stochastic optimization. ICLR, 2015.
+
+Kipf, T., Fetaya, E., Wang, K.-C., Welling, M., and Zemel, R. Neural relational inference for interacting
+systems. arXiv preprint arXiv:1802.04687, 2018.
+
+Kipf, T. N. and Welling, M. Semi-supervised classiﬁcation with graph convolutional networks. ICLR,
+2017.
+
+Leskovec, J., Kleinberg, J., and Faloutsos, C. Graphs over time: densiﬁcation laws, shrinking diameters
+and possible explanations. In Proceedings of the eleventh ACM SIGKDD international conference on
+Know ledge discovery in data mining, pp. 177–187. ACM, 2005.
+
+Leskovec, J., Chakrabarti, D., Kleinberg, J., Faloutsos, C., and Ghahramani, Z. Kronecker graphs: An
+approach to modeling networks. Journal of Machine Learning Research, 11(Feb):985–1042, 2010.
+
+Li, Y., Vinyals, O., Dyer, C., Pascanu, R., and Battaglia, P. Learning deep generative models of graphs.
+arXiv preprint arXiv:1803.03324, 2018.
+
+Liben-Nowell, D. and Kleinberg, J. The link-prediction problem for social networks. Journal of the
+American society for information science and technology, 58(7):1019–1031, 2007.
+
+L¨u, L. and Zhou, T. Link prediction in complex networks: A survey. Physica A: statistical mechanics and
+its applications, 390(6):1150–1170, 2011.
+
+Maaten, L. v. d. and Hinton, G. Visualizing data using t-sne. Journal of machine learning research, 9
+(Nov):2579–2605, 2008.
+
+Maclaurin, D., Duvenaud, D., and Adams, R. Gradient-based hyperparameter optimization through
+reversible learning. In International Conference on Machine Learning, pp. 2113–2122, 2015.
+
+Maddison, C. J., Mnih, A., and Teh, Y. W. The concrete distribution: A continuous relaxation of discrete
+random variables. ICLR, 2017.
+
+Monti, F., Boscaini, D., Masci, J., Rodola, E., Svoboda, J., and Bronstein, M. M. Geometric deep learning
+on graphs and manifolds using mixture model cnns. In Proc. CVPR, volume 1, pp. 3, 2017.
+
+Mu˜noz-Gonz´alez, L., Biggio, B., Demontis, A., Paudice, A., Wongrassamee, V., Lupu, E. C., and Roli, F.
+Towards poisoning of deep learning algorithms with back-gradient optimization. In Proceedings of the
+10th ACM Workshop on Artiﬁcial Intel ligence and Security, pp. 27–38. ACM, 2017.
+
+Nickel, M., Murphy, K., Tresp, V., and Gabrilovich, E. A review of relational machine learning for
+knowledge graphs. Proceedings of the IEEE, 104(1):11–33, 2016.
+
+Pedregosa, F., Varoquaux, G., Gramfort, A., Michel, V., Thirion, B., Grisel, O., Blondel, M., Prettenhofer,
+P., Weiss, R., Dubourg, V., Vanderplas, J., Passos, A., Cournapeau, D., Brucher, M., Perrot, M., and
+Duchesnay, E. Scikit-learn: Machine learning in Python. Journal of Machine Learning Research, 12:
+2825–2830, 2011.
+
+15
+
+Roweis, S. T. and Saul, L. K. Nonlinear dimensionality reduction by locally linear embedding. Science,
+290(5500):2323–2326, 2000.
+
+Scarselli, F., Gori, M., Tsoi, A. C., Hagenbuchner, M., and Monfardini, G. The graph neural network
+model. IEEE Transactions on Neural Networks, 20(1):61–80, 2009.
+
+Schulman, J., Heess, N., Weber, T., and Abbeel, P. Gradient estimation using stochastic computation
+graphs. In Advances in Neural Information Processing Systems, pp. 3528–3536, 2015.
+
+Sen, P., Namata, G., Bilgic, M., Getoor, L., Galligher, B., and Eliassi-Rad, T. Collective classiﬁcation in
+network data. AI magazine, 29(3):93, 2008.
+
+Srivastava, N., Hinton, G., Krizhevsky, A., Sutskever, I., and Salakhutdinov, R. Dropout: a simple way to
+prevent neural networks from overﬁtting. The Journal of Machine Learning Research, 15(1):1929–1958,
+2014.
+
+Tallec, C. and Ollivier, Y. Unbiasing truncated backpropagation through time.
+arXiv:1705.08209, 2017.
+
+arXiv preprint
+
+Tenenbaum, J. B., De Silva, V., and Langford, J. C. A global geometric framework for nonlinear
+dimensionality reduction. Science, 290(5500):2319–2323, 2000.
+
+Tucker, G., Mnih, A., Maddison, C. J., Lawson, J., and Sohl-Dickstein, J. Rebar: Low-variance, unbiased
+gradient estimates for discrete latent variable models. In Advances in Neural Information Processing
+Systems, pp. 2627–2636, 2017.
+
+Velickovic, P., Cucurull, G., Casanova, A., Romero, A., Lio, P., and Bengio, Y. Graph attention networks.
+ICLR, 2018.
+
+Watts, D. J. and Strogatz, S. H. Collective dynamics of small-worldnetworks. nature, 393(6684):440, 1998.
+
+Werbos, P. J. Backpropagation through time: What it does and how to do it. Proceedings of the IEEE,
+78(10):1550–1560, 1990.
+
+Weston, J., Ratle, F., Mobahi, H., and Collobert, R. Deep learning via semi-supervised embedding. In
+Neural Networks: Tricks of the Trade, pp. 639–655. Springer, 2012.
+
+Williams, R. J. Simple statistical gradient-following algorithms for connectionist reinforcement learning.
+Machine learning, 8(3-4):229–256, 1992.
+
+Williams, R. J. and Peng, J. An eﬃcient gradient-based algorithm for on-line training of recurrent network
+tra jectories. Neural computation, 2(4):490–501, 1990.
+
+Yang, Z., Cohen, W. W., and Salakhutdinov, R. Revisiting semi-supervised learning with graph embeddings.
+In Proceedings of the 33nd International Conference on Machine Learning, ICML 2016, New York City,
+NY, USA, June 19-24, 2016, pp. 40–48, 2016.
+
+You, J., Ying, R., Ren, X., Hamilton, W. L., and Leskovec, J. Graphrnn: A deep generative model for
+graphs. ICML, 2018.
+
+Zhang, M. and Chen, Y. Weisfeiler-lehman neural machine for link prediction. In Proceedings of the 23rd
+ACM SIGKDD International Conference on Know ledge Discovery and Data Mining, pp. 575–583. ACM,
+2017.
+
+Zhang, M. and Chen, Y. Link prediction based on graph neural networks. arXiv preprint arXiv:1802.09691,
+2018.
+
+16
+
+Figure 6: T-SNE visualization of the output activations (before the classiﬁcation layer) on the Citeseer
+dataset. Left: Dense-GCN, Center: kNN-GCN, Right kNN-LDS
+
+Zhu, X., Ghahramani, Z., and Laﬀerty, J. D. Semi-supervised learning using gaussian ﬁelds and harmonic
+functions. In Proceedings of the 20th International conference on Machine learning (ICML-03), pp.
+912–919, 2003.
+
+A Extended algorithm
+
+In this section we provide an extended version of the Algorithm 1 that includes the explicit computation
+of the hypergradient by truncated reverse mode algorithmic diﬀerentiation. Recall that the inner ob jective
+is replaced by an iterative dynamics Φ such as stochastic gradient descent. Hence, starting from an initial
+point w0 , the iterates are computed as
+
+Let Dt and Et denote the Jacobians of the dynamics:
+
+wθ,t+1 = Φ(wθ,t , At ).
+
+Dt := ∂wΦ(wθ,t , At ); Et := ∂AΦ(wθ,t , At ),
+
+and recall that we set ∂θA := I so that ∂θΦ = ∂AΦ. We report the pseudocode in Algorithm 2, where
+the letter p is used to indicate the adjoint variables (Lagrangian multipliers). Note that for τ = 1 the
+algorithm does not enter in the loop at line 15. Finally, note also that at line 16, we re-sample the
+adjacency matrices instead of reusing those computed in the forward pass (lines 8-10).
+
+Algorithm 2 was implemented in TensorFlow as an extension of the software package Far-HO, freely
+
+available at https://github.com/lucfra/FAR-HO.
+
+B Visualization of Embeddings
+
+We further visualize the embeddings learned by GCN and LDS using T-SNE (Maaten & Hinton, 2008).
+Figure 6 depicts the T-SNE visualizations of the embeddings learned on Citeseer with Dense-GCN (left),
+kNN-GCN (center), and kNN-LDS (right). As can be seen, the embeddings learned by kNN-LDS provides
+the best separation among diﬀerent classes.
+
+17
+
+6:
+
+8:
+9:
+10:
+11:
+
+12:
+13:
+14:
+15:
+16:
+17:
+
+wθ,t+1 ← Φt (wθ,t , At )
+
+Algorithm 2 LDS (extended)
+1: Input data: X , Y , Y (cid:48) [, A]
+2: Input parameters: η , τ [, k ]
+3: [A ← kNN(X, k)]
+4: θ ← A
+5: while Stopping condition is not met do
+t ← 0
+7: while Inner ob jective decreases do
+At ∼ Ber(θ)
+t ← t + 1
+if t = 0 (mod τ ) then
+At ∼ Ber(θ)
+p ← ∂w F (wθ,t , At )
+G ← ∂AF (wθ,t , At )
+for s = t − 1 downto t − τ do
+As ∼ Ber(θ)
+p ← pDs (wθ,s , As )
+G ← G + pEs (wθ,s , As )
+end for
+θ ← Pro jHN
+[θ − ηG]
+end if
+end while
+23: end while
+24: return w, Pθ
+
+18:
+19:
+20:
+21:
+22:
+
+{Init. A to kNN graph if A = 0}
+{Initialize Pθ as a deterministic distribution}
+
+{Sample structure}
+{Optimize inner ob jective}
+
+{Optimize outer ob jective}
+
+{Best found weights and prob. distribution}
+
+18
+
+

@@ -1,0 +1,1658 @@
+Learning Dynamic Embeddings from
+Temporal Interaction Networks
+
+Srijan Kumar
+
+Stanford University, USA
+srijan@cs.stanford.edu
+
+Xikun Zhang
+
+University of Illinois,
+Urbana-Champaign, USA
+xikunz2@illinois.edu
+
+Jure Leskovec
+
+Stanford University, USA
+jure@cs.stanford.edu
+
+8
+1
+0
+2
+
+c
+e
+
+D
+
+6
+
+]
+I
+
+S
+
+.
+
+s
+
+c
+
+[
+
+1
+v
+9
+8
+2
+2
+0
+
+.
+
+2
+1
+8
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+ABSTRACT
+
+Modeling a sequence of interactions between users and items (e.g.,
+products, posts, or courses) is crucial in domains such as e-commerce,
+social networking, and education to predict future interactions.
+Representation learning presents an attractive solution to model
+the dynamic evolution of user and item properties, where each
+user/item can be embedded in a euclidean space and its evolution
+can be modeled by dynamic changes in its embedding. However,
+existing embedding methods either generate static embeddings,
+treat users and items independently, or are not scalable.
+Here we propose JODIE , a coupled recurrent model to jointly
+learn the dynamic embeddings of users and items from a sequence
+of user-item interactions. JODIE has three components. First, the
+update component updates the user and item embedding from each
+interaction using their previous embeddings with the two mutually-
+recursive Recurrent Neural Networks. Second, a novel projection
+component is trained to forecast the embedding of users at any
+future time. Finally, the prediction component directly predicts the
+embedding of the item in a future interaction. For models that
+learn from a sequence of interactions, traditional batching of train-
+ing data can not be done due to complex user-user dependencies.
+Therefore, we present a novel batching algorithm called t-Batch
+that generates time-consistent batches that can be run in parallel,
+leading to massive speed-up.
+We conduct six experiments to validate JODIE on two prediction
+tasks—future interaction prediction and state change prediction—
+using four real-world datasets. We show that JODIE outperforms six
+state-of-the-art algorithms in these tasks by up to 22.4%. Moreover,
+we show that JODIE is highly scalable and up to 9.2× faster than
+comparable models. As an additional experiment, we illustrate
+that JODIE can predict student drop-out from courses up to five
+interactions in advance.
+
+ACM Reference Format:
+Srijan Kumar, Xikun Zhang, and Jure Leskovec. 2018. Learning Dynamic
+Embeddings from Temporal Interaction Networks. In Proceedings of ACM
+Conference (Conference’17). ACM, New York, NY, USA, 11 pages. https:
+//doi.org/10.1145/nnnnnnn.nnnnnnn
+
+1 INTRODUCTION
+
+Users interact sequentially with items in many domains such as
+e-commerce (e.g., a customer purchasing an item) [9, 49], education
+(a student enrolling in a MOOC course) [32], healthcare (a patient
+exhibiting a disease) [23], social networking (a user posting in a
+group in Reddit) [10], and collaborative platforms (an editor editing
+a Wikipedia article) [22]. The same user may interact with different
+
+Conference’17, July 2017, Washington, DC, USA
+
+2018. ACM ISBN 978-x-xxxx-xxxx-x/YY/MM. . . $15.00
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+
+Figure 1: Left: a network of three users u1 , u2 and u3 inter-
+acting with four items i 1 , i 2 , i 3 and i 4 over time. Each arrow
+represents an interaction with associated timestamp t and
+a feature vector f . Right: resulting dynamic embeddings of
+users and items in the network.
+items over a period of time and these interactions dynamically
+change over time [4, 5, 20, 25, 35, 39, 49]. These interactions create
+a dynamic interaction network between users and items. Accurate
+real-time recommendation of items and predicting change in state
+of users over time are fundamental problems in these domains [5,
+6, 26, 31, 38, 42, 45]. For instance, predicting when a student is
+likely to drop-out of a MOOC course is important to develop early
+intervention measures for their continued education [11, 27, 48],
+and predicting when a user is likely to turn malicious on platforms,
+like Reddit and Wikipedia, is useful to ensure platform integrity [12,
+16, 28].
+Learning embeddings from dynamic user-item interaction net-
+works poses three fundamental challenges. We illustrate this using
+an example interaction network between three users and four items
+shown in Figure 1 (left). First, as users interact with items, their
+properties evolve over time. For example, the interest of a user u3
+may gradually change from purchasing books (item i 2 ) to movies
+(item i 3 ) to clothes (item i 4 ). Similarly, the properties of items change
+as different users interact with them. For instance, a book (item
+i 2 ) that is popular in older people (user u3 at time t3 ) may eventu-
+ally become popular among the younger audience (users u1 and
+u2 at times t4 and t5 ). Second, a user’s property is influenced by
+the property of the item that it interacts with and conversely, an
+item’s property is influenced by the interacting user’s property. For
+instance, if u2 purchases a book (item i 3 ) after it has won a Pulitzer
+Prize reflects a different behavior than if u2 purchases i 3 before
+the prize. Third, interactions with common items create complex
+user-to-user dependencies. For example, users u1 and u2 interact
+with item i 1 , so both users influence each other’s properties. The
+
+ 
+ 
+ 
+ 
+ 
+ 
+traditional methods of batching data during training treat all users
+independently and therefore they can not be applied to learn em-
+beddings. As a result, existing embedding methods have to process
+the interactions one-at-a-time, and therefore, they are not scalable
+to a large number of interactions. Therefore, modeling the jointly
+
+evolving embeddings of users and items in a scalable way is crucial
+
+in making accurate predictions.
+Representation learning, or learning low-dimensional embed-
+dings of entities, is a powerful approach to represent the dynamic
+evolution of users and item properties [8, 13, 15, 17, 49, 51]. Existing
+representation learning algorithms, including random-walk based
+methods [19, 34, 37], dynamic network embedding methods [50, 51],
+and recurrent neural network-based algorithm [8, 47, 53], either
+generate static embeddings from dynamic interactions, learn em-
+beddings of users only, treat users and items independently, or are
+not scalable to a large number of interactions.
+Present work. Here we address the following problem: given
+a sequence of temporal interactions S : Sj = (u j , i j , f j , t j ) between
+users u j ∈ U and items i j ∈ I with a feature vector of the inter-
+action f j at time t j , generate dynamic embeddings u j (t ) and i j (t )
+for users and items at any time t , such that they allow us to solve
+two prediction tasks: future interaction prediction and user state
+change prediction.
+Present work (JODIE model): Here we present an algorithm,
+JODIE , which learns dynamic embeddings of users and items from
+temporal user-item interactions.1 Each interaction has an associated
+timestamp t and a feature vector f , representing the properties
+of the interaction (e.g., the purchase amount or the number of
+items purchased). The resulting user and item embeddings for the
+example network are illustrated in Figure 1 (right). We see that
+JODIE updates the user and item embeddings after every interaction,
+thus resulting in a dynamic embedding trajectory for each user and
+item. JODIE overcomes the shortcomings of the existing algorithms,
+as shown in Table 1.
+In JODIE , each user and item has two embeddings: a static embed-
+ding and a dynamic embedding. The static embedding represents
+the entity’s long-term stationary property, while the dynamic em-
+bedding represent evolving property and are learned using the
+JODIE algorithm. This enables JODIE to make predictions from
+both the temporary and stationary properties of the user.
+The JODIE model consists of three major components in its
+architecture: an update function, a project function, and a predict
+function.
+The update function of JODIE has two Recurrent Neural Net-
+works (RNNs) to generate the dynamic user and item embeddings.
+Crucially, the two RNNs are coupled to explicitly incorporate the
+interdependency between the users and the items. After each in-
+teraction, the user RNN updates the user embedding by using the
+embedding of the interacting item. Similarly, the item RNN uses
+the user embedding to update the item embedding. It should be
+noted that JODIE is easily extendable to multiple types of entities,
+by training one RNN for each entity type. In this work, we apply
+JODIE to the case of bipartite interactions between users and items.
+A major innovation of JODIE is that it learns a project function to
+forecast the embedding of users at any future time. Intuitively, the
+
+1 JODIE stands for Joint Dynamic User-Item Embeddings.
+
+embedding of a user will change slightly after a short time elapses
+since its previous interaction (with any item), but the embedding
+can change significantly after a long time elapses. As a result, the
+embedding of the user needs to be estimated for accurate real-time
+predictions. To solve this challenge, JODIE learns a project function
+that estimates the embedding of a user after some time ∆ elapses
+since its previous interaction. This function makes JODIE truly
+dynamic as it can generate dynamic user embeddings at any time.
+Finally, the third component of JODIE is the predict function that
+predicts the future interaction of a user. An important design choice
+here is that the function directly outputs the embedding of the item
+that a user is most likely to interact with, instead of a probability
+score of interaction between a user and an item. As a result, we only
+need to do the expensive neural network forward pass once in our
+model to generate the predicted item embedding and then find the
+item that has the embedding closest to the predicted embedding. On
+the other hand, existing models need to do the expensive forward
+pass N times (once for each candidate item) and select the one with
+the highest score, which hampers its scalability.
+Present work (t-Batch algorithm): Training models that learn
+on a sequence of interactions is challenging due to two reasons: (i)
+interactions with common items results in complex user-to-user
+dependencies, and (ii) the interactions should be processed in in-
+creasing order of their time. The naive solution to generate dynamic
+embeddings is to process each interaction sequentially, which is
+not scalable to a large number of interactions such as in DeepCo-
+evolve [13] and Zhang et al. [50]. Therefore, we propose a novel
+batching algorithm, called t-Batch, that creates batches such that
+the interactions in each batch can be processed in parallel while still
+maintaining all user-to-user dependencies. Each user and item ap-
+pears at most once in every batch, and the temporally-sorted inter-
+actions of each user (and item) appear in monotonically increasing
+batches. Batching in such a way results in massive parallelization.
+t-Batch is a general algorithm that is applicable to any model that
+learns on a sequence of interactions. We experimentally validate
+that t-Batch leads to a 8.5× and 7.4× speed-up in the training time
+of JODIE and DeepCoevolve [13].
+Present work (experiments): We conduct six experiments to
+evaluate the performance of JODIE on two tasks: predicting the
+next interaction of a user and predicting the change in state of users
+(when a user will be banned from social platforms and when a stu-
+dent will drop out from a MOOC course). We use four datasets from
+Reddit, Wikipedia, LastFM, and a MOOC course activity for our ex-
+periments. We compare JODIE with six state-of-the-art algorithms
+from three categories: recurrent recommender algorithms [8, 47, 53],
+dynamic node embedding algorithm [34], and co-evolutionary al-
+gorithm [13]. JODIE outperforms the best baseline algorithms on
+the interaction prediction task by up to 22.4% and up to 4.5% in pre-
+dicting user state change. We further show that JODIE outperforms
+existing algorithms irrespective of the percentage of the training
+data and the size of the embeddings. As an additional experiment,
+we show that JODIE can predict which student will drop-out of a
+MOOC course as early as five interactions in advance.
+Overall, in this paper, we make the following contributions:
+• Embedding algorithm: We propose a coupled Recurrent
+Neural Network model called JODIE to learn dynamic em-
+beddings of users and items from a sequence of temporal
+
+interactions. A major contribution of JODIE is that it learns
+a function to project the user embeddings to any future time.
+• Batching algorithm: We propose a novel t-Batch algorithm
+to create batches that can be run in parallel without losing
+user-to-user dependencies. This batching technique leads to
+8.5× speed-up in JODIE and 7.4× speed-up in DeepCoevolve.
+• Effectiveness: JODIE outperforms six state-of-the-art al-
+gorithms in predicting future interactions and user state
+change predictions, by performing up to 22.4% better than
+six state-of-the-art algorithms.
+
+2 RELATED WORK
+
+Here we discuss the research closest to our problem setting span-
+ning three broad areas. Table 1 compares their differences. Any
+algorithm that learns from sequence of interactions should have
+the following properties: it should be able to learn dynamic em-
+beddings, for both users and items, in such a way that they are
+inter-dependent, and the method should be scalable. The proposed
+model JODIE satisfies all the desirable properties.
+Deep recommender systems. Several recent models employ
+recurrent neural networks (RNNs) and variants (LSTMs and GRUs)
+to build recommender systems. RRN [47] uses RNNs to generate
+dynamic user and item embeddings from rating networks. Recent
+methods, such as Time-LSTM [53] and LatentCross [8] incorporate
+features directly into their model. However, these methods suffer
+from two major shortcomings. First, they take one-hot vector of
+the item as input to update the user embedding. This only incorpo-
+rates the item id and ignores the item’s current state. The second
+shortcoming is that models such as Time-LSTM and LatentCross
+generate embeddings only for users, and not for items.
+JODIE overcomes these shortcomings by learning dynamic em-
+beddings for both users and items in a mutually-recursive manner.
+In doing so, JODIE outperforms the best baseline algorithm by up
+to 22.4%.
+Dynamic co-evolution models. Methods that jointly learn rep-
+resentations of users and items have recently been developed using
+point-process modeling [43, 46] and RNN-based modeling [13]. The
+basic idea behind these models is similar to JODIE—user and item
+embeddings influence each other whenever they interact. How-
+ever, the major difference between JODIE and these models is that
+JODIE learns a projection function to generate the embedding of
+the entities whenever they are involved in the interaction, while
+the projection function in JODIE enables us to generate an embed-
+ding of the user at any time. As a result, we observe that JODIE
+outperforms DeepCoevolve by up to 57.7% in both prediction tasks
+of next interaction prediction and state change prediction.
+In addition, these models are not scalable as traditional methods
+of data batching during training can not be applied due to complex
+user-to-user dependencies. JODIE overcomes this limitation by
+developing a novel batching algorithm, t-Batch, which makes JODIE
+9.2× faster than DeepCoevolve.
+Temporal network embedding models. Several models have
+recently been developed that generate embeddings for the nodes
+(users and items) in temporal networks. CTDNE [34] is a state-of-
+the-art algorithm that generates embeddings using temporally-
+increasing random walks, but it generates one final static em-
+bedding of the nodes, instead of dynamic embeddings. Similarly,
+
+Table 1: Table comparing the desired properties of the exist-
+ing class of algorithms and our proposed JODIE algorithm.
+JODIE satisfies all the desirable properties.
+
+Recurrent
+models
+
+Temporal network
+embedding models
+
+Proposed
+model
+
+M
+
+T
+
+S
+L
+
+]
+
+3
+5
+
+[
+
+M
+
+T
+
+S
+L
+
+-
+
+e
+
+m
+
+i
+
+T
+
+]
+
+7
+4
+
+[
+
+N
+
+R
+R
+
+]
+
+8
+
+[
+
+s
+s
+
+o
+
+r
+
+C
+
+t
+
+n
+
+e
+
+t
+
+a
+L
+
+✔ ✔ ✔ ✔
+✔
+
+]
+
+4
+3
+
+[
+
+E
+
+N
+D
+
+T
+C
+
+]
+
+0
+5
+
+[
+
+E
+
+G
+
+I
+
+✔ ✔
+✔
+
+✔ ✔ ✔ ✔ ✔
+
+]
+
+3
+1
+
+[
+
+e
+v
+
+l
+
+o
+v
+e
+o
+
+C
+
+p
+
+e
+e
+
+D
+
+✔
+✔
+✔
+
+E
+
+I
+
+D
+O
+
+J
+
+✔
+✔
+✔
+✔
+
+Property
+
+Dynamic embeddings
+Embeddings for users and items
+Learns joint embeddings
+Parallelizable/Scalable
+
+IGE [50] generates one final embedding of users and items from
+interaction graphs. Therefore, both these methods (CTDNE and
+IGE) need to be re-run for every a new edge to create dynamic
+embeddings. Another recent algorithm, DynamicTriad [51] learns
+dynamic embeddings but does not work on interaction networks as
+it requires the presence of triads. Other recent algorithms such as
+DDNE [30], DANE [29], DynGem [18], Zhu et al. [52], and Rahman
+et al. [40] learn embeddings from a sequence of graph snapshots,
+which is not applicable to our setting of continuous interaction
+data. Recent models such as NP-GLM model [41], DGNN [33], and
+DyRep [44] learn embeddings from persistent links between nodes,
+which do not exist in interaction networks as the edges represent
+instantaneous interactions.
+Our proposed model, JODIE overcomes these shortcomings by
+generating dynamic user and item embeddings. In doing so, JODIE
+also learns a projection function to predict the user embedding at
+a future time point. Moreover, for scalability during training, we
+propose an efficient training data batching algorithm that enables
+learning from large-scale interaction data.
+
+3 JODIE: JOINT DYNAMIC USER-ITEM
+EMBEDDING MODEL
+
+In this section, we propose JODIE , a method to learn dynamic
+representations of users and items from a sequence of temporal
+user-item interactions S : Sj = (u j , i j , f j , t j ). An interaction S j
+happens between a user u j ∈ U and an item i j ∈ I at time t j . Each
+interaction has an associated feature vector f j . The desired output
+is to generate dynamic embeddings u j (t ) for user u j and i j (t ) for
+item i j at any time t . Table 2 lists the symbols used.
+Our proposed model, called JODIE is a dynamic embedding
+learning method that is reminiscent of the popular Kalman Filtering
+algorithm [24].2 Like the Kalman filter, JODIE uses the interactions
+(i.e., observations) to update the state of the interacting entities
+(users and items) via a trained update function. A major innovation
+in JODIE is that between two observations of a user, its state is
+estimated by a trained projection function that uses its previous
+observed state and the elapsed time to generate a projected When
+the entity’s next interaction is observed, its new states are updated
+again.
+
+2 Kalman filtering is used to accurately measure the state of a system using a combina-
+tion of system observations and state estimates given by the laws of the system.
+
+Table 2: Table of symbols used in this paper.
+
+Symbol
+
+u (t ) and i (t )
+u (t − ) and i (t − )
+
+Meaning
+Dynamic embedding of user u and item i at time t
+Dynamic embedding of user u and item i before time t
+u and i
+Static embedding of user u and item i
+[u , u (t )] and [i , i (t )] Complete embedding of user u and item i a time t
+User RNN and item RNN to update embeddings
+Embedding projection function
+Prediction function to output
+Projected embedding of user u and item i at time t
+Predicted item embedding
+Feature at interaction Sj
+
+(cid:98)u (t ) and (cid:98)i (t )
+(cid:101)i (t )
+
+RN NU and RN N I
+ρ
+
+Θ
+
+f j
+
+algorithm: update, project, and predict. Algorithm 1 shows the
+algorithm for each epoch.
+
+Figure 2: Architecture of JODIE : After an interaction S =
+(u , i , t , f ) between user u and item i , the dynamic embeddings
+of u and i are updated in the update function with RN NU and
+RN N I , respectively. To predict user u ’s interaction at time
+t + ∆u , the user embedding is projected, ˆu (t + ∆u ), using the
+project function ρ . This is used to generate the embedding
+˜j(t + ∆u ) of the predicted item j .
+
+The JODIE model is trained to accurately predict future interac-
+tions between users and items. Instead of predicting a probability
+score of interaction between a user and item, JODIE trains a predict
+function to directly output the embedding of the predicted item that
+a user will interact with. This has the advantage that it JODIE only
+needs to do one forward pass during inference to generate the item
+embedding, as opposed to |I | times (once for each candidate item).
+We illustrate the three major operations of JODIE in Figure 2.
+Static and Dynamic Embeddings. In JODIE , each user and
+item is assigned two types of embeddings: a static embedding and
+a dynamic embedding.
+Static embeddings, u ∈ Rd ∀u ∈ U and i ∈ Rd ∀i ∈ I , do not
+change over time. These are used to express stationary properties
+such as the long-term interest of users. We use one-hot vectors
+as static embeddings of all users and items, as advised in Time-
+LSTM [53] and TimeAware-LSTM [7].
+On the other hand, each user u and item i is assigned a dynamic
+embedding represented as u (t ) ∈ Rn and i (t ) ∈ Rm at time t ,
+respectively. These embeddings change over time to model their
+evolving behavior. The embeddings of a user and item are updated
+whenever they are involved in an interaction.
+In JODIE , use both the static and dynamic embeddings to train
+the model to predict user-item interactions in order to leverage
+both the long-term and dynamic properties.
+
+3.1 Learning dynamic embeddings with JODIE
+
+Here we propose a mutually-recursive Recurrent Neural Network
+based model that learns dynamic embeddings of both users and
+items jointly. We will explain the three major components of the
+
+3.1.1 Update operation using a coupled recurrent model.
+
+In the update operation, the interaction S = (u , i , t , f ) between a
+user u and item i is used to update both their dynamic embed-
+dings. Our model uses two separate recurrent neural networks for
+updates—RN NU is shared across all users and used to update user
+embeddings, and RN N I is shared among all items to update item
+embeddings. The state of the user RNN and item RNN represent
+the user and item embeddings, respectively.
+When user u interacts with item i , RN NU updates the embedding
+u (t ) by using the embedding of item i as an input. This is in stark
+contrast to the popular use of items’ one-hot vectors to update user
+embeddings [8, 47, 53], which makes these models infeasible as
+they scale only to a small number of items due to space complexity.
+Instead, we use the dynamic embedding of an item as it contains
+more information than just the item’s ‘id’, including its current
+state and its recent interactions with (any) user. Therefore, the
+use of item’s dynamic embeddings can generate more meaningful
+dynamic user embeddings. For the same reason, RN N I uses the
+dynamic user embedding to update the dynamic embedding of the
+item i . This results in mutually recursive dependency between the
+embeddings. Figure 2 shows this in the “update function” block.
+Formally,
+
+u (t ) = RN NU (u (t − ), i (t − ), ∆u , f )
+i (t ) = RN N I (i (t − ), u (t − ), ∆i , f )
+
+where u (t − ) and i (t − ) represent the user and item embeddings
+before the interaction (i.e., those obtained after their previous in-
+teraction updates). ∆u and ∆i represent the time elapsed since u ’s
+previous interaction (with any item) and i ’s previous interaction
+(with any user), respectively, and are used as input to account for
+their frequency of interaction. Incorporating time has been shown
+to be useful in prior work [8, 13, 47, 49]. The interaction feature
+vector f is also used as an input. The input vectors are all concate-
+nated and fed into the RNNs. Variants of RNNs, such as LSTM and
+GRU, gave empirically similar performance in our experiments, so
+we use an RNN to reduce the number of trainable parameters.
+
+3.1.2 Embedding projection operation. Between two inter-
+
+actions of a user, its embedding may become stale as time more time
+elapses. Using stale embeddings lead to sub-optimal predictions
+
+Algorithm 1: JODIE Algorithm
+
+Input
+
+/* Processing (u , i , t , f )
+/* Let ∆u be the time since u ’s previous interaction with
+any item, and ∆i be the time since i ’s previous
+interaction with any user
+
+: Temporally sorted sequence of interactions S : S j = (u , i , t , f );
+Initial user embeddings u (t ) ∀u ∈ U ;
+Initial item embeddings i (t ) ∀i ∈ I ;
+Current model parameters: ρ , Θ, R N NU , R N N I
+Output : Dynamic user and item embeddings, updated model parameters
+1 ℓ ← 0 ;
+2 p r ev ← { } for j ∈ 1 to |S | do
+(cid:98)u (t ) ← ρ (u (t − ), ∆u ) ;
+(cid:101)i (t ) ← Θ((cid:98)u (t ), u , k (t − ), k ) ;
+k ← p r ev [u ] ;
+ℓ ← ℓ + | |i (t − ) − [i , (cid:101)i (t )] | |2 ;
+u (t ) ← R N NU (u (t − ), i (t − ), ∆u , f ) ;
+i (t ) ← R N N I (i (t − ), u (t − ), ∆i , f ) ;
+p r ev [u ] ← i ;
+ℓ ← ℓ + | |u (t ) − u (t − ) | |2 + | |i (t ) − i (t − ) | |2 ;
+
+*/
+// Project user embedding
+// k is the previous item u interacted with
+// Predict item embedding
+// Calculate prediction loss
+/* Update user and item embedding
+*/
+
+/* Add user and item embedding drift to loss
+
+7
+8
+9
+
+*/
+
+3
+4
+
+5
+
+6
+
+*/
+
+10
+
+11 end
+12 Back-propagate loss and update model parameters
+
+13 return u (t ) ∀u ∈ U ∀t , i (t ) ∀i ∈ I ∀t , model: ρ , Θ, R N NU , R N N I
+
+i (t + ∆−
+
+at time t ) as inputs. As item i could interact with other users between
+time t and t + ∆u , its embedding right before time t + ∆u , i.e.,
+u ), would reflect more recent information. We use both the
+static and dynamic embeddings to predict using both the long-term
+and temporary properties of the user and items. The function is
+trained to output the complete (static and dynamic) predicted item
+embedding.
+In practice, we use a fully connected layer as the function Θ.
+Note that instead of predicting a probability score of interac-
+tion between a user and a candidate item, JODIE directly pre-
+dicts an item embedding. This is advantageous during inference
+time (i.e., making real-time predictions), as we would only need
+to do the expensive neural network forward-pass of the predic-
+tion layer once and select the item with the closest embedding
+using k-nearest neighbor search. This is advantageous over the
+standard approaches [8, 13, 14, 47] that generate a probability score
+as they need to do the forward pass N times (once for each of the N
+candidate items) to find the item with the highest probability score.
+
+3.1.4 Loss function for training. The entire JODIE model is
+
+trained to minimize the distance between the predicted item embed-
+ding and the ground truth item’s embedding at every interaction.
+Let u interact with item j at time t + ∆u . We calculate the loss as
+follows:
+
+Loss = | |Θ((cid:98)u (t + ∆u ), u , i (t + ∆−
+u ), i ) − [j, j(t + ∆−
+u )] | |2
++ λU | |u (t + ∆u ) − u (t + ∆−
+u ) | |2 + λ I | | j(t + ∆u ) − j(t + ∆−
+u ) | |2
+
+The first loss term minimizes the predicted embedding error.
+The last two terms are added to regularize the loss and prevent
+the consecutive dynamic embeddings of a user and item to vary
+too much, respectively. λU and λ I are scaling parameters to ensure
+the losses are in the same range. Note that we do not use negative
+sampling during training as JODIE directly outputs the embedding
+of the predicted item.
+
+Figure 3: This figure shows the project operation. The pro-
+jected embedding of user u2 in the example network is
+shown for different time elapsed values ∆ and ∆2 > ∆. We see
+that the projected embedding drifts farther as ∆U increases.
+
+and therefore, it is crucial to estimate the embeddings in real-time.
+To address this, we create a novel projection operation that estimates
+the embedding of a user after some time ∆ elapses since its previous
+interaction.
+In practice, consider the scenario when a recommendation needs
+to be made to a user when it logs into a system. For example, on an
+e-commerce website, if a user returns 5 minutes after a previous
+purchase, then its projected embedding would be close to its previ-
+ous embedding. On the other hand, the projected embedding would
+drift farther if the user returned 10 days later. The use of projected
+embedding enables JODIE to make different recommendations to
+the same user at different points in time. Therefore, the instan-
+taneous projected embedding of a user can be utilized to make
+efficient real-time recommendations. The projection operation is
+one of the major innovations of JODIE .
+The projection function ρ : Rn ×R → Rn projects the embedding
+of a user after time ∆u has elapsed since its previous interaction at
+time t . We represent the projected user embedding at time t + ∆u
+The two inputs to the projection operation are u ’s previous em-
+bedding at time t and the value ∆u . We follow the method suggested
+in LatentCross [8] to incorporate time into the embedding. We first
+convert ∆u to a time-context vector w ∈ Rn using a linear layer,
+where we initialize w to a 0-mean Gaussian. The projected embed-
+ding is then obtained as an element-wise product as follows:
+
+as (cid:98)u (t + ∆u ).
+
+(cid:98)u (t + ∆u ) = (1 + w ) ∗ u (t )
+
+The time-context vector w essentially acts as an attention vector
+to scale the past user embedding to the current state. The context
+linear layer is trained during the training phase.
+smaller ∆ < ∆2 , the projected embedding (cid:98)u2 (t7 + ∆) is closer to
+In Figure 3, we show the projected embedding of user u2 in
+our example network for different values of ∆u . We see that for
+the previous embedding u2 (t7 ), and it drifts farther as the value
+increases, showing the change in user’s state.
+
+3.1.3 Predicting user-item interaction. The JODIE model
+
+is trained to correctly predict future user and item interactions.
+To make prediction of the user’s interaction at time t + ∆u , we
+introduce a prediction function Θ : R(n +d ) × R(m+d ) → R(m+d ) .
+This function takes the estimated user embedding along with its
+static embedding as input. Additionally, we also use the static and
+dynamic embedding of the item i (the item from u ’s last interaction
+
+Overall, Algorithm 1 describes the process in each epoch.
+
+3.1.5 Extending the loss term for user state change pre-
+diction.
+
+In certain prediction tasks, such as user state change pre-
+diction, additional training labels may be present for supervision. In
+those cases, we train another prediction function Θ : R(n+d ) → C
+to predict the label using the dynamic embedding of the user after
+an interaction. We calculate the cross-entropy loss for categorical
+labels and add the loss to the above loss function with another
+scaling parameter. We explicitly do not just train to minimize only
+the cross-entropy loss to avoid overfitting.
+
+3.1.6 Differences between JODIE and DeepCoevolve. Deep-
+
+Coevolve is the closest state-of-the-art algorithm as it also trains
+two joint RNNs for generate dynamic embeddings. However, the
+key differences between JODIE and DeepCoevolve are the following:
+(i) JODIE uses a novel project function to estimate the embedding
+of a user and item at any time. Instead, DeepCoevolve maintains
+a constant embedding between two consecutive interactions of
+the same user/item. This makes JODIE truly dynamic. (ii) JODIE
+predicts the embedding of the next item that a user will interact
+with. In contrast, DeepCoevolve trains a function to predict the
+likelihood of interaction between a user and an item. This requires
+N forward passes through the inference layer (for N items) to select
+the item with the highest score. On the other hand, JODIE is scal-
+able at inference time as it only requires one forward pass through
+the inference layer (see Section 3.1.3 for details).
+Overall, in this section, we presented the JODIE algorithm to
+generate dynamic embeddings for users and items from a sequence
+of user-item interactions.
+
+4 T-BATCH: TIME-CONSISTENT BATCHING
+ALGORITHM
+
+Here we explain a general batching algorithm to parallelize the
+training of models that learn from a sequence of user-item interac-
+tions.
+Training two mutually-recursive recurrent networks, in models
+such as DeepCoevolve [13] and JODIE , introduces new challenges
+as it is fundamentally different from training a single RNN. The
+standard RNN models are trained through the standard Back Propa-
+gation Through Time (BPTT) mechanism. Methods such as RRN [8]
+and T-LSTM [53] that use single RNNs can split users into small
+batches because each user’s interaction sequence is treated inde-
+pendently (using one-hot vector representations of items). This
+enables parallelism but ignores the user-to-user interdependencies.
+On the other hand, in JODIE and DeepCoevolve, the two RNNs are
+mutually recursive to incorporate user-to-user dependencies, and
+as a result, users’ interactions sequences are not independent. So,
+the two RNNs can not be trained independently. This new challenge
+requires new methods for efficient training.
+First we propose two necessary conditions for any batching
+algorithm to work with coupled recurrent networks.
+Condition 1 (Co-batching conditions). A batching algorithm
+
+for coupled recurrent networks should satisfy the following two condi-
+tions:
+(1) Every user and every item can only appear at most once in a
+batch. This is required so that all interactions in the batch are
+
+Algorithm 2: t-Batch Algorithm
+
+Input
+: Temporally sorted sequence of interactions S : S j = (u j , i j , t j , f j )
+Output : Sequence of batches B : Bk = {Sk 1, . . . Sk n }
+1 l a s tU [u ] ← 0∀u ∈ U ;
+2 l a s t I [i ] ← 0∀i ∈ I ;
+3 Bk ← { } ∈ [1, |S | ] ;
+4 C ← 0 ;
+5 for j ∈ 1 to |S | do
+
+// Initialize all users’ last-batch index
+// Initialize all items’ last-batch index
+// Initialize batches
+// Initialize non-empty batch count
+/* Processing S j = (u j , i j , t j , f j )
+
+*/
+
+6
+7
+8
+9
+10
+
+i d x ← ma x (l a s tU [u j ], l a s t I [i j ]) + 1 ; // Find batch id to insert
+B i d x ← B i d x ∪ {S j } ;
+l a s tu [u j ] ← i d x ;
+l a s t I [i j ] ← i d x ;
+C ← ma x (C , i d x ) ;
+12 return {B 1, . . . BC }
+
+// Add interaction to correct batch
+// Update user last-batch index
+// Update item last-batch index
+// Update batch count C
+
+11 end
+
+completely independent so that the batch can be parallelized,
+and
+(2) The k t h and k + 1s t interactions of a user or item should be
+assigned to batches Bi and B j , respectively, such that i < j .
+This is required since batches are processed sequentially, u ’s
+k t h embedding can then be used in the k + 1s t interaction.
+
+The naive solution that satisfies both the above conditions is to
+process interactions one-at-a-time. However, this is very slow and
+can not be scaled to large number of interactions. This approach
+is used in existing methods such as Dai et al. [13] and Zhang et
+al. [50].
+Therefore, we propose a novel batching algorithm, called t-Batch,
+that creates large batches that can be parallelized for faster train-
+ing. t-Batch is shown in Algorithm 2. t-Batch takes as input the
+temporally-sorted sequence of interactions S and outputs a set of
+batches. It processes one interaction at a time in increasing order of
+time. The key idea of t-Batch is that the j t h interaction (say, between
+user u and i ) is assigned to the batch id after the largest batch id with
+any interaction of u or i yet. As a result, each batch only has unique
+user and item, and the batches can be processed in increasing order
+of their id, satisfying both the co-batching conditions.
+Algorithmically, the variables l as tU and l as t I store the index of
+the last batch in which each user and item appears, respectively
+(lines 1 and 2). A total of |S | empty batches are initialized which
+is the maximum number of resulting batches (line 3) and a count
+C of the number of non-empty batches is maintained (line 4). All
+interactions S j ∈ S are then sequentially processed, where the
+interaction S j is added to the batch after the one in which either u j
+or i j appear. All non-empty batches are returned at the end.
+Example 4.1 (Running example). In the example interaction net-
+work shown in Figure 1, t-Batch results in the following batches:
+
+• Batch B1 : (u1 , i 1 , t1 , f1 ), (u3 , i 2 , t3 , f3 )
+• Batch B2 : (u2 , i 1 , t2 , f2 ), (u1 , i 2 , t4 , f4 ), (u3 , i 3 , t6 , f6 )
+• Batch B3 : (u2 , i 2 , t5 , f5 ), (u3 , i 4 , t8 , f8 )
+• Batch B4 : (u2 , i 3 , t7 , f7 )
+• Batch B5 : (u2 , i 4 , t8 , f8 )
+
+We can see that a total of 5 batches, there is a 45% decrease compared
+to the naive 9 batches. Note that in each batch, users and items
+appear at most once, and for the same user (and item), earlier
+transactions are assigned earlier batches.
+
+Theorem 4.2. t-Batch algorithm satisfies the co-batching condi-
+tions.
+
+Proof. Lines 6 and 7 ensure that every batch contains a user
+and an item only once. This satisfies condition 1.
+The interactions are added to batches in increasing order of
+time. Consider two interactions S j and Sk (k > j ) in which a user u
+appears. If S j is added to batch n , the last-batch index of u is set of n ,
+such that when Sk is processed, the index is at least n + 1 (as shown
+in line 1). This satisfies condition 2 and completes the proof.
+
+□
+
+Theorem 4.3 (Complexity). The complexity of t-Batch in creating
+the batches is O ( |S | ), i.e., linear in the number of interactions, as each
+interaction is seen only once.
+
+Overall, in this section, we presented the t-Batch algorithm that
+creates batches from training data such that each batch can be
+parallelized. This leads to faster training of large scale interaction
+data. In Section 5.3, we experimentally validate that t-Batch leads
+to a speed-up between 7.4–8.5 × in JODIE and DeepCoevolve.
+
+5 EXPERIMENTS
+
+In this section, we experimentally validate the effectiveness of
+JODIE on two tasks: next interaction prediction and user state
+change prediction. We conduct experiments on three datasets each
+and compare with six strong baselines to show the following:
+(1) JODIE outperforms the best performing baseline by up to
+22.4% in predicting the next interaction and up to 4.5% in
+predicting label changes.
+(2) We show that t-Batch results in over 7.4× speed-up in the
+running-time of both JODIE and DeepCoevolve.
+(3) JODIE is robust in performance to the availability of training
+data.
+(4) We show that the performance of JODIE is stable with respect
+to the dimensionality of the dynamic embedding.
+(5) Finally, we show the usefulness of JODIE as an early-warning
+system for label change.
+We first explain the experimental setting and the baseline meth-
+ods, and then illustrate the experimental results.
+Experimental setting. We train all models by splitting the data
+by time, instead of splitting by user which would result in temporal
+inconsistency between training and test data. Therefore, we train
+all models on the first τ fraction of interactions, validate on the
+next τv fraction, and test on the next τt fraction of interactions.
+For fair comparison, we use 128 dimensions as the dimensionality
+of the dynamic embedding for all algorithms and one-hot vectors
+for static embeddings. All algorithms are run for 50 epochs, and all
+reported numbers for all models are for the test data corresponding
+to the best performing validation set.
+Baselines. We compare JODIE with six state-of-the-art algo-
+rithms spanning three algorithmic categories:
+(1) Recurrent neural network algorithms: in this category,
+we compare with RRN [47], LatentCross [8], Time-LSTM [53],
+and standard LSTM. These algorithms are state-of-the-art
+in recommender systems and generate dynamic user em-
+beddings. We use Time-LSTM-3 cell for Time-LSTM as it
+performs the best in the original paper [53], and LSTM cells
+
+Table 3: Future interaction prediction experiment: Table
+comparing the performance of JODIE with state-of-the-art
+algorithms, in terms of mean reciprocal rank (MRR) and re-
+call@10. The best algorithm in each column is colored blue
+and second best is light blue. JODIE outperforms the base-
+lines by up to 22.4%.
+
+Method
+
+LSTM [53]
+Time-LSTM [53]
+RRN [47]
+LatentCross [8]
+CTDNE [34]
+DeepCoevolve [13]
+JODIE (proposed)
+% Improvement
+
+Reddit
+Wikipedia
+LastFM
+MRR
+Rec@10 MRR
+Rec@10 MRR
+Rec@10
+0.355
+0.551
+0.329
+0.455
+0.062
+0.119
+0.387
+0.573
+0.247
+0.342
+0.068
+0.137
+0.603
+0.747
+0.522
+0.617
+0.089
+0.182
+0.421
+0.588
+0.424
+0.481
+0.148
+0.227
+0.165
+0.257
+0.035
+0.056
+0.01
+0.01
+0.171
+0.275
+0.515
+0.563
+0.019
+0.039
+0.726
+0.852
+0.746
+0.822
+0.195
+0.307
+12.3%
+10.5%
+22.4%
+20.5%
+4.7%
+8.0%
+
+in RRN and LatentCross models. As is standard, we use the
+one-hot vector of items as inputs to these models.
+(2) Temporal network embedding algorithms: we compare
+JODIE with CTDNE [34] which is the state-of-the-art in gen-
+erating embeddings from temporal networks. As it generates
+static embeddings, we generate new embeddings after each
+edge is added. We use uniform sampling of neighborhood as
+it performs the best in the original paper [34].
+(3) Co-evolutionary recurrent algorithms: here we compare
+with the state-of-the-art algorithm, DeepCoevolve [13], which
+has been shown to outperform other co-evolutionary point-
+process algorithms [43]. We use 10 negative samples per
+interaction for computational tractability.
+
+5.1 Experiment 1: Future interaction prediction
+
+In this experiment, the task is to predict future interactions. The
+prediction task is: given all interactions till time t , and the user u
+involved in the interaction at time t , which item will u interact with
+(out of all N items)?
+We use three datasets in the experiments related to future inter-
+action prediction:
+• Reddit post dataset: this dataset consists of one month of posts
+made by users on subreddits [2]. We selected the 1000 most active
+subreddits as items and the 10,000 most active users. This results in
+672,447 interactions. We convert the text of the post into a feature
+vector representing their LIWC categories [36].
+• Wikipedia edits: this dataset is one month of edits made by edits
+on Wikipedia pages [3]. We selected the 1000 most edited pages as
+items and editors who made at least 5 edits as users (a total of 8227
+users). This generates 157,474 interactions. Similar to the Reddit
+dataset, we convert the edit text into a LIWC-feature vector.
+• LastFM song listens: this dataset has one months of who-listens-
+to-which song information [21]. We selected all 1000 users and the
+1000 most listened songs resulting in 1293103 interactions. In this
+dataset, interactions do not have features.
+We select these datasets such that they vary in terms of users’
+repetitive behavior: in Wikipedia and Reddit, a user interacts with
+
+Table 4: User state change prediction: Table comparing the
+performance in terms of AUC of JODIE with state of the art
+algorithms. The best algorithm in each column is colored
+blue and second best is light blue. JODIE outperforms the
+baselines by up to 4.5%.
+
+Method
+LSTM [53]
+Time-LSTM [53]
+RRN [47]
+LatentCross [8]
+DeepCoevolve [13]
+JODIE (proposed method)
+Improvement over best baseline
+
+Reddit Wikipedia MOOC
+0.523
+0.575
+0.686
+0.556
+0.671
+0.711
+0.586
+0.804
+0.558
+0.574
+0.628
+0.686
+0.577
+0.663
+0.671
+0.599
+0.831
+0.756
+1.3%
+2.7%
+4.5%
+
+the same item consecutively in 79% and 61% interactions, respec-
+tively, while in LastFM, this happens in only 8.6% interactions.
+Experimentation setting. We use the first 80% data to train,
+next 10% to validate, and the final 10% to test. We measure the
+performance of the algorithms in terms of the mean reciprocal rank
+(MRR) and recall@10—MRR is the average of the reciprocal rank
+and recall@10 is the fraction of interactions in which the ground
+truth item is ranked in the top 10. Higher values for both are better.
+For every interaction, the ranking of ground truth item is calculated
+with respect to all the items in the dataset.
+Results. Table 3 compares the results of JODIE with the six base-
+line methods. We observe that JODIE significantly outperforms all
+baselines in all datasets across both metrics on the three datasets
+(between 4.7% and 22.4%). Interestingly, we observe that our model
+performs well irrespective of how repetitive users are—it achieves
+up to 22.4% improvement in Wikipedia and Reddit (high repetition),
+and up to 8% improvement in LastFM . This means JODIE is able to
+learn to balance personal preference with users’ non-repetitive in-
+teraction behavior. Moreover, among the baselines, there is no clear
+winner—while RRN performs the better in Reddit and Wikipedia,
+LatentCross performs better in LastFM. As CTDNE generates static
+embedding, its performance is low.
+Overall, JODIE outperforms these baselines by learning efficient
+update, project, and predict functions.
+
+5.2 Experiment 2: User state change prediction
+
+In this experiment, the task is to predict if an interaction will lead to
+a change in user, particularly in two use cases: predicting banning
+of users and predicting if a student will drop-out of a course. Till a
+user is banned or drops-out, the label of the user is ‘0’, and their
+last interaction has the label ‘1’. For users that are not banned or
+do not drop-out, the label is always ‘0’. This is a highly challenging
+task because of very high imbalance in labels.
+We use three datasets for this task:
+• Reddit bans: we augment the Reddit post dataset (from Sec-
+tion 5.1) with ground truth labels of banned users from Reddit.This
+gives 366 true labels among 672,447 interactions (= 0.05%).
+• Wikipedia bans: we augment the Wikipedia edit data (from Sec-
+tion 5.1) with ground truth labels of banned users [3]. This results
+in 217 positive labels among 157,474 interactions (= 0.14%).
+• MOOC student drop-out: this dataset consists of actions, e.g.,
+
+Figure 4: Figure showing the running time (in minutes) of
+JODIE and DeepCoevolve, both with and without using the
+proposed t-Batch algorithm. t-Batch speeds both the algo-
+rithms by 8.5× and 7.4×, respectively.
+
+Table 5: Table comparing the running time (in minutes) of
+the two coupled recurrent models, JODIE and DeepCoevolve,
+showing the effectiveness of the proposed t-Batch method.
+Experiments were conducted on the Reddit dataset. First, we
+observe that JODIE is slightly faster than DeepCoevolve and
+second, we observe that t-Batch leads to 7.4×–8.5× reduction
+in running time.
+
+DeepCoevolve
+
+JODIE
+
+47.21
+43.53
+
+Without t-Batch With t-Batch
+
+6.35
+5.13
+
+viewing a video, submitting answer, etc., done by students on a
+MOOC online course [1]. This dataset consists of 7047 users inter-
+acting with 98 items (videos, answers, etc.) resulting in over 411,749
+interactions. There are 4066 drop-out events (= 0.98%).
+Experimentation setting. Due to sparsity of positive labels, in
+this experiment we train the models on the first 60% interactions,
+validate on the next 20%, and test on the last 20% interactions. We
+evaluate the models using area under the curve metric (AUC), a
+standard metric in these tasks with highly imbalanced labels.
+For the baselines, we train a logistic regression classifier on
+the training data using the dynamic user embedding as input. As
+always, for all models, we report the test AUC for the epoch with
+the highest validation AUC.
+Results. Table 4 compares the performance of JODIE on the
+three datasets with the baseline models. We see that JODIE out-
+performs the baselines by up to 2.7% in the ban prediction task
+and by 4.5% in the drop-out prediction task. As before, there is no
+clear winner among baselines—RRN performs the second best in
+predicting bans on Reddit and Wikipedia, while Time-LSTM is the
+second best in predicting dropouts.
+Thus, JODIE is highly efficient in both link prediction and label
+change prediction.
+
+5.3 Experiment 3: Effectiveness of t-Batch
+
+Here we empirically show the advantage of t-Batch algorithm on
+co-evolving recurrent models, namely our proposed JODIE and
+
+JODIEDeepCoevolve010203040Running time (minutes)8.5xspeed-up7.4xspeed-upWithoutt−BatchWitht−Batch(a)
+
+(b)
+
+(c)
+
+(d)
+
+Figure 5: Robustness of JODIE : Figures (a–c) compare the mean reciprocal rank (MRR) of JODIE with baselines on interaction
+prediction task, by varying the training data size. Figure (d) shows the AUC of user state change prediction task by varying
+the training data size. In all cases, JODIE is consistently the best by up to 33%.
+
+DeepCoevolve. Figure 4 shows the running time (in minutes) of
+one epoch of the Reddit dataset.3
+We make three crucial observations. First, we observe that JODIE
+is slightly faster than DeepCoevolve. We attribute it to the fact that
+JODIE does not use negative sampling while training because it
+directly generates the embedding of the predicted item. In contrast,
+DeepCoevolve requires training with negative sampling. Second,
+we see that our proposed JODIE + t-Batch combination is 9.2× faster
+than the DeepCoevolve algorithm. Third, we observe that t-Batch
+speeds-up the running-time of both JODIE and DeepCoevolve by
+8.5× and 7.4×, respectively.
+Altogether, these experiments show that the proposed t-Batch is
+very effective in creating parallelizable batches from complex tem-
+poral dependencies that exist in user-item interactions. Moreover,
+this also shows that t-Batch is general and applicable to algorithms
+that learn from sequence of interactions.
+
+5.4 Experiment 4: Robustness to training data
+
+In this experiment, we check the robustness of JODIE by varying
+the percentage of training data and comparing the performance of
+the algorithms in both the tasks of interaction prediction and user
+state change prediction.
+For interaction prediction, we vary the training data percentage
+from 10% to 80%. In each case, we take the 10% interactions after
+the training data as validation and the next 10% interactions next
+as testing. This is done to compare the performance on the same
+testing data size. Figure 5(a–c) shows the change in mean recipro-
+cal rank (MRR) of all the algorithms on the three datasets, as the
+training data size is increased. We note that the performance of
+JODIE is stable as it does not vary much across the data points.
+Moreover, JODIE consistently outperforms the baseline models by
+a significant margin (by a maximum of 33.1%).
+Similar is the case in user state change prediction. Here, we
+vary training data percent as 20%, 40%, and 60%, and in each case
+take the following 20% interactions as validation and the next 20%
+interactions as test. Figure 5(d) shows the AUC of all the algorithms
+
+3We ran the experiment on one NVIDIA Titan X Pascal GPUs with 12Gb of RAM at
+10Gbps speed.
+
+Figure 6: Robustness to dynamic embedding size: Figure
+shows that the MRR of JODIE is stable with change in dy-
+namic embeddign size, for the task of interaction prediction
+on LastFM dataset. Please refer to the legend in Figure 5.
+
+on the Wikipedia dataset. We omit the other datasets due to space
+constraints, which have similar results. Again, we observe that
+JODIE is stable and consistently performs the best (better by up to
+3.1%), irrespective of the training data size.
+This shows the robustness of JODIE to the amount of available
+training data.
+
+5.5 Experiment 5: Robustness to embedding
+size
+
+Finally, we check the effect of the dynamic embedding size on the
+predictions. To do this, we vary the dynamic embedding dimension
+from 32 to 256, and calculate the mean reciprocal rank for interac-
+tion prediction on the LastFM dataset. The effect on other datasets
+is similar and omitted due to space constraints. The resulting figure
+is showing in Figure 6. We find that the embedding dimension size
+has little effect on the performance of JODIE and it performs the
+best overall.
+
+10%20%30%40%50%60%70%80%Percentage of training data 0.00.20.40.60.8Mean Reciprocal Rank (MRR)Interaction prediction on Wikipedia10%20%30%40%50%60%70%80%Percentage of training data0.00.20.40.60.8Mean Reciprocal Rank (MRR)Interaction prediction on Reddit10%20%30%40%50%60%70%80%Percentage of training data 0.00.10.20.3Mean Reciprocal Rank (MRR)Interaction prediction on LastFM30%40%50%60%Percentage of training data 0.50.60.70.80.91.0Average AUCTemporal label prediction on Wikipedia3264128256Size of embedding dimension0.00.10.20.3Mean Reciprocal Rank (MRR)JODIEOtherbaselinesInteraction prediction on LastFM6 CONCLUSIONS
+
+We proposed a coupled recurrent neural network model called
+JODIE that learns dynamic embeddings of users and items from
+a sequence of temporal interactions. The use of a novel project
+function, inspired by Kalman Filters, to estimate the user embedding
+at any time point is a key innovation of JODIE and leads to the
+advanced performance of JODIE . We also proposed the t-Batch
+algorithm that creates parallelizable batches of training data, which
+results in massive speed-up in running time.
+There are several directions open for future work, such as learn-
+ing embeddings of groups of users and items in temporal interac-
+tions and learning hierarchical embeddings of users and items. We
+will explore these directions in future work.
+
+REFERENCES
+
+[1] Kdd cup 2015. https://biendata.com/competition/kddcup2015/data/. Accessed:
+2018-11-05.
+[2] Reddit data dump. http://files.pushshift.io/reddit/. Accessed: 2018-11-05.
+[3] Wikipedia edit history dump. https://meta.wikimedia.org/wiki/Data_dumps.
+Accessed: 2018-11-05.
+[4] D. Agrawal, C. Budak, A. El Abbadi, T. Georgiou, and X. Yan. Big data in online
+social networks: user interaction analysis to model user behavior in social net-
+
+works. In International Workshop on Databases in Networked Information Systems,
+
+pages 1–16. Springer, 2014.
+[5] T. Arnoux, L. Tabourier, and M. Latapy. Combining structural and dynamic infor-
+mation to predict activity in link streams. In Proceedings of the 2017 IEEE/ACM
+
+International Conference on Advances in Social Networks Analysis and Mining 2017,
+Sydney, Australia, July 31 - August 03, 2017, pages 935–942, 2017.
+
+[6] T. Arnoux, L. Tabourier, and M. Latapy. Predicting interactions between in-
+dividuals with structural and dynamical information. CoRR, abs/1804.01465,
+2018.
+[7] I. M. Baytas, C. Xiao, X. Zhang, F. Wang, A. K. Jain, and J. Zhou. Patient sub-
+typing via time-aware lstm networks. In Proceedings of the 23rd ACM SIGKDD
+
+International Conference on Knowledge Discovery and Data Mining, pages 65–74.
+
+ACM, 2017.
+[8] A. Beutel, P. Covington, S. Jain, C. Xu, J. Li, V. Gatto, and E. H. Chi. Latent cross:
+Making use of context in recurrent recommender systems. In Proceedings of the
+
+Eleventh ACM International Conference on Web Search and Data Mining, pages
+
+46–54. ACM, 2018.
+[9] J. Bobadilla, F. Ortega, A. Hernando, and A. Gutiérrez. Recommender systems
+survey. Knowledge-based systems, 46:109–132, 2013.
+[10] C. Buntain and J. Golbeck.
+Identifying social roles in reddit using network
+
+structure. In Proceedings of the 23rd International Conference on World Wide Web,
+
+pages 615–620. ACM, 2014.
+[11] S. Chaturvedi, D. Goldwasser, and H. Daumé III. Predicting instructor’s interven-
+
+tion in mooc forums. In Proceedings of the 52nd Annual Meeting of the Association
+for Computational Linguistics (Volume 1: Long Papers), volume 1, pages 1501–1511,
+
+2014.
+[12] J. Cheng, M. Bernstein, C. Danescu-Niculescu-Mizil, and J. Leskovec. Anyone can
+become a troll: Causes of trolling behavior in online discussions. In CSCW: pro-
+
+ceedings of the Conference on Computer-Supported Cooperative Work. Conference
+on Computer-Supported Cooperative Work, volume 2017, page 1217. NIH Public
+
+Access, 2017.
+[13] H. Dai, Y. Wang, R. Trivedi, and L. Song. Deep coevolutionary network: Embed-
+ding user and item features for recommendation. arXiv preprint arXiv:1609.03675,
+2016.
+[14] N. Du, H. Dai, R. Trivedi, U. Upadhyay, M. Gomez-Rodriguez, and L. Song. Re-
+current marked temporal point processes: Embedding event history to vector.
+
+In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge
+Discovery and Data Mining, San Francisco, CA, USA, August 13-17, 2016, pages
+
+1555–1564, 2016.
+[15] M. Farajtabar, Y. Wang, M. Gomez-Rodriguez, S. Li, H. Zha, and L. Song. CO-
+EVOLVE: A joint point process model for information diffusion and network
+
+co-evolution. In Advances in Neural Information Processing Systems 28: Annual
+Conference on Neural Information Processing Systems 2015, December 7-12, 2015,
+Montreal, Quebec, Canada, pages 1954–1962, 2015.
+
+[16] A. Ferraz Costa, Y. Yamaguchi, A. Juci Machado Traina, C. Traina Jr, and C. Falout-
+sos. Rsc: Mining and modeling temporal activity in social media. In Proceedings
+
+of the 21th ACM SIGKDD International Conference on Knowledge Discovery and
+
+Data Mining, pages 269–278. ACM, 2015.
+[17] P. Goyal and E. Ferrara. Graph embedding techniques, applications, and perfor-
+mance: A survey. Knowl.-Based Syst., 151:78–94, 2018.
+
+Figure 7: JODIE as an early-warning system: Figure showing
+that as a student gets closer to dropping-out (moving right),
+JODIE predicts a higher dropping out probability score for
+them compared to other students.
+
+5.6 Experiment 6: JODIE as an early-warning
+system
+
+In user state change prediction tasks such as predicting student
+drop-out from courses and finding online malicious users, it is
+crucial to make the predictions early, in order to develop effective
+intervention strategies []. For instance, if it can be predicted well
+in advance that a student is likely to drop a course (an ‘at-risk’
+student), then steps can be taken by the teachers to ensure continued
+education of the student []. Therefore, here we show that JODIE is
+effective in making early predictions for at-risk students.
+To measure this, we calculate the change in student’s dropout
+probability predicted by JODIE as a function of the number of
+interactions till it drops out. Let us call the set of students who drop
+as D and those who do not as D . We plot the ratio of the predicted
+probability score of d ∈ D to the predicted score for d ∈ D (i.e.,
+the expected score). A ratio of one means that the algorithm gives
+equal score to dropping-out and non-dropping-out students, while
+a ratio greater than one means that the algorithm gives a higher
+score to students that drop out compared to the students that do
+not. The average ratio is shown in Figure 7, with 95% confidence
+intervals. Here we only consider the interactions that occur in the
+test set, to prevent direct training on the drop-out interactions.
+First, we observe from Figure 7 that the ratio score is higher
+than one as early as five interactions prior to the student dropping-
+out. Second, we observe that as the student approaches its ‘final’
+drop-out interaction, its score predicted by JODIE increases steadily
+and spikes strongly at its final interaction. Both these observations
+together shows that JODIE identifies early signs of dropping-out
+and predicts a higher score for these at-risk students.
+We make similar observation for users before they get banned
+on Wikipedia and Reddit, but the ratio in both these cases is close
+to 1, indicating that there is low early predictability of when a user
+will be banned.
+Overall, in this section, we showed that effectiveness and ro-
+bustness of JODIE and t-Batch in two tasks, in comparison to six
+state-of-the-art algorithms. Moreover, we showed the usefulness of
+JODIE as an early-warning system to identify student dropouts as
+early as five interactions prior to dropping-out.
+
+−5−4−3−2−1Number of actions until dropout1.01.11.21.31.41.5Ratio of predicteddropout probability toexpected probabilityStudentdropsout[18] P. Goyal, N. Kamra, X. He, and Y. Liu. Dyngem: Deep embedding method for
+
+dynamic graphs. arXiv preprint arXiv:1805.11273, 2018.
+
+[19] A. Grover and J. Leskovec. node2vec: Scalable feature learning for networks.
+
+In Proceedings of the 22nd ACM SIGKDD international conference on Knowledge
+
+discovery and data mining, pages 855–864. ACM, 2016.
+[20] W. L. Hamilton, R. Ying, and J. Leskovec. Representation learning on graphs:
+Methods and applications. IEEE Data Eng. Bull., 40(3):52–74, 2017.
+[21] B. Hidasi and D. Tikk. Fast als-based tensor factorization for context-aware
+recommendation from implicit feedback. In Joint European Conference on Machine
+
+Learning and Knowledge Discovery in Databases, pages 67–82. Springer, 2012.
+
+[22] T. Iba, K. Nemoto, B. Peters, and P. A. Gloor. Analyzing the creative editing be-
+havior of wikipedia editors: Through dynamic social network analysis. Procedia-
+
+Social and Behavioral Sciences, 2(4):6441–6456, 2010.
+
+[23] A. E. Johnson, T. J. Pollard, L. Shen, H. L. Li-wei, M. Feng, M. Ghassemi, B. Moody,
+P. Szolovits, L. A. Celi, and R. G. Mark. Mimic-iii, a freely accessible critical care
+database. Scientific data, 3:160035, 2016.
+[24] S. J. Julier and J. K. Uhlmann. New extension of the kalman filter to nonlinear
+
+systems. In Signal processing, sensor fusion, and target recognition VI, volume
+
+3068, pages 182–194. International Society for Optics and Photonics, 1997.
+[25] R. R. Junuthula, M. Haghdan, K. S. Xu, and V. K. Devabhaktuni. The block
+point process model for continuous-time event-based dynamic networks. CoRR,
+abs/1711.10967, 2017.
+[26] R. R. Junuthula, K. S. Xu, and V. K. Devabhaktuni. Leveraging friendship networks
+for dynamic link prediction in social interaction networks. In Proceedings of the
+
+Twelfth International Conference on Web and Social Media, ICWSM 2018, Stanford,
+California, USA, June 25-28, 2018., pages 628–631, 2018.
+
+[27] M. Kloft, F. Stiehler, Z. Zheng, and N. Pinkwart. Predicting mooc dropout over
+weeks using machine learning methods.
+
+In Proceedings of the EMNLP 2014
+Workshop on Analysis of Large Scale Social Interaction in MOOCs, pages 60–65,
+
+2014.
+[28] S. Kumar, F. Spezzano, and V. Subrahmanian. Vews: A wikipedia vandal early
+
+warning system. In Proceedings of the 21th ACM SIGKDD international conference
+on knowledge discovery and data mining, pages 607–616. ACM, 2015.
+
+[29] J. Li, H. Dani, X. Hu, J. Tang, Y. Chang, and H. Liu. Attributed network embedding
+for learning in a dynamic environment.
+
+In Proceedings of the 2017 ACM on
+Conference on Information and Knowledge Management, CIKM 2017, Singapore,
+
+November 06 - 10, 2017, pages 387–396, 2017.
+[30] T. Li, J. Zhang, P. S. Yu, Y. Zhang, and Y. Yan. Deep dynamic network embedding
+for link prediction. IEEE Access, 6:29219–29230, 2018.
+[31] X. Li, N. Du, H. Li, K. Li, J. Gao, and A. Zhang. A deep learning approach to link
+
+prediction in dynamic networks. In Proceedings of the 2014 SIAM International
+Conference on Data Mining, Philadelphia, Pennsylvania, USA, April 24-26, 2014,
+
+pages 289–297, 2014.
+[32] T. R. Liyanagunawardena, A. A. Adams, and S. A. Williams. Moocs: A systematic
+study of the published literature 2008-2012. The International Review of Research
+
+in Open and Distributed Learning, 14(3):202–227, 2013.
+
+[33] Y. Ma, Z. Guo, Z. Ren, Y. E. Zhao, J. Tang, and D. Yin. Dynamic graph neural
+networks. CoRR, abs/1810.10627, 2018.
+[34] G. H. Nguyen, J. B. Lee, R. A. Rossi, N. K. Ahmed, E. Koh, and S. Kim. Continuous-
+
+time dynamic network embeddings. In 3rd International Workshop on Learning
+Representations for Big Networks (WWW BigNet), 2018.
+
+[35] R. Pálovics, A. A. Benczúr, L. Kocsis, T. Kiss, and E. Frigó. Exploiting temporal
+influence in online recommendation. In Eighth ACM Conference on Recommender
+
+Systems, RecSys ’14, Foster City, Silicon Valley, CA, USA - October 06 - 10, 2014,
+
+pages 273–280, 2014.
+[36] J. W. Pennebaker, M. E. Francis, and R. J. Booth. Linguistic inquiry and word
+count: Liwc 2001. Mahway: Lawrence Erlbaum Associates, 71(2001):2001, 2001.
+[37] B. Perozzi, R. Al-Rfou, and S. Skiena. Deepwalk: Online learning of social repre-
+
+sentations. In Proceedings of the 20th ACM SIGKDD international conference on
+Knowledge discovery and data mining, pages 701–710. ACM, 2014.
+
+[38] J. Qiu, Y. Dong, H. Ma, J. Li, K. Wang, and J. Tang. Network embedding as matrix
+factorization: Unifying deepwalk, line, pte, and node2vec. In Proceedings of the
+
+Eleventh ACM International Conference on Web Search and Data Mining, WSDM
+2018, Marina Del Rey, CA, USA, February 5-9, 2018, pages 459–467, 2018.
+
+[39] V. Raghavan, G. Ver Steeg, A. Galstyan, and A. G. Tartakovsky. Modeling temporal
+activity patterns in dynamic social networks. IEEE Transactions on Computational
+Social Systems, 1(1):89–107, 2014.
+[40] M. Rahman, T. K. Saha, M. A. Hasan, K. S. Xu, and C. K. Reddy. Dylink2vec:
+Effective feature representation for link prediction in dynamic networks. CoRR,
+abs/1804.05755, 2018.
+[41] S. Sajadmanesh, J. Zhang, and H. R. Rabiee. Continuous-time relationship pre-
+diction in dynamic heterogeneous information networks. CoRR, abs/1710.00818,
+2017.
+[42] S. Sedhain, S. Sanner, L. Xie, R. Kidd, K. Tran, and P. Christen. Social affinity
+filtering: recommendation through fine-grained analysis of user interactions and
+
+activities. In Conference on Online Social Networks, COSN’13, Boston, MA, USA,
+
+October 7-8, 2013, pages 51–62, 2013.
+[43] R. Trivedi, H. Dai, Y. Wang, and L. Song. Know-evolve: Deep temporal reasoning
+
+for dynamic knowledge graphs. In International Conference on Machine Learning,
+
+pages 3462–3471, 2017.
+[44] R. Trivedi, M. Farajtbar, P. Biswal, and H. Zha. Representation learning over
+
+dynamic graphs. arXiv preprint arXiv:1803.04051, 2018.
+
+[45] P. B. Walker, S. G. Fooshee, and I. Davidson. Complex interactions in social
+
+and event network analysis. In International Conference on Social Computing,
+Behavioral-Cultural Modeling, and Prediction, pages 440–445. Springer, 2015.
+
+[46] Y. Wang, N. Du, R. Trivedi, and L. Song. Coevolutionary latent feature processes
+for continuous-time user-item interactions. In Advances in Neural Information
+Processing Systems, pages 4547–4555, 2016.
+[47] C.-Y. Wu, A. Ahmed, A. Beutel, A. J. Smola, and H. Jing. Recurrent recommender
+
+networks. In Proceedings of the Tenth ACM International Conference on Web Search
+
+and Data Mining, pages 495–503. ACM, 2017.
+[48] D. Yang, T. Sinha, D. Adamson, and C. P. Rosé. Turn on, tune in, drop out:
+Anticipating student dropouts in massive open online courses. In Proceedings of
+
+the 2013 NIPS Data-driven education workshop, volume 11, page 14, 2013.
+
+[49] S. Zhang, L. Yao, and A. Sun. Deep learning based recommender system: A survey
+
+and new perspectives. arXiv preprint arXiv:1707.07435, 2017.
+
+[50] Y. Zhang, Y. Xiong, X. Kong, and Y. Zhu. Learning node embeddings in interac-
+
+tion graphs. In Proceedings of the 2017 ACM on Conference on Information and
+
+Knowledge Management, pages 397–406. ACM, 2017.
+[51] L.-k. Zhou, Y. Yang, X. Ren, F. Wu, and Y. Zhuang. Dynamic network embedding
+by modeling triadic closure process. In AAAI, 2018.
+[52] L. Zhu, D. Guo, J. Yin, G. Ver Steeg, and A. Galstyan. Scalable temporal latent
+space inference for link prediction in dynamic social networks. IEEE Transactions
+
+on Knowledge and Data Engineering, 28(10):2765–2777, 2016.
+
+[53] Y. Zhu, H. Li, Y. Liao, B. Wang, Z. Guan, H. Liu, and D. Cai. What to do next:
+modeling user behaviors by time-lstm. In Proceedings of the Twenty-Sixth In-
+
+ternational Joint Conference on Artificial Intelligence, IJCAI-17, pages 3602–3608,
+
+2017.
+
+

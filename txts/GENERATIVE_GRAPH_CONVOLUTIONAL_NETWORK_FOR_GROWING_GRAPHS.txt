@@ -1,0 +1,741 @@
+GENERATIVE GRAPH CONVOLUTIONAL NETWORK FOR GROWING GRAPHS
+
+Da Xu, Chuanwei Ruan, Kamiya Motwani, Evren Korpeoglu, Sushant Kumar, Kannan Achan
+
+Walmart Labs, Sunnyvale, California, USA
+
+9
+1
+0
+2
+
+r
+
+a
+
+M
+
+6
+
+]
+
+G
+
+L
+
+.
+
+s
+
+c
+
+[
+
+1
+v
+0
+4
+6
+2
+0
+
+.
+
+3
+0
+9
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+ABSTRACT
+
+Modeling generative process of growing graphs has wide ap-
+plications in social networks and recommendation systems,
+where cold start problem leads to new nodes isolated from ex-
+isting graph. Despite the emerging literature in learning graph
+representation and graph generation, most of them can not
+handle isolated new nodes without nontrivial modiﬁcations.
+The challenge arises due to the fact that learning to gener-
+ate representations for nodes in observed graph relies heav-
+ily on topological features, whereas for new nodes only node
+attributes are available. Here we propose a uniﬁed genera-
+tive graph convolutional network that learns node represen-
+tations for all nodes adaptively in a generative model frame-
+work, by sampling graph generation sequences constructed
+from observed graph data. We optimize over a variational
+lower bound that consists of a graph reconstruction term and
+an adaptive Kullback-Leibler divergence regularization term.
+We demonstrate the superior performance of our approach on
+several benchmark citation network datasets.
+Index Terms— Graph representation learning, sequential
+generative model, variational autoencoder, growing graph
+
+1. INTRODUCTION
+
+1.1. Background
+
+Real-world graph structured data is often under dynamic
+growth as new nodes emerge over time. However, directly
+modeling the generation process from observed graph data
+remains a difﬁcult task due to the complexity of graph dis-
+tributions. Recently, there have been signiﬁcant advances
+in learning graph representations by mapping nodes onto
+latent vector space. The latent factors (embeddings) which
+have simpler geometric structures can then be used for down-
+stream machine learning analysis such as generating graph
+structures [1] and various semi-supervised learning tasks [2].
+Some early approaches in node embedding such as graph
+factorization algorithm [3], Laplacian eigenmaps [4] and
+HOPE [5] are based on deterministic matrix-factorization
+techniques. Later approaches arise from random walk tech-
+niques that provide stochastic measures for analysis, includ-
+ing DeepWalk [6], node2vec [7] and LINE [8]. More recent
+graph embedding techniques focus on building deep graph
+covolutional networks (GCN ) [9] as encoders that aggregate
+
+neighborhood information [10]. Variants of GCN have been
+proposed to tackle the computational complexity for large
+graphs, such as FastGCN [11] which applies graph sampling
+techniques. GraphSAGE [12] is another time-efﬁcient induc-
+tive graph representation learning approach that implements
+localized neighborhood aggregations.
+On the other side, advancements in generative models
+compatible with deep neural networks such as variational
+autoencoders (VAE ) [13, 14] and generative adversarial net-
+works (GAN ) [15] have enabled direct modeling for gen-
+eration of complex distributions. As a consequence, there
+have been several recent work on deep generative models
+for graphs [16, 17, 18, 19]. However, many of them only
+deal with ﬁxed graphs [19, 18] or graphs of very small sizes
+[17, 1]. Moreover, most graph representation learning meth-
+ods require at least some topological features from all nodes
+in order to conduct neighborhood aggregations or random
+walks, which is clearly infeasible for growing graphs with
+isolated new nodes. To obtain embeddings and further gener-
+ate graph structures for both new and old nodes, it is essential
+to utilize node attributes. Also, instead of learning how the
+observed graph is generated as a whole, the graph generation
+should be decomposed into sequences that reﬂect how new
+nodes are sequentially ﬁtted into existing graph structures.
+
+1.2. Related methods
+
+Variational Autoencoder Unlike vanilla autoencoder, VAE
+treats the latent factors z as random variables such that they
+can capture variations in the observed data x [13]. VAE
+has shown high efﬁciency in recovering complex multimodal
+data distributions. The parameters in encoding distribution
+qφ (z |x) and decoding distribution pθ (x|z ) are optimized
+over the evidence (variational) lower bound (ELBO)
+
+log p(x) ≥ Eqφ (z |x) [log pθ (x|z )] − K L(qφ (z |x)||p0 (z )).
+
+The expectation with respect to qφ (z |x) is approximated
+stochastically by reparametrizing z as µ + σ (cid:12) , where 
+are independent standard Gaussian variables. This is also
+referred to as ’reparameterization trick’ [13]. It allows sam-
+pling directly from z so that the backpropagation technique
+becomes feasible for training deep networks.
+
+Graph Convolutional Network The original GCN [9]
+
+deals with node classiﬁcation as a semi-supervised learning
+
+ 
+ 
+ 
+ 
+ 
+ 
+Ai,j
+
+√
+
+ˆAi,j =
+
+task. The layer-wise propagation rule is deﬁned as H l+1 =
+σ( ˆAH lWl ). Here ˆA is the normalized adjacency matrix with
+where deg(i) gives the degree of node
+i. The σ(.) is some activation function such as ReLU. H l is
+the output of the (l − 1)th layer and Wl is the layer-speciﬁc
+aggregation weights. Here Wl ∈ Rdl×dl+1 where dl is the
+dimension of the hidden units on lth layer.
+
+deg(i)deg(j )
+
+Graph Convolutional Autoencoder (GAE ) GAE is an
+
+important extension of GCN for learning node representa-
+tions for link prediction [18]. A two-layer GCN is used as
+
+encoder z = GCN (A, X ) = ˆAReLu( ˆAXW0 )W1 . When
+
+adapting GCN into VAE framework (GCN-VAE ), the hid-
+den factors z are assumed to follow independent normal dis-
+tributions which are parameterized by mean µ and log of
+standard deviation σ , where µ = GCNµ (A, X ) and σ =
+GCNσ (A, X ). The pairwise decoding (generative) distri-
+bution for link between node i and j is simply f ((cid:104)z i , z j (cid:105))
+where f (.) is the sigmoid function. The ELBO is formulated
+
+as Eq(z |X ,A) [log p(A|z )] − K L(q(z |A, X )||p0 (z )).
+
+GraphRNN Recently a graph generation approach rely-
+ing only on topological structure was proposed in [16].
+It
+learns the sequential generation mechanism by training on a
+set of sampled sequences of decomposed graph generation
+process. The formation of each new edge is conditioned on
+the graph structure generated so far. Our approach refers to
+this idea of sampling from decomposed generation sequences.
+
+1.3. Present Work
+
+This work addresses the challenge of generating graph struc-
+ture for growing graphs with new nodes that are unconnected
+to the previous observed graph.
+It has important mean-
+ing for the cold start problems [20] in social networks and
+recommender systems. The major assumption is that the un-
+derlying generating mechanism is stationary during growth.
+GraphRNN neither takes advantage of node attributes nor
+does it naturally extends to isolated new nodes. Most other
+graph representation learning methods have similar issues,
+speciﬁcally the isolation from existing graph hinders passing
+messages or implementing aggregation.
+We deal with this problem by learning how graph struc-
+tures are generated sequentially, for cases where both node at-
+tributes and topological information exist as well as for cases
+where only node attributes are available. To the best of our
+knowledge, this work is the ﬁrst of its kind in graph signal
+processing.
+
+2. METHOD
+
+Let the input be observed undirected graph G = (V , E ) with
+associated binary adjacency matrix A, node attributes X ∈
+Rn×d0 and the new nodes V new with attributes X new . Our
+approach learns the generation of overall adjacency matrix
+Anew for V ∪ V new .
+
+2.1. Proposed Approach
+
+We start by treating incoming nodes as being added one-by-
+t ∈ Rt×t be the observed adjacency
+one into the graph. Let Aπ
+matrix up to the tth step according to the ordering π . When
+the (t + 1)th node is presented, we treat it as connected to
+all of previous nodes with the same probability ˜p, where ˜p
+may reﬂect the overall sparsity of the graph. Hence the new
+candidate adjacency matrix denoted by ˜Aπ
+t+1 is given by
+
+t+1 )t+1,t+1 = 1, ( ˜Aπ
+t+1 )1:t,1:t = Aπ
+
+( ˜Aπ
+t ,
+p(( ˜Aπ
+t+1 )k,t+1 = 1) = ˜p for k = 1, 2, · · · , t.
+
+(1)
+
+Similar to GraphRNN, we obtain the marginal distribution
+for graph by sampling the auxiliary π from the joint distribu-
+tion of p(G , (Aπ , X π )) with
+
+(cid:88)
+
+p(G ) =
+
+p((Aπ , X π )1[fG (Aπ , X π ) = G ]),
+
+π
+
+where fG (Aπ , X π ) maps the tuple (Aπ , X π ) back to a
+unique graph G . Each sampled π gives a (Aπ , X π ) that
+constitutes one-sample mini-batch that drives the stochastic
+gradient descent (SGD) for updating parameters.
+To illustrate the sequential generation process, we decom-
+pose joint marginal log-likelihood of (A≤n , X≤n ) under the
+node ordering π into
+n−1(cid:88)
+
+log p(Aπ≤i+1 , X π≤i+1 |Aπ≤i , X π≤i )
+
+log p(Aπ≤n , X π≤n ) =
+
+i=1
+
++ log p(Aπ
+1 , X π
+1 ).
+
+(2)
+
+1 , X π
+
+1 ) is not
+
+The log-likelihood term of initial state log p(Aπ
+of interest as we focus on modeling transition steps.
+Following VAE framework with hidden factors as Gaus-
+sian variables, for each transition step, we use encoding dis-
+φ (z |A≤i , X≤i ), generating distribution pi
+tribution q i
+0 (z |A≤i , X≤i ). From now on we treat
+and conditional prior pi
+the conditional on π as implicit for simplicity of notation. The
+variational lower bound for each step is given by:
+
+θ (A|z i ),
+
+φ (z i+1 | ˜A≤i+1 ,X≤i+1 ) [log pi
+
+log p(A≤i+1 , X≤i+1 |A≤i , X≤i )
+≥ Eqi
+θ (A≤i |z i )]
+− K L(q i
+φ (z i+1 | ˜A≤i+1 , X≤i+1 )(cid:107)pi
+0 (z i+1 |A≤i , X≤i )) + C
+≡ ELBOi + C.
+
+θ (X≤i |z i )q i
+φ (z i+1 | ˜A≤i+1 , X≤i+1 )dν (z )
+Z pi
+
+Here C = log (cid:82)
+is the reconstruction term for node attributes, which is not our
+target. We will discuss the interpretation for our evidence
+lower bound in Section 2.2. Given that we have assumed the
+consistency of underlying generating mechanism, we use the
+same set of parameters for each step.
+
+(3)
+
+When formulating encoding distribution, due to the efﬁ-
+ciency of GCN in node classiﬁcation and linkage prediction,
+we adopt their convolutional layers. The two-layer encoder
+for the ith step is then given by:
+
+µ(z i |X≤i+1 ) = ˆ˜A≤i+1σ( ˆ˜A≤i+1X≤i+1W0 )W1 ,
+diag(Σ(z i |X≤i+1 ) = ˆ˜A≤i+1σ( ˆ˜A≤i+1X≤i+1W0 )W2 ,
+
+(4)
+
+where σ(.) is activation function and ˆ˜A denotes the normal-
+ized candidate adjacency matrix constructed by (1). We also
+adopt the pairwise inner product decoder for edge generation:
+
+pi,j = p(Ai,j = 1|zi , zj ) = f ((cid:104)zi , zj (cid:105)),
+
+(5)
+with f (.) being the sigmoid function. Another reason for us-
+ing simple decoder being that in VAE framework if the gener-
+ative distribution is too expressive, the latent factors are often
+ignored [21].
+As for conditional priors of hidden factors, standard Gaus-
+sian priors are no longer suitable because we already have in-
+formation from previous i nodes at the (i + 1)th step. Hence,
+we use what the model has informed us till the ith step in an
+adaptive way by treating z i+1 ∈ R(i+1)×d2 as [z i+1
+where z i+1
+1:i are the hidden factors for previous nodes and z i+1
+is for the new node. For z i+1
+1:i we can use the encoding dis-
+tribution pφ (z1:i | ˜A≤i+1 , X≤i+1 ) where the candidate adja-
+cency matrix ˜A≤i passes information from previous steps.
+For the new node we keep using standard Gaussian prior. This
+gives us
+
+1:i , z i+1
+i+1 ],
+i+1
+
+(6)
+
+0 (z i+1
+z i+1
+
+1:i |A≤i , X≤i ) = pφ (z1:i | ˜A≤i+1 , X≤i+1 )
+pi
+i+1 |A≤i , X≤i ∼ N (0, I )
+
+loss function (L = − (cid:80)n−1
+We use the sum of negative ELBO in each transition step as
+i=1 ELBOi ) and obtain optimal ag-
+gregation weights [W0 , W1 , W2 ] by minimizing this loss.
+In practice, it’s not necessary to consider adding new
+nodes one-by-one. Instead, the new nodes can be added in
+a batch-wise fashion to alleviate computational costs.
+In
+preliminary experiments we also observe that sampling uni-
+formly at random from all node permutations gives very
+similar results to sampling from BFS orderings, hence we
+report results with the uniform sampling schema.
+
+2.2. Adaptive Evidence Lower Bound
+
+The loss function can be rearranged into (7) (with β = 1):
+− n−1(cid:88)
+n−1(cid:88)
+
+φ (z i+1 | ˜A≤i+1 ,X≤i+1 ) [log pθ (A≤i |z i )]
+Eqi
+
+φ (z i+1 | ˜A≤i+1 , X≤i+1 )(cid:107)pi
+0 (z i+1 |A≤i , X≤i )).
+K L(q i
+
++ β
+
+i=1
+
+i=1
+
+(7)
+
+The ﬁrst term sums up the reconstruction loss in each gen-
+eration step. The second term serves as an adaptive regular-
+izer that enforces the posterior of latent factors for observed
+nodes to remain close to their priors which contain informa-
+tion from previous steps. This can prevent the model from
+overﬁtting the edges of the new nodes, which is quite helpful
+in our batched version where new edges can outnumber orig-
+inal edges, as we are ﬁtting new nodes into original structure.
+Similar to β -VAE [22], we also introduce the tuning pa-
+rameter β as shown in (7) to control the tradeoff between the
+reconstruction term and the adaptive regularization.
+
+3. EXPERIMENT
+
+We test our generative graph convolution network (G-GCN )
+for growing graphs on two tasks: link prediction for isolated
+new nodes, and for nodes in observed graph. We use three
+benchmark citation network datasets: Cora, Citeseer and
+Pubmed. Their details are described in [23]. Node attributes
+are informative for all three datasets, which is indicated by
+the results of GCN-VAE in [18].
+
+3.1. Baselines
+
+We compare our approach against GCN-VAE and a multi-
+layer perceptron VAE (MLP-VAE ) [13]. Here the encoder
+of MLP-VAE is constructed by replacing the adjacency ma-
+trices in GCN-VAE with non-informative identity matrices.
+Their decoders are the same as our approach in (5). The dif-
+ference is that GCN-VAE uses both topological information
+and node attributes, while MLP-VAE only considers node at-
+tributes. When predicting edges for isolated new nodes, for
+all three methods, we plug the ’candidate’ adjacency matrix
+˜A formulated in (1) with ˜p = 0 into the encoder-decoder
+frameworks and recover the true adjacency matrix.
+We choose these two methods to compare with, instead of
+others, because both of them are able to utilize node attributes
+and follow from VAE framework. As we mentioned, most
+other graph embedding and graph generation techniques do
+not work for growing graphs without nontrivial modiﬁcations.
+
+3.2. Experiment Setup
+Link prediction for isolated new nodes
+
+For each citation network, a growing graph is constructed by
+randomly sampling an observed subgraph containing 70%
+of all nodes. The left-out nodes are treated as isolated new
+nodes. The subgraph is used for training and the valida-
+tion and test sets are formed by the edges between nodes in
+observed subgraph and the new nodes as well as the edges
+among the new nodes according to the original full graph.
+As we are treating new nodes as being added in a batch-wise
+fashion, the size of new node batch is set to be #{training nodes}
+.
+
+Link prediction for nodes in observed graph
+
+3
+
+Fig. 1. An illustration for the workﬂow of our approach at a transition step. The growing graph has an observed subgraph with
+three nodes (node 0, 1 and 2) and an incoming new node (node 3). The informative conditional priors for latent factors z (3)
+contain structural information of the observed subgraph. The encoding distributions for all latent factors are formed according
+to the candidate adjacency matrix where candidate edges (the dashed edges) are added to original subgraph.
+
+0:2
+
+Table 1. Results for link prediction tasks in citation networks. Standard error is computed over 10 runs with random initializa-
+tions on random dataset splits. The ﬁrst three rows are results for the ﬁrst task on new nodes, and last three rows are results for
+the second task on nodes in observed graph.
+
+Cora
+
+Citeseer
+
+Pubmed
+
+Method
+
+GCN-VAE
+MLP-VAE
+G-GCN
+
+GCN-VAE
+MLP-VAE
+G-GCN
+
+AUC
+75.12 ± 0.4
+75.59 ± 0.7
+
+83.30 ± 0.3
+
+93.15 ± 0.4
+86.55 ± 0.2
+
+94.07 ± 0.4
+
+AP
+76.32 ± 0.3
+75.64 ± 0.5
+
+Isolated new nodes
+
+AUC
+79.36 ± 0.3
+81.76 ± 0.6
+
+AP
+82.13 ± 0.1
+83.67 ± 0.4
+
+85.03 ± 0.3
+89.54 ± 0.2
+91.30 ± 0.2
+Nodes in observed graph
+
+AUC
+85.52 ± 0.2
+77.13 ± 0.4
+
+87.49 ± 0.2
+
+AP
+85.43 ± 0.1
+77.24 ± 0.3
+
+87.24 ± 0.1
+
+94.42 ± 0.2
+87.21 ± 0.3
+
+95.15 ± 0.2
+
+93.27 ± 0.4
+87.13 ± 0.2
+
+94.62 ± 0.7
+
+94.42 ± 0.1
+89.34 ± 0.1
+
+95.93 ± 0.7
+
+96.74 ± 0.4
+79.39 ± 0.5
+
+96.96 ± 0.6
+
+96.94 ± 0.3
+79.53 ± 0.3
+
+97.27 ± 0.5
+
+We then test our model on the original link predictions task
+[18], which predicts the existence of unseen edges between
+nodes in observed graph. In this task we adopt their exper-
+iment setup, where 10% and 5% of the edges are removed
+from the training graph and used as positive validation set
+and test set respectively. The same amount of unconnected
+node pairs are sampled and constitute the negative examples.
+In both tasks we use a 400-dim hidden layer and 200-dim
+latent variables, and train for 200 iterations using the Adam
+optimizer with a learning rate of 0.001 for all methods. No-
+tice that all three methods use encoding layers of the same
+form and their decoding layers are all parameter-free, so they
+already have the same number of parameters. The implemen-
+tation of GCN-VAE on the second task is conducted using
+their ofﬁcial Tensor-Flow code. The rest are conducted with
+our own implementations with PyTorch.
+
+3.3. Results
+
+We report area under the ROC curve (AUC) and average pre-
+cision (AP) scores for each model on the test sets for the two
+tasks (Table 1).
+Firstly, our approach outperforms both baselines in new
+node link prediction task across all three datasets, in terms of
+both AUC and AP. By comparing to MLP-VAE we show our
+advantage of learning with topological information, and our
+better performance over GCN-VAE indicates the importance
+
+of modeling the sequential generating process when making
+predictions on new nodes.
+Secondly, G-GCN has comparable or even slightly bet-
+ter results than GCN-VAE on link prediction task in observed
+graph, which suggests that our superior performance on iso-
+lated new nodes is not at the cost of the performance on nodes
+in observed graph. This is within expectation since our ap-
+proach learns the generation process as graph structure keeps
+growing under our sequential training setup, where new nodes
+are added in each step. It targets on nodes in observed graph
+as well as new nodes while not overﬁtting either of them. In
+a nutshell, our approach achieves better performance on link
+prediction task for the growing graphs as a whole.
+
+4. CONCLUSION AND FUTURE WORK
+
+We propose a generative graph convolution model for grow-
+ing graphs that incorporates graph representation learning
+and graph convolutional network into a sequential generative
+model. Our approach outperforms others in all benchmark
+datasets on link prediction for growing graphs.
+However, scalability remains a major issue as the com-
+putational complexity depends on the size of full graph. The
+idea of localized convolution from GraphSAGE [12] and
+graph sampling from FastGCN [11] may have pointed out
+promising directions, which we leave to future work.
+
+5. REFERENCES
+
+[1] Yujia Li, Oriol Vinyals, Chris Dyer, Razvan Pascanu,
+and Peter Battaglia, “Learning deep generative models
+of graphs,” arXiv preprint arXiv:1803.03324, 2018.
+
+[2] Zhilin Yang, William W Cohen, and Ruslan Salakhut-
+dinov, “Revisiting semi-supervised learning with graph
+embeddings,” arXiv preprint arXiv:1603.08861, 2016.
+
+[3] Amr Ahmed, Nino Shervashidze, Shravan Narayana-
+murthy, Vanja Josifovski, and Alexander J Smola, “Dis-
+tributed large-scale natural graph factorization,” in Pro-
+ceedings of the 22nd international conference on World
+Wide Web. ACM, 2013, pp. 37–48.
+
+[4] Mikhail Belkin and Partha Niyogi, “Laplacian eigen-
+maps and spectral techniques for embedding and clus-
+tering,” in Advances in neural information processing
+systems, 2002, pp. 585–591.
+
+[5] Mingdong Ou, Peng Cui, Jian Pei, Ziwei Zhang, and
+Wenwu Zhu, “Asymmetric transitivity preserving graph
+embedding,” in Proceedings of the 22nd ACM SIGKDD
+international conference on Knowledge discovery and
+data mining. ACM, 2016, pp. 1105–1114.
+
+[6] Bryan Perozzi, Rami Al-Rfou, and Steven Skiena,
+“Deepwalk: Online learning of social representations,”
+in Proceedings of the 20th ACM SIGKDD international
+conference on Knowledge discovery and data mining.
+ACM, 2014, pp. 701–710.
+
+[7] Aditya Grover and Jure Leskovec, “node2vec: Scal-
+able feature learning for networks,” in Proceedings of
+the 22nd ACM SIGKDD international conference on
+Knowledge discovery and data mining. ACM, 2016, pp.
+855–864.
+
+[8] Jian Tang, Meng Qu, Mingzhe Wang, Ming Zhang, Jun
+Yan, and Qiaozhu Mei, “Line: Large-scale informa-
+tion network embedding,” in Proceedings of the 24th
+International Conference on World Wide Web. Interna-
+tional World Wide Web Conferences Steering Commit-
+tee, 2015, pp. 1067–1077.
+
+[9] Thomas N Kipf and Max Welling, “Semi-supervised
+classiﬁcation with graph convolutional networks,” arXiv
+preprint arXiv:1609.02907, 2016.
+
+[10] Franco Scarselli, Marco Gori, Ah Chung Tsoi, Markus
+Hagenbuchner, and Gabriele Monfardini, “The graph
+neural network model,” IEEE Transactions on Neural
+Networks, vol. 20, no. 1, pp. 61–80, 2009.
+
+[11] Jie Chen, Tengfei Ma, and Cao Xiao, “Fastgcn: fast
+learning with graph convolutional networks via impor-
+tance sampling,”
+arXiv preprint arXiv:1801.10247,
+2018.
+
+[12] Will Hamilton, Zhitao Ying, and Jure Leskovec, “In-
+ductive representation learning on large graphs,” in Ad-
+vances in Neural Information Processing Systems, 2017,
+pp. 1024–1034.
+
+[13] Diederik P Kingma and Max Welling, “Auto-encoding
+variational bayes,”
+arXiv preprint arXiv:1312.6114,
+2013.
+
+[14] Danilo Jimenez Rezende, Shakir Mohamed, and Daan
+Wierstra, “Stochastic backpropagation and approximate
+inference in deep generative models,” arXiv preprint
+arXiv:1401.4082, 2014.
+
+[15] Ian Goodfellow, Jean Pouget-Abadie, Mehdi Mirza,
+Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron
+Courville, and Yoshua Bengio, “Generative adversar-
+ial nets,” in Advances in neural information processing
+systems, 2014, pp. 2672–2680.
+
+[16] Jiaxuan You, Rex Ying, Xiang Ren, William L Hamil-
+ton, and Jure Leskovec, “Graphrnn: A deep generative
+model for graphs,” arXiv preprint arXiv:1802.08773,
+2018.
+
+[17] Martin Simonovsky and Nikos Komodakis, “Graphvae:
+Towards generation of small graphs using variational au-
+toencoders,” arXiv preprint arXiv:1802.03480, 2018.
+
+[18] Thomas N Kipf and Max Welling, “Variational graph
+auto-encoders,”
+arXiv preprint arXiv:1611.07308,
+2016.
+
+[19] Aditya Grover, Aaron Zweig, and Stefano Ermon,
+“Graphite:
+Iterative generative modeling of graphs,”
+arXiv preprint arXiv:1803.10459, 2018.
+
+[20] Blerina Lika, Kostas Kolomvatsos, and Stathes Had-
+jiefthymiades, “Facing the cold start problem in rec-
+ommender systems,” Expert Systems with Applications,
+vol. 41, no. 4, pp. 2065–2073, 2014.
+
+[21] Xi Chen, Diederik P Kingma, Tim Salimans, Yan Duan,
+Prafulla Dhariwal, John Schulman, Ilya Sutskever, and
+Pieter Abbeel, “Variational lossy autoencoder,” arXiv
+preprint arXiv:1611.02731, 2016.
+
+[22] Irina Higgins, Loic Matthey, Arka Pal, Christopher
+Burgess, Xavier Glorot, Matthew Botvinick, Shakir Mo-
+hamed, and Alexander Lerchner,
+“beta-vae: Learn-
+ing basic visual concepts with a constrained variational
+framework,” in International Conference on Learning
+Representations, 2017.
+
+[23] Prithviraj Sen, Galileo Namata, Mustafa Bilgic, Lise
+Getoor, Brian Galligher, and Tina Eliassi-Rad, “Collec-
+tive classiﬁcation in network data,” AI magazine, vol.
+29, no. 3, pp. 93, 2008.
+
+

@@ -1,0 +1,2324 @@
+Causal network reconstruction from time series: From theoretical assumptions to
+practical estimation
+
+J. Runge
+
+Citation: Chaos 28, 075310 (2018); doi: 10.1063/1.5025050
+View online: https://doi.org/10.1063/1.5025050
+View Table of Contents: http://aip.scitation.org/toc/cha/28/7
+Published by the American Institute of Physics
+
+Articles you may be interested in
+
+Introduction to Focus Issue: Causation inference and information flow in dynamical systems: Theory and
+applications
+Chaos: An Interdisciplinary Journal of Nonlinear Science 28, 075201 (2018); 10.1063/1.5046848
+
+Causality, dynamical systems and the arrow of time
+Chaos: An Interdisciplinary Journal of Nonlinear Science 28, 075307 (2018); 10.1063/1.5019944
+
+Causation and information flow with respect to relative entropy
+Chaos: An Interdisciplinary Journal of Nonlinear Science 28, 075311 (2018); 10.1063/1.5010253
+
+Detecting directional couplings from multivariate flows by the joint distance distribution
+Chaos: An Interdisciplinary Journal of Nonlinear Science 28, 075302 (2018); 10.1063/1.5010779
+
+Detecting causality using symmetry transformations
+Chaos: An Interdisciplinary Journal of Nonlinear Science 28, 075305 (2018); 10.1063/1.5018101
+
+Transient and equilibrium causal effects in coupled oscillators
+Chaos: An Interdisciplinary Journal of Nonlinear Science 28, 075303 (2018); 10.1063/1.5017821
+
+Causal network reconstruction from time series: From theoretical
+assumptions to practical estimation
+
+CHAOS 28, 075310 (2018)
+
+J. Runge
+
+German Aerospace Center, Institute of Data Science, Jena 07745, Germany
+
+(Received 06 February 2018; accepted 25 May 2018; published online 23 July 2018)
+
+Causal network reconstruction from time series is an emerging topic in many ﬁelds of science.
+Beyond inferring directionality between two time series, the goal of causal network reconstruction or
+causal discovery is to distinguish direct from indirect dependencies and common drivers among mul-
+tiple time series. Here, the problem of inferring causal networks including time lags from multivariate
+time series is recapitulated from the underlying causal assumptions to practical estimation problems.
+Each aspect is illustrated with simple examples including unobserved variables, sampling issues,
+determinism, stationarity, nonlinearity, measurement error, and signiﬁcance testing. The effects of
+dynamical noise, autocorrelation, and high dimensionality are highlighted in comparison studies of
+common causal reconstruction methods. Finally, method performance evaluation approaches and cri-
+teria are suggested. The article is intended to brie ﬂy review and accessibly illustrate the foundations
+and practical problems of time series-based causal discovery and stimulate further methodological
+developments. © 2018 Author(s). All article content, except where otherwise noted, is licensed under
+a Creative Commons Attribution (CC BY) license (http://creativecommons.org/licenses/by/4.0/).
+https://doi.org/10.1063/1.5025050
+
+Reconstructing interaction networks from observed time
+series is a common problem in ﬁelds where active exper-
+iments are impossible, unethical, or expensive. Pairwise
+association networks, for example based on correlations,
+cannot be interpreted causally. The goal of causal net-
+work reconstruction or causal discovery is to distinguish
+direct from indirect dependencies and common drivers
+among multiple time series. Here, we brieﬂy recapitulate
+the theoretical assumptions underlying causal discovery
+from time series, discuss practical estimation problems,
+and illustrate each aspect with accessible examples.
+
+I. INTRODUCTION
+
+Reconstructing the causal relations behind the phenom-
+ena we observe is a fundamental problem in all ﬁelds of
+science. The traditional approach is to conduct active exper-
+iments, but in many ﬁelds such as Earth system science or
+neuroscience, manipulations of the complex system under
+study are either impossible, unethical, or very expensive. On
+the other hand, modern science generates an ever-growing
+amount of data from these systems, in particular time series
+data. Concurrently, novel computing hardware today allows
+efﬁcient processing of massive amounts of data. These devel-
+opments have led to emerging interest in the problem of
+reconstructing causal networks or causal discovery from
+observational time series.
+In the past few decades, a number of original causal-
+ity concepts have been developed, such as Granger causality
+(Granger, 1969) or transfer entropy (Schreiber, 2000). Since
+the 1990s, computer scientists, statisticians, and philosophers
+have grounded causal reasoning and inference in a robust
+mathematical framework (Pearl, 2000; Spirtes et al., 2000).
+
+The (quite natural) de ﬁnition of causality underlying this
+framework is that X → Y if and only if an intervention or
+manipulation in X has an effect on Y (Pearl, 2000; Spirtes
+et al., 2000). This effect may be in changing Y ’s mean
+or any change in its post-interventional distribution denoted
+P[Y | do(X = x)] which is different from the conditional dis-
+tribution P(Y | X = x). Unfortunately, all we can measure
+from observational data are statistical dependencies. These
+can be visualized in a graphical model (Lauritzen, 1996) or
+time series graph (Eichler, 2011) that represents the condi-
+tional independence relations among the variables and their
+time lags (Fig. 1). The theory of causal discovery lays out the
+assumptions under which the underlying causal dependencies
+can be inferred from observational data.
+There are different sets of assumptions that allow us to
+identify a causal graph. Here, we focus on time-lagged causal
+discovery in the framework of conditional independence test-
+ing using the assumptions of time-order, Causal Suf ﬁciency ,
+the Causal Markov Condition, and Faithfulness, among oth-
+ers, which are all discussed thoroughly in this paper. But some
+of these assumptions can be replaced. Recent work (Peters
+et al., 2017) shows ways to use assumptions on the noise
+structure and dependency types in the framework of structural
+causal models which can complement the approach studied
+here and we will include references to recent work from this
+framework throughout the sections.
+The paper is organized as follows: In Sec. II, we
+relate Granger causality and similar concepts to the condi-
+tional independence-framework (Spirtes et al., 2000). Section
+III provides the necessary de ﬁnitions and notation and in
+Sec. IV we recapitulate the assumptions underlying time-
+lagged causal discovery from time series alongside illustrative
+examples. The practical estimation aspect from introducing
+
+1054-1500/2018/28(7)/075310/20
+
+28, 075310-1
+
+© Author(s) 2018.
+
+075310-2
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+FIG. 1. Causal network reconstruction. Consider a time series dataset (panel A) from a complex system of which we try to reconstruct the underlying causal
+associations (gray arrows) which necessarily emerge due to common drivers (e.g., X 1 ← X 2 → X 4 ) or transitive indirect paths (e.g., X 3 → X 2 → X 1 ). Corre-
+dependencies (panel B), accounting for linear and nonlinear dependencies and including their time lags (link labels). Causal discovery aims to unveil spurious
+lation matrices are, therefore, often very dense, while causal networks are typically sparse. (C) The time series graph deﬁned in Deﬁnition
+1 resolves also the
+t−τ → X j
+time-dependence structure up to some maximum time lag τmax . A link X i
+t (black edge) exists if X i
+t−τ and Y j
+t are not independent conditionally on the
+past of the whole process (gray boxes).
+
+some causal discovery algorithms to signiﬁcance testing is
+presented in Sec. V, while Sec. VI discusses suggestions
+for performance evaluation. In Sec. VII, we present some
+comparison studies of common causal methods and con-
+clude the paper with a brief discussion (Sec. VIII). The
+paper is accompanied by a python jupyter notebook on
+https://github.com/jakobrunge/tigramite to reproduce some of
+the examples.
+
+II. FROM GRANGER CAUSALITY TO CONDITIONAL
+INDEPENDENCE
+
+Granger (1969), based on work by Wiener (1956), was
+the ﬁrst to propose a practical, operational de ﬁnition of causal-
+ity based on prediction improvement. The underlying idea of
+measuring whether X Granger causes Y is that there is some
+unique information in X relevant for Y that is not contained in
+Y ’s past as well as the past of “all the information in the uni-
+verse” ( Granger, 1969). In practice, typically only Y ’s past
+is used (bivariate Granger causality). Measuring prediction
+improvement can be operationalized in different ways. The
+most common framework are vector autoregressive models
+(VAR),
+
+Xt = τmax(cid:2)
+τ =1
+
+(τ )Xt−τ + ηt ,
+
+(1)
+
+t
+
+t , . . . , X N
+
+where Xt = (X 1
+), (τ ) is the N × N coefﬁcient
+matrix at lag τ , τmax some maximum time lag, and η denotes
+an independent noise term. Here, X i Granger-causes X j if any
+of the coefﬁcients ji (τ ) at lag τ is non-zero. A non-zero
+t−τ → X j
+ji (τ ) can then be denoted as a causal link X i
+t at lag
+τ . Another option is to compare the residual variances of the
+VAR ﬁtted with and without including the variable X i . The
+use of VARs restricts this notion of causality to a causality
+in mean (Granger, 1969). A more general de ﬁnition is that of
+(bivariate) transfer entropy (Schreiber, 2000; Barnett et al.,
+2009)
+
+I TEbiv
+X →Y
+
+= I (X
+
+−
+
+t ; Yt | Y
+
+−
+
+t
+
+),
+
+(2)
+
+where I (X ; Y | Z ) denotes the conditional mutual informa-
+tion (CMI). Bivariate TE is a common term, another naming
+option would be bivariable TE since X and Y could also be
+multivariate variables. Transfer entropy can also be phrased in
+a multivariate (or multi-variable) lag-speci ﬁc version ( Runge
+et al., 2012a). Many current methods are advancements of the
+concept of transfer entropy (Wibral et al., 2013; Staniek and
+Lehnertz, 2008; Vejmelka and Palus, 2008), in particular in its
+multivariate version (Sun and Bollt, 2014; Sun et al., 2015;
+Runge et al., 2012b; 2012a; Runge, 2015).
+Tests for causality are then based on testing whether a
+particular CMI is greater than zero. Looking at the deﬁnition
+of CMI,
+p(x, y|z)
+I (X ; Y | Z ) =
+p(x|z) · p(y|z)
+
+p(x, y, z) log
+
+(cid:3) (cid:3) (cid:3)
+
+dx dy dz.
+
+(3)
+TEbiv and its advancements essentially test for conditional
+independence of X and Y given Z , denoted X ⊥⊥ Y |Z since
+X ⊥⊥ Y |Z ⇐⇒ p(x, y|z) = p(x|z)p(y|z) ∀ x, y, z
+(4)
+⇐⇒ I (X ; Y | Z ) = 0.
+(5)
+Z then represents Y ’s past and other included variables. The
+lag-speci ﬁc generalization of the VAR model ( 1) then is the
+full conditional independence (FullCI) approach
+t−τ }),
+t−τ ; X j
+). I can be CMI or
+any other conditional dependence measure. In the case of
+partial correlation, a non-zero entry ji (τ ) corresponds to
+a non-zero I FullCI
+(τ ). A general concept to represent condi-
+tional independence relations among multiple variables and
+their time lags is that of time series graphical models (Eichler,
+2011).
+
+(τ ) = I (X i
+= (Xt−1 , . . . , Xt−τmax
+
+I FullCI
+i→j
+where X(t−1,...,t−τmax )
+t
+
+t | X(t−1,...,t−τmax )
+t
+
+\{X i
+
+i→j
+
+(6)
+
+III. DEFINITIONS AND NOTATION
+
+A. Deﬁnition of time series graphs
+
+de ﬁne the time series graph G = (V × Z, E) of X as follows
+Consider a multivariate process X of dimension N . We
+
+075310-3
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+[Fig. 1(c)]: The set of nodes in that graph consists of the set of
+components V at each time t ∈ Z. That is, the graph is actu-
+ally in ﬁnite, but in practice de ﬁned up to some maximum time
+lag τmax . Compared to the general concept of graphical mod-
+els (Lauritzen, 1996) for data without time-ordering, for time
+series graphs the time-dependence is explicitly used to de ﬁne
+directional links in the set of edges E (Eichler, 2011). For con-
+venience, we treat X, Xt , and X
+t as sets of random variables
+here and use the difference symbol “
+
+−
+
+075310-4
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+−
+
+−
+
+and Z . The estimated time series graph [via Eq. (6)] among the
+observed variables (X , Y , Z ) will then contain a link Xt−1 →
+Zt even though it is a spurious association and any manipula-
+tion of X would not have any effect on Z . Here, U acts as a
+direct common driver leading to an induced association. But
+Yt−2 → Zt even though there is no direct confounder between
+the estimated time series graph additionally contains a link
+Y and Z . The reason is that Yt−2 ⊥⊥ Zt | X
+t because the path
+Yt−2 → Xt−1 ← Ut−2 → Zt is open through the condition on
+Xt−1 ∈ X
+t (see Deﬁnition 2).
+The Fast Causal Discovery (FCI) algorithm (Spirtes et
+al., 2000; Zhang, 2008) does not assume causal sufﬁciency
+and allows us to partially identify which links are spuri-
+ous due to unobserved confounders and also for which links
+confoundedness cannot be determined. The underlying idea is
+that if conditional independence holds between two variables
+for any subset (including the empty set) of W , then these vari-
+used to remove the link Yt−2 → Zt since Yt−2 ⊥⊥ Zt , i.e., Yt−2
+ables are not linked. In the example above, this idea can be
+and Zt are unconditionally independent. Latent causal discov-
+ery is further addressed, for example, in Entner and Hoyer
+(2010), Eichler (2013), Ramb et al. (2013), Smirnov (2013),
+Hyttinen et al. (2014), and Geiger et al. (2015).
+
+Example 2. (Sub-sampled time series)
+Causal sufﬁciency can also be violated if all variables
+are observed, but they are sampled at too coarse time inter-
+vals relative to the causal links. Consider a process with
+time series graph depicted in the top panel of Fig. 3 featur-
+ing a causal loop X → Y → Z → X with all causal links at
+lag τ = 1. If we sub-sample the time series with an orig-
+inal resolution of t = 1 at t = 2, we would estimate
+the causal graph from ( ˜X , ˜Y , ˜Z ) as shown in the bottom
+panel of Fig. 3 that has a completely reversed causal loop.
+Looking at the top panel time series graph again, this spu-
+rious reversal can be understood: For example, in the path
+Zt−2 → Xt−1 → Yt the node Xt−1 is not sampled and, thus,
+unobserved, leading to a spurious link ˜Zt−1 → ˜Yt
+in the
+sub-sampled time series graph in the bottom panel (note
+that t is measured with twice the sampling rate then). Sub-
+sampled time series are an active area of research (Smirnov,
+2013; Barnett and Seth, 2015; Spirtes and Zhang, 2016), to
+some extent sub-sampled time series graphs can be identi-
+ﬁed as addressed in Gong et al. (2015) and Hyttinen et al.
+(2016).
+
+B. Causal Markov condition
+
+All independence-based causal discovery methods neces-
+sitate the Causal Markov Condition (Spirtes et al., 2000)
+and its graph G .
+which constitutes a close relationship between the process X
+De ﬁnition 4.
+
+(Causal Markov Condition).
+The joint distribution of a time series process X with
+graph G ful ﬁlls the Causal Markov Condition if and only if
+for all Yt ∈ Xt with parents PYt in the graph
+
+−
+
+X
+
+t
+
+FIG. 2. The problem of latent (unobserved) variables. Here, U is a latent
+confounder and leads to spurious links between (X , Y , Z ).
+
+a limited number of measured variables, we only need to
+assume that there exist no other unobserved (or latent) vari-
+ables that directly or indirectly in ﬂuence any other pair of our
+set of variables which is the assumption of Causal Suf ﬁciency
+(Spirtes et al., 2000).
+De ﬁnition 3.
+(Causal Sufﬁciency).
+A set W ⊂ V × Z of variables is causally sufﬁcient
+for a
+process X if and only if in the process every common cause of
+any two or more variables in W is in W or has the same value
+for all units in the population.
+
+Example 1. (Unobserved variables)
+What happens if such an unobserved (latent) confounder
+exists? Consider the example depicted in Fig. 2 where we
+assume no autodependencies. Here, U is an unobserved
+variable and drives both X and Z . With the time lags consid-
+ered, this common driver leads to an association between X
+
+FIG. 3. Sub-sampled time series. If the time series of the true underlying
+process graph on the right) is sampled at t = 2, the time series graph of
+process shown in the top panels (time series graph on the left, aggregated
+the sub-sampled process (bottom left panel, note that t here refers to the sub-
+sampled time) here even has a reversed causal loop.
+
+075310-5
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+FIG. 4. Example of time series graph for non-markovian process given by
+Model (12). Since the present is not independent of the past given its parents,
+there are many spurious links if the graph is estimated with FullCI [Eq. (6)].
+
+This includes its contraposition
+
+−
+
+X
+
+t
+
+075310-6
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+De ﬁnition 5.
+
+(Faithfulness).
+graph G ful ﬁlls the Faithfulness condition if and only if for
+The joint distribution of a time series process X with
+all disjoint subsets of nodes (or single nodes) A, B, S ⊂ G it
+holds that
+XA ⊥⊥ XB | XS ⇒ A (cid:10)(cid:11) B | S ,
+that is, from independence follows separation, which includes
+its logical contraposition
+
+(13)
+
+A (cid:10)(cid:11) B | S ⇒ XA ⊥⊥ XB | XS ,
+
+(14)
+
+from connectedness follows dependence.
+erty implies that A (cid:10)(cid:11) B | S ⇔ XA ⊥⊥ XB | XS and its logical
+The combination of Faithfulness and the Markov prop-
+contraposition A (cid:10)(cid:11) B | S ⇔ XA ⊥⊥ XB | XS . Both conditions
+are an important assumption for causal discovery algorithms
+as discussed in Spirtes et al. (2000). Intuitively, Faithfulness
+together with the Causal Markov Condition allow us to con-
+clude that (in the limit of inﬁnite sample size) a measured
+statistical dependency is actually due to some (not neces-
+sarily direct) causal mechanism and, conversely, a measured
+independence (given any set of conditions) implies that no
+direct causal mechanism exists (see also Remark 1 in the
+Discussion).
+
+Example 5. (Counteracting mechanisms)
+In a linear model [e.g., Eq. (1)], the coefﬁcient values
+form a real space and the set of points in this space that cre-
+ate vanishing partial correlations not implied by the Causal
+Markov Condition have Lebesgue measure zero (Spirtes et
+al., 2000). One can, thus, argue that non-faithful distributions
+arise from an unrealistic ﬁne-tuning of dependence param-
+eters. However, approximately vanishing partial correlations
+despite connectedness in the graph can also occur for a distri-
+bution that is faithful, but almost unfaithful, if we have only
+a limited sample size available as discussed in Uhler et al.
+(2013). An example of an unfaithfully ﬁne-tuned process is
+
+Xt = ηX
+
+t
+
+t
+
+(15)
+
+Yt = 0.6Xt−1 + ηY
+Zt = 0.6Yt−1 − 0.36Xt−2 + ηZ
+t .
+As shown in Fig. 6, here X inﬂuences Z directly as well as
+indirectly through Y . Now simple algebra shows that
+Zt = 0.6Yt−1 − 0.36Xt−2 + ηZ
+= 0.6(0.6Xt−2 + ηY
+) − 0.36Xt−2 + ηZ
+= 0.36Xt−2 − 0.36Xt−2
++0.6ηY
+
++ ηZ
+
+(16)
+
+(17)
+
+(18)
+
+t
+
+t
+
+t
+
+t−1
+
+t−1
+
+(cid:7)
+
+(cid:4)
+
+(cid:5)(cid:6)
+
+=0
+
+implying that Z and X are unconditionally independent since
+both mechanisms counteract each other even though there
+is a link in the graph. In Runge (2015) such counteracting
+interdependencies are analyzed information-theoretically.
+
+Example 6. (Determinism)
+One may argue that we live in a deterministic world and
+the assumption of “an independent noise term” that is per-
+tinent to statistics is unrealistic. On the other hand, for a
+
+FIG. 6. Example of unfaithfully ﬁne-tuned process where X and Z are inde-
+pendent even though they are connected in the graph. Here, the indirect
+mechanism X → Y → Z with a positive effect counteracts the direct link
+X → Z with a negative effect.
+
+(19)
+
+given observed variable Y , the complexity of the underlying
+processes will almost always imply that Y does not deter-
+ministically depend on its parents, but some unresolved pro-
+cesses constitute “intrinsic” or “dynamical ” noise that is also
+driving Y .
+Determinism violates Faithfulness as follows. Consider
+the model
+
+Z = ηZ
+X = f (Z )
+Y = g(Z ) + cX + ηY ,
+with c > 0 and some functions f , g. Here, we have I (X ; Y |
+Z ) = I [f (Z ); Y | Z ] = 0 {since H [f (Z ) | Z ] = 0 (Cover and
+Thomas, 2006)} implying X ⊥⊥ Y | Z even though Y depends
+on X in the model. One can argue that X should not be con-
+sidered as an autonomous causal variable in this example and
+instead consider Z → Y as the causal graph for this model
+writing the model above as
+Z = ηZ
+Y = g(Z ) + cf (Z ) + ηY .
+Determinism in causal
+inference can to some extent be
+addressed in the conditional independence framework (Spirtes
+et al., 2000) or using structural causal models in Janzing et al.
+(2012) and Daniusis et al. (2012).
+
+(20)
+
+The former example only illustrated a static case of deter-
+minism. The ﬁeld of nonlinear dynamics studies the properties
+of nonlinear and chaotic dynamical processes which has led to
+a plethora of nonlinear time series analysis methods (Kantz
+and Schreiber, 2003), often from an information-theoretic
+perspective (Hlav áckov á-Schindler
+et al., 2007) including
+transfer entropy. Many of these methods built on the assump-
+tion that no system is perfectly deterministic, for example,
+due to the coarse-graining of the system ’s phase-space in the
+measurement process. In Sec. VII A, we study the effect of
+dynamical noise on several common time-series based causal
+discovery approaches for chaotic systems.
+
+Example 7. (Non-pairwise dependencies)
+Next to the ﬁne-tuned example on counteracting mech-
+anisms, Faithfulness can also be violated for a dependency
+
+075310-7
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+the causal discovery approaches in Spirtes et al. (2000) can be
+used to partially orient contemporaneous links.
+
+E. Stationarity
+
+FIG. 7. Schematic view of dependency network with pairwise dependencies
+and a synergistic dependency of Y on (X1 , X2 ) with X1 ⊥⊥ Y and X2 ⊥⊥ Y , but
+(X1 , X2 ) ⊥⊥ Y .
+
+Y =
+
+realized in an XOR-gate. Suppose, as shown in Fig. 7 among
+several “faithful ” pairwise dependencies, we have that
+X1 ⊕ X2 + ηY with X1 , X2 being binary random processes
+with equal probability for all values of X1 and X2 . Then
+I (X1 ; Y ) = I (X2 ; Y ) = 0 even though both are connected to
+Y —a violation of Faithfulness. Here, the full information
+the chain rule it follows that 0 < I [(X1 , X2 ); Y ] = I (X1 ; Y ) +
+is synergistically contained in I [(X1 , X2 ); Y ]. Note that from
+I (X2 ; Y | X1 ) = I (X2 ; Y | X1 ). Thus, the MI is zero, but the
+Note that already if P(X1 ) (cid:15)= P(X2 ), Faithfulness is not vio-
+CMI is not and there is, hence, a link in the time series graph.
+lated anymore as analyzed in Sun et al. (2015), showing that
+Faithfulness violations are rather pathological.
+ness is the case that Y = X1X2 + ηY , where we have a rather
+Another form of synergy without violation of Faithful-
+weak MI I (X1 ; Y ), but again a much larger I [(X1 , X2 ); Y ]. In
+Runge et al. (2015a), synergy is analyzed in the context of
+optimal prediction schemes.
+As pointed out in James et al. (2016) for synergistic
+dependencies, the problem is that the concept of a pairwise
+dependency graphical model does not apply, but hyper-graphs
+are needed to represent such dependencies. Causal discovery
+of such graphs, however, carries the problem of combinatorial
+explosion if links between sets of nodes are considered.
+
+D. Instantaneous effects
+
+t
+
+Granger causality and the de ﬁnition of time series graphs
+are examples for lagged de ﬁnitions of causality. To guaran-
+tee that the lagged parents de ﬁned in Eq.
+(8) are sufﬁcient for
+the Causal Markov Condition to hold, we need to assume that
+there are no instantaneous (contemporaneous) causal effects,
+→ X j
+i.e., X i
+t . One may argue that causality between dynam-
+ical systems cannot have instantaneous effects because the
+speed of light is ﬁnite and, if the process is sampled with sufﬁ-
+cient resolution (otherwise, see the Examples of sub-sampling
+and aggregation), we only need to consider lagged causal
+effects. However, we often do not have a sufﬁciently sampled
+time series. Here, recent developments in causal inference
+theory (Zhang and Hyv ärinen, 2009 ; Peters et al., 2013;
+Lopez-Paz et al., 2015; Spirtes and Zhang, 2016; Peters et al.,
+2017) address instantaneous causality within the framework
+of structural causal models which can be applied to determine
+causal directionality for contemporaneous links. These mod-
+els work under assumptions on the noise in the model such as
+non-Gaussianity. Also, the logical causal orientation rules of
+
+To estimate the time series graph deﬁned in Deﬁnition
+1
+from time series data, we assume stationarity. Another option
+would be to utilize independent ensembles of realizations of
+lagged processes. Here, we de ﬁne stationarity with respect to a
+time index set T . For example, T can contain all time indices
+belonging to a certain regime of a dynamical process, e.g.,
+only winter months in the climate system.
+De ﬁnition 6.
+(Causal stationarity).
+The time series process X with graph de ﬁned in De ﬁnition
+1 is called causally stationary over a time index set T if and
+t−τ → X j
+only if for all links X i
+t in the graph
+t−τ ⊥⊥ X j
+t | X
+t−τ } holds for all t ∈ T .
+This constitutes actually a weaker form of stationarity
+than the common deﬁnition of stationarity in mean, variance,
+spectral properties, or of the value of individual coefﬁcients in
+a linear model. For example, one could require that all CMIs
+are stationary,
+t | X
+I (X i
+t−τ ; X j
+
+t−τ }) has the same value for all t ∈ T ,
+(22)
+which is a much stronger statement. The strength of causal
+mechanisms may ﬂuctuate over time and the causal stationar-
+ity assumption only requires conditional independence to be
+stationary.
+
+\ {X i
+
+\ {X i
+
+(21)
+
+X i
+
+−
+
+t
+
+−
+
+t
+
+Example 8. (Non-stationarity due to confounding)
+Consider the data shown in Fig. 8 and suppose we ﬁrst
+only have access to the variables (X , Y , Z ). Clearly, the time
+series of this subprocess are nonstationary in a classical sense,
+varying over time not only in their mean but also in their spec-
+tral properties. Estimating the time series graph on these three
+variables results in the graph shown in the bottom left panel
+of Fig. 8, where the common nonstationary trend leads to an
+almost fully connected graph.
+A typical example of a common nonstationarity, albeit
+not the same as in our example, is found in climate time series
+which are usually all driven by solar forcing leading to a
+common seasonal signal. In climate research the time series
+are typically anomalized, that is, the seasonal signal is esti-
+mated and subtracted from the data (Storch and Zwiers, 1999)
+which is equivalent to regressing out its in ﬂuence. But this
+is not always possible, in our example the common signal is
+not purely periodic and cannot easily be estimated from the
+data. Another option for the case of piecewise stationary pro-
+cesses is to include background knowledge on the stationary
+subsets of T . For example, the climatic seasons El Niño and
+regimes and estimate the graphs separately for the stationary
+La Ni ña lead to different causal directions of surface tem-
+perature anomalies in the tropical Paciﬁc ( Philander, 1985).
+Prior knowledge of when the seasons start and end allow us to
+restrict the estimation of time series graphs to samples within
+a particular season.
+Now suppose we actually have access to the common sig-
+nal U and include it in our analysis (but without estimating the
+
+075310-8
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+(24)
+
+(23)
+
+Regression-based conditional independence tests of X ⊥⊥
+Y |Z are based on ﬁrst regressing out the in ﬂuence of
+Z from X
+and Y and then testing the dependence between the residuals.
+We ﬁrst ﬁt a model assuming
+X = fX (Z ) + X ,
+Y = fY (Z ) + Y ,
+for centered variables X , Y and independent and identically
+normally distributed X ,Y . Now further restrictions can be laid
+upon the functional form of fX ,Y . For example, the partial cor-
+relation test assumes linearity, while a non-parametric regres-
+sion can be based on Gaussian Process regression (Rasmussen
+and Williams, 2006).
+Secondly, from the estimated functions ˆf , the residuals
+are formed as
+rX = X − ˆfX (Z )
+rY = Y − ˆfY (Z ).
+Finally, the dependence between the residuals can be tested
+with different pairwise association tests. For partial corre-
+lation this is a t-test, while the dependence between the
+residuals of a non-parametric regression can be tested with
+non-parametric tests (Gretton et al., 2008; Székely et al.,
+2007) such as the distance correlation coef ﬁcient R(rX , rY )
+(Székely et al., 2007) (see also Sec. V C). Note that these
+models all make parametric assumptions and, thus, do not
+estimate conditional independence in its most general form.
+The other extreme to partial correlation are model-free
+methods that directly test conditional independence. The most
+prominent test statistic is CMI as de ﬁned in Eq.
+(3), for which
+non-parametric estimators based on nearest-neighbor statis-
+tics exist (Kraskov et al., 2004; Frenzel and Pompe, 2007;
+Vejmelka and Palus, 2008; P óczos and Schneider, 2012 ) [see
+also Gao et al. (2015) and Lord et al. (2018) for recent
+progress on nearest-neighbor entropy estimators]. Other pos-
+sible conditional independence tests are Kernel Conditional
+Independence Tests (Zhang et al., 2011; Strobl et al., 2017)
+which essentially test for zero Hilbert-Schmidt norm of the
+partial cross-covariance operator or conditional distance cor-
+relation (Wang et al., 2015). Some new recent tests are based
+on neural networks (Sen et al., 2017) or decision tree regres-
+sion (Chalupka et al., 2018). In Runge (2018), a conditional
+independence test based on CMI is introduced.
+
+Example 9. (Nonlinearity)
+Figure 9 gives an overview over different types of linear
+and nonlinear relationships of the form
+∼ N (0, 1),
+),
+
+(25)
+
+In all cases, we have X ⊥⊥ Y | Z .
+For the linear case (ﬁrst row in Fig. 9), we consider f· =
+cZt−1,2 + η ·
+t and the regression-based techniques correctly
+ﬁt the dependencies of the pairs
+(X , Z ) and (Y , Z ) (red ﬁt
+lines in gray scatterplots), and, thus, correctly identify the
+
+t
+
+Zt = ηZ
+Xt = fX (Zt−1 , ηX
+Yt = fY (Zt−2 , ηY
+
+).
+
+t
+
+t
+
+FIG. 8. Nonstationarity due to confounding. (Top) Example time series
+(X , Y , Z ) that are nonstationary in mean and spectral properties due to a
+common signal U . (Bottom left) Access to only (X , Y , Z ) results in a fully
+connected causal graph. (Bottom right) Including U allows us to identify the
+correct causal graph.
+
+parents of U , i.e., treating U as exogenous). Then, as shown in
+the bottom right panel of Fig. 8, we can recover the true causal
+structure where U is a confounder of the three variables while
+they are connected through the motif X ← Z → Y . Thus, here
+nonstationarity is a result of confounding and can be removed
+if we have access to the underlying trend.
+The key point is that the causal structure, that is, the time
+series graph, of the whole process (X , Y , Z , U ) is invariant in
+time. One may argue that causal laws are generally invariant
+and non-stationarity is simply a problem of violation of causal
+sufﬁciency. The idea of ﬁnding invariant predictors for causal
+inference is explored in Peters et al. (2016).
+
+F. Dependency type assumptions
+To test conditional independence hypotheses X ⊥⊥ Y | Z ,
+different test statistics can be utilized. These are typically
+based on making certain assumptions about the type of the
+underlying dependency structure. While classical statistical
+methods are often based on the assumption of linearity (which
+allows us to derive rigorous results), modern statistics, the
+physics community, and the recent ﬁeld of machine learn-
+ing have developed non-parametric or model-free methods
+that allow us to better capture the nonlinear reality of many
+dynamical complex systems—at the cost of weaker theoreti-
+cal results. Conditional independence testing can be classiﬁed
+into regression-based and model-free approaches. Here, we
+only discuss tests for continuously valued variables, for dis-
+crete variables one can, for example, use methods based on
+contingency tables (Spirtes et al., 2000) or discrete CMI
+estimation (Cover and Thomas, 2006).
+
+075310-9
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+FIG. 9. Illustration of applicability of different conditional independence methods (linear and non-parametric regression-based and model-free) on different
+types of linear and nonlinear common driver models. Black arrows denote correctly identiﬁed causal links and dashed gray arrows indicate spurious li nks.
+The gray scatterplots with red ﬁt line illustrate regressions of X and Y on Z and the black scatterplot the dependency between the residuals rX , rY . The three-
+dimensional scatterplot with red cubes in the right column depicts the CMIknn test (Runge, 2018) which is based on data-adaptive nearest-neighbor estimation
+(the cubes are smaller for denser regions).
+
+dependencies and constitutes a difﬁcult problem in causal
+network reconstruction (Scheines and Ramsey, 2016).
+
+Example 10. (Observational noise)
+form as observational noise, which can be modeled as ˜Z =
+Here, we only discuss measurement error in its simple
+Z +  Z . Such observational noise presents at least two sorts of
+problems for causal discovery.
+Firstly, observational noise attenuates true associations
+and, therefore, lowers detection power. This is because in
+general I ( ˜X ; ˜Y ) = I (X +  X ; Y +  Y ) ≤ I (X ; Y ) which is a
+consequence of the data processing inequality (Cover and
+Thomas, 2006): Manipulating a variable can only reduce its
+information content. In Fig. 10, we added normal observa-
+tional noise with σ = 20 to Z . Then the links Z → X and
+Z → Y cannot be reconstructed anymore. Secondly, too much
+noise on conditioning variables makes it impossible to pre-
+serve conditional independence. In Fig. 10, we have I (X ; Y |
+˜Z ) = I (X ; Y | Z +  Z ) > 0 even though I (X ; Y | Z ) = 0. The
+
+t−1,2
+
++ η ·
+
+independence of the residuals (black scatterplot). A model-
+free test also correctly identiﬁes the common driver motif
+here.
+dependency f· = c·Z 2
+For the nonlinear additive noise case with a quadratic
+t , partial correlation cannot ﬁt
+the dependencies of the pairs (X , Z ) and (Y , Z ). As a result,
+the residuals are still correlated (spurious gray dashed link)
+and the causal graph is completely wrong: We overlook the
+links X → Z and Y → Z and get a false positive X → Y .
+Since here the dependencies are still additive functions, non-
+parametric regressions and model-free tests yield a correct
+causal graph.
+Finally, if the dependencies are multiplicative (bottom
+row) as in f· = c·Zt−1,2 · η ·
+t , both regression methods fail. Then
+the residuals are nonlinearly related which is not detected with
+a partial correlation test (here two errors somewhat cancel
+other hand, then wrongly estimates the spurious link X → Y
+each other out). A non-parametric test on the residuals, on the
+(gray dashed in center bottom row).
+Model-free methods in principle can deal with all these
+cases, which might
+lead to the conclusion that
+they are
+superior. But the “no-free-lunch-theorem ” tells us that such
+generality has a price and model-free methods are very
+data-hungry and computationally expensive. If expert knowl-
+edge pointing to a linear or otherwise parametric dependency
+is available, then regression-based methods will typically
+greatly outperform model-free methods.
+
+G. Measurement error
+
+Measurement error, unlike dynamical noise, contami-
+nates the variables between which we seek to reconstruct
+
+FIG. 10. Effect of observational noise on causal network reconstruction.
+Shown left is the linear example from Fig. 9. Very strong observational noise
+on Z (right panel) here leads to a vanishing correlation between X and ˜Z as
+well as Y and ˜Z . Since then the effect of ˜Z cannot be regressed out anymore,
+we also get a spurious link X → Y .
+
+075310-10
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+effect of observational noise on causal discovery is discussed
+further in Smirnov (2013); Scheines and Ramsey (2016) and
+Runge et al. (2018) give some numerical experiments for
+high-dimensional causal discovery.
+
+V. PRACTICAL ESTIMATION
+
+The previous sections concerned fundamental assump-
+tions of time-lagged causal discovery based on conditional
+independence relations. We now turn to the topic of prac-
+tical estimation where we introduce several common causal
+discovery methods and discuss their consistency, signi ﬁcance
+testing, and computational complexity. We restrict the analy-
+sis to the class of conditional independence approaches, which
+ﬂexibly allows us to use different independence tests. But
+graphical models, in general, can also be estimated with score-
+based Bayesian methods, e.g., the max-min hill-climbing
+algorithm (Tsamardinos et al., 2006).
+
+A. Causal discovery algorithms
+1.Grangercausality/transferentropy/FullCI
+
+Transfer entropy, as introduced by Schreiber (2000),
+is a direct information-theoretic implementation of Granger
+causality (Barnett et al., 2009). In a lag-speciﬁc implemen-
+tation, as given by FullCI [Eq. (6)], it tests for conditional
+independence between each X i
+t−τ and X j
+t conditioned on the
+(excluding X i
+t−τ ). As the experiments
+in Sec. VII will demonstrate, this approach strongly suffers
+from the curse of dimensionality.
+
+entire past X(t−1,...,t−τmax )
+t
+
+2.Optimalcausationentropy
+
+3.PCalgorithm
+
+An alternative to this forward-backward scheme is the PC
+algorithm (named after its inventors Peter and Clark) (Spirtes
+and Glymour, 1991). The original PC algorithm was formu-
+lated for general random variables without assuming a time
+order. It consists of several phases where ﬁrst, in the skeleton-
+discovery phase, an undirected graphical model (Lauritzen,
+1996) is estimated whose links are then oriented using a set of
+logical rules (Spirtes and Glymour, 1991; Spirtes et al., 2000).
+A later improvement led to the more robust modi ﬁcation
+called PC-stable (Colombo and Maathuis, 2014).
+For the case of time series, we can use the informa-
+tion of time order which naturally provides an orientation
+rule for links. The algorithm then is as follows: For every
+t ∈ Xt it starts by initializing the preliminary par-
+ents ˆP (X j
+variable X j
+t−τ from (cid:8)P (X j
+(p = 0), we remove a variable X i
+). In the ﬁrst iteration
+t ) if the null
+hypothesis
+PC(p = 0) : X i
+t−τ ⊥⊥ X j
+t ,
+
+t ) = (Xt−1 , Xt−2 , . . . , Xt−τmax
+
+(27)
+
+next iteration, we increase p → p + 1 and remove a variable
+cannot be rejected at a signiﬁcance threshold α . Then, in each
+t−τ from ˆP (X j
+X i
+t ) if any of the null hypotheses
+t−τ ⊥⊥ X j
+t | S for any S with |S | = p,
+PC(p > 0) : X i
+(28)
+cannot be rejected, where S iterates (in an inner loop) through
+all combinations of subsets S ⊆ ˆP (X j
+t ) \ {X i
+t−τ } with cardinal-
+ity p. The algorithm converges for a link X i
+t−τ → X j
+t once S =
+ˆP (X j
+t ) \ {X i
+t−τ } and the null hypothesis X i
+t−τ ⊥⊥ X j
+t | ˆP (X j
+
+t )
+
+−
+
+Sun and Bollt (2014) and Sun et al. (2015) developed a
+discovery algorithm based on the information-theoretic opti-
+mal causation entropy principle (algorithm abbreviated as
+OCE) which reconstructs the lagged parents of a variable X j
+ity: Starting with an empty parent set (cid:8)P OCE (X j
+by an iterative procedure alleviating the curse of dimensional-
+t ) = ∅, ﬁrst the
+t−τ ∈ X
+MIs I (X i
+t−τ ; X j
+t ) for all X i
+t are estimated. As the ﬁrst
+parent X (1) , the one with the largest MI with X j
+t is selected.
+The next parent X (2) , however, is chosen according to the
+t |X (1) ) among all remaining variables,
+largest CMI I (X i
+t−τ ; X j
+the third parent is the one with largest CMI conditional on
+the two previously selected parents, etc. The process is con-
+tinued until the CMI of a selected parent is non-signi ﬁcant.
+This forward-selection stage is followed by a backward elim-
+ination whereby the signi ﬁcance of each of the parents X i
+t ) is tested conditional on the remaining parents:
+t−τ ⊥⊥ X j
+t ) \ {X i
+OCE: X i
+∀ X i
+The signiﬁcance of CMIs can be tested with a nearest-
+neighbor CMI estimator (Kraskov et al., 2004; Frenzel and
+Pompe, 2007; Vejmelka and Palus, 2008) in combination with
+a permutation test where X i
+t−τ is randomly shufﬂed. Of course,
+the conditional independencies in Eq. (26) can also be tested
+with other test statistics.
+
+t | ˆP OCE (X j
+t−τ ∈ ˆP OCE (X j
+t ).
+
+(cid:8)P OCE (X j
+
+t−τ }
+
+t
+
+t−τ ∈
+
+(26)
+
+075310-11
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+t−τ → X j
+X i
+t deﬁned as
+t−τ ⊥⊥ X j
+t | ˆP (X j
+t ) \ {X i
+t−τ }, ˆP (X i
+MCI: X i
+∀ X i
+t−τ ∈ X
+t ,
+
+−
+
+t−τ )
+
+(29)
+
+−
+
+t = (Xt−1 , Xt−2 , . . . , Xt−τmax
+
+with X
+). The main difference
+S with largest association instead of going through all possible
+between PC and PC1 is that PC1 tests only the condition subset
+combinations. To this end (cid:8)P (X j
+according to the test statistic value and S is determined by the
+t ) is sorted after every iteration
+ﬁrst p variables in (cid:8)P (X j
+t ) (excluding X i
+t−τ ). This leads to less
+tests, but still provably removes incorrect links.
+The MCI test is the most important difference to the
+The additional conditioning on the parents (cid:8)P (X i
+PC algorithm and the approach by Sun and Bollt (2014).
+t−τ ) in MCI
+accounts for autocorrelation leading to well-controlled false
+variant (PCMCI0 ) where the condition on the parents (cid:8)P (X i
+positive rates at the expected level (Runge et al., 2018). A
+is dropped leads to a very similar approach to OCE. PCMCI,
+like FullCI, OCE, and PC, can be implemented with different
+conditional independence tests. For further details on PCMCI,
+see Runge et al. (2018). In Sec. VII we compare FullCI, OCE,
+and PCMCI in a number of numerical comparison studies.
+
+t−τ )
+
+B. Consistency
+
+Consistency is an important property of causal methods
+that tells us whether the method provably converges to the
+true causal graph in the limit of in ﬁnite sample size. Con-
+sistency concerns the conditional independence tests on the
+one hand, but also the causal algorithm in the case of iterative
+approaches such as those discussed in Sec. V A.
+For example, for the consistency of the non-parametric
+regression independence tests in Eq. (23), we need to assume
+that the function estimator converges to the true function, that
+the noise in the model is additive and independent, and ﬁnally
+that we have a consistent unconditional independence test for
+the residuals. With a consistent test, the time series graph
+can be directly estimated based on Deﬁnition 1. For itera-
+tive causal algorithms, we can deﬁne universal consistency
+as follows.
+De ﬁnition 7.
+Denote by (cid:8)Gn the estimated graph of some causal estima-
+(Universal causal consistency).
+tor from a sample of a distribution P with sample size n and
+by G the true causal graph. Then a causal estimator is said to
+be universally consistent if (cid:8)Gn converges in probability to G
+for every distribution P,
+
+FIG. 11. Example where for certain a, b the MI I (X ; Y ) can be larger than any
+of the MIs I (Z1 ; Y ) or I (Z2 ; Y ). Thus, the most strongly associated variable
+with Y is actually not a causal driver.
+
+error probability as a function of the sample size n giv-
+ing a rate of convergence. Thus, for a non-uniform, but
+only universally consistent method, the sample size at which
+a given error can be guaranteed and can be different for
+every distribution P. Robins et al. (2003) showed that no
+uniformly consistent causal discovery algorithm from the
+class of independence-based approaches (Spirtes et al., 2000)
+exists since the convergence can always be made arbitrarily
+slow by a distribution that is almost unfaithful with some
+dependencies made arbitrarily small. Uniform consistency
+for conditional-independence based algorithms can only be
+achieved under further assumptions such as having strong
+enough dependencies (Kalisch, 2008).
+
+Example 11. (An inconsistent causal algorithm)
+Consider again the forward-selection stage of the OCE
+algorithm (Sun and Bollt, 2014; Sun et al., 2015) introduced
+variable Yt ∈ Xt . Even though the scheme sounds appealing
+in Sec. V as a standalone method to reconstruct parents of a
+and efﬁcient, the scheme alone is not a consistent estima-
+tor of causal graphs. It yields a superset of the parents (Sun
+et al., 2015) which may also contain false positives: Con-
+sider the example graph shown in Fig. 11. Here, the causal
+parents of Y are Z1 , Z2 (dropping time subscripts t here). If
+forward-selection alone was a causal approach, then in each
+step the variable with strongest association would also need
+to be a causal parent. But in this example the MI between
+X and Y can be larger than the MIs of Z1 and Z2 with Y .
+For example, for a = 0.5, b = 2 we have I (X ; Y ) ≈ 0.13 nats
+while I (Z1 ; Y ) = I (Z2 ; Y ) ≈ 0.06 nats. See Appendix A for
+an information-theoretic analysis. Hence, the wrong parent X
+is selected. This scheme, thus, requires the second step of the
+OCE approach, given by Eq. (26).
+
+n→∞ Pr( ˆGn (cid:15)= G ) = 0.
+
+lim
+
+(30)
+
+C. Signiﬁcance testing
+
+That is, the probability of estimating the wrong graph
+becomes arbitrarily small if enough data is available, for
+any distribution P (hence “universal”). Consistency has been
+proven for classical causal discovery algorithms such as the
+PC-algorithm (Spirtes et al., 2000), the optimal causation
+approach Sun and Bollt (2014), Sun et al. (2015) and PCMCI
+Runge et al. (2018), as an approach based on PC.
+However, universal consistency is a weaker statement
+than, for example, uniform consistency which bounds the
+
+How can we assess the statistical signiﬁcance of con-
+ditional independence tests on which the causal algorithms
+in Sec. V A are based, such as the tests discussed in
+Sec. IV F? Using a test statistic (cid:8)In (x; y | z) (I here stands not
+for the observed samples (x, y, z) = {xi , yi , zi }n
+only for CMI, but any conditional independence test statistic)
+i=1 we wish to
+test the hypothesis
+
+H0 : X ⊥⊥ Y | Z ,
+
+(31)
+
+075310-12
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+versus the general alternative
+H1 : X ⊥⊥ Y | Z .
+(32)
+To assess the signi ﬁcance of an outcome of such a test using
+p-values, we need to know the distribution Pr(In | H0 ) of the
+test statistic under the null hypothesis. For partial correla-
+tion tests, exact analytical expressions of the null distribution
+exist under certain assumptions, but for nonlinear tests (such
+as CMI or also non-parametric regression tests) these are
+typically not available except for some asymptotic large sam-
+ple size cases (Strobl et al., 2017). The alternative then are
+permutation tests as discussed in Example 12.
+Given the null distribution, the p-value is de ﬁned as the
+probability —given H0 —of observing a value of the test statis-
+tic that is the same or more extreme than what was actually
+observed. If our test statistic is non-negative (such as CMI),
+the p-value for an observed test statistic value (cid:8)In is deﬁned
+as p = Pr(In ≥ (cid:8)In | H0 ). Choosing a signiﬁcance level α , we
+reject the null hypothesis if p < α .
+There are two types of errors we can make. Rejecting
+H0 when H0 is true is called a type I error or false positive.
+Retaining H0 when H1 is true is called a type II error or false
+negative. We also call one minus the type II error rate of a test
+the true positive rate or detection rate.
+If the test statistic has a continuous distribution, then
+under H0
+the p-value has a uniform (0, 1) distribution
+(Wasserman, 2004). Therefore, if we reject H0 when the
+
+FIG. 12. Permutation approach to conditional independence testing. (Top
+left) Example sample drawn from a common driver scheme X ← Z → Y .
+(Top right) Permuted sample with randomly shufﬂed data points x, which
+destroys the associations between x and y, but also between x and z leading
+to ill-calibrated tests. (Bottom) Schematic of local permutation scheme. Each
+sample point i’s x-value is mapped randomly to one of its kperm -nearest neigh-
+bors in subspace Z (see Runge, 2018) to preserve dependencies between x
+and z.
+
+FIG. 13. The problem of sequential testing for X → Y conditional on other
+variables (gray boxes). (A) While the false positive rates of each individ-
+ual test are as expected at α = 0.05, the combined false positive rate of the
+sequence of tests is much lower. (B) Similarly, the combined true positive
+Gaussian noise model with coefﬁcients a = 1, c = 0.4; rates estimated from
+rate is lower than the minimal true positive rate among the individual tests.
+5000 realizations with sample size n = 100.
+
+p-value is less than α , the probability of a type I error is α . For
+a well-calibrated test under H0 , we thus expect to measure on
+average a false positive rate of α . If this is not the case, the
+test is ill-calibrated indicating that we got the null distribu-
+tion wrong because certain assumptions, such as independent
+samples, are violated. In Examples 12 and 13, we discuss such
+cases.
+
+∗
+
+∗
+
+∗
+
+∗
+
+Example 12. (Permutation testing)
+Permutation testing is straightforward in the bivariate
+tribution of a test statistic (cid:8)In (x; y), we can simply generate a
+independence test case. To create an estimate of the null dis-
+large number of test statistics(cid:8)In (x
+; y) where x
+is a permuted
+version of x.
+But how to permute for conditional independence testing
+of X ⊥⊥ Y | Z ? In the top left panel of Fig. 12, we illustrate an
+example scatterplot of a sample drawn from a common driver
+scheme X ← Z → Y where we have X ⊥⊥ Y | Z . If we now
+permute x, we get the sample shown in the top right panel.
+Here, any association between x and y is indeed destroyed,
+but we also destroyed the association between x and z. That
+is, for the permuted sample we have
+(cid:8)I (x
+and (cid:8)I (x
+; y) ≈ 0
+; z) ≈ 0
+but what we actually want to achieve is
+(cid:8)I (x
+; y | z) ≈ 0
+with (cid:8)I (x
+; z) ≈ (cid:8)I (x; z)
+in order to test the correct null hypothesis. The above global
+permutation scheme results in inﬂated false positives as, for
+example, shown in Runge (2018) and for FullCI and OCE in
+the numerical comparison studies in Fig. 14.
+To achieve a test under the correct null hypothesis, we
+can use a local permutation scheme that preserves the associ-
+ations between x and z. Runge (2018) suggests such a scheme
+depicted in the bottom panel of Fig. 12 which only permutes
+those xi and xj where zi ≈ zj . This scheme can be used for
+CMI conditional independence testing or also other test statis-
+tics. Other schemes are discussed in Doran et al. (2014) and
+Sen et al. (2017).
+
+(35)
+
+(33)
+
+(34)
+
+∗
+
+∗
+
+Example 13. (Non-independent samples)
+A basic assumption underlying many conditional inde-
+pendence tests is that
+the samples are independent and
+
+075310-13
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+identically distributed (i.i.d.). Unfortunately, time series are
+typically dependent in time. To take this dependence into
+account, one can either adapt the distribution under the null
+hypothesis, for example, in partial correlation t-tests by esti-
+mating the effective degrees of freedom, which is, however,
+difﬁcult in a multivariate setting. Or one can modify the test
+statistic to explicitly account for autocorrelation (Runge et al.,
+2018). Also, a permutation scheme needs to be adapted to
+preserve auto-dependencies, for example, by shufﬂing blocks
+of samples (Peifer et al., 2005). For bivariate tests such an
+approach is again straightforward, but not for the multivariate
+case as analyzed in the autocorrelation comparison study in
+Sec. VII.
+
+Example 14. (Sequential testing of causal links)
+The preceding discussion concerned tests of an individual
+conditional independence relationship. Directly testing causal
+links via De ﬁnition 1, thus, gives us a well-calibrated test if
+all assumptions are ful ﬁlled.
+However, in iterative causal algorithms (Sec. V A) such
+as the PC algorithm, OCE, or the ﬁrst step of PCMCI (PC 1 )
+multiple tests on a particular link Xt−τ → Yt are conducted
+with different condition sets that are determined by the out-
+come of previous tests. If a link is found non-signi ﬁcant in
+any of these tests, this link is removed. Since the tests are
+not independent of each other (since they are typically based
+on the same data sample), it is almost impossible to derive a
+combined p-value of all these tests.
+Figure 13 depicts an illustrative numerical example
+where the combined false positive rate is much lower than
+the 0.05 of each individual test and the true positive rate is
+lower than the minimal true positive rate among the individual
+tests. In summary, even though all assumptions may be valid,
+sequential testing makes a signi ﬁcance assessment difﬁcult.
+These issues are further discussed in Tsamardinos and Brown
+(2008) and Strobl and Spirtes (2016) and references therein
+where False Discovery Rate (Benjamini and Hochberg, 1995)
+approaches are discussed.
+As a side remark on the previously discussed OCE
+and PCMCI causal discovery approaches, in the backward-
+elimination stage [Eq. (26)] OCE tests only the signi ﬁcance
+of each of the parents X i
+t ) conditional on the
+remaining parents. PCMCI (Runge et al., 2018), on the other
+hand, in the second MCI step tests all links again [Eq. (29)]
+which makes the MCI test slightly less dependent on the
+sequential testing issue of the condition-selection step PC1
+since parents that have been removed in PC1 (false nega-
+tives) are tested again in the MCI test. In particular, the false
+positives are as expected as demonstrated in the comparison
+studies in Sec. VII.
+
+t−τ ∈ (cid:8)P OCE (X j
+
+D. Computational complexity
+
+Application areas of causal discovery methods vary in
+the typical numbers of variables as well as available sample
+sizes n. Next to the properties discussed before, an impor-
+tant issue then is how a method scales with dimensionality
+and sample size. High-dimensionality arises from the num-
+ber of included variables N and the maximum time lag τmax
+[see Fig. 1(c)] and has at least two consequences: (1) higher
+
+computational complexity leading to longer runtimes and (2)
+typically lower detection power. Independence tests may also
+become ill-calibrated in high-dimensions.
+For directly testing causal links via De ﬁnition 1 (FullCI),
+the computational complexity depends on the complexity of
+a single high-dimensional conditional independence test. In
+the linear partial correlation case, OLS regression scales ∼
+O(n(N τmax )2 ). FullCI estimated using nearest-neighbor esti-
+mators of CMI (Kraskov et al., 2004; Frenzel and Pompe,
+2007), on the other hand, will scale ∼ O(n log n) regarding
+time complexity while the complexity in N τmax will depend
+on algorithmic details such as using efﬁcient KD-tree nearest-
+neighbor search procedures (Maneewongvatana and Mount,
+1999).
+The methods PC, OCE, or PCMCI (Sec. V A) based on
+a condition-selection step avoid high-dimensional conditional
+independence estimation by conducting more tests with lower
+dimensional conditioning sets. Their theoretical complexities
+are difﬁcult to evaluate, for numerical evaluations see Sun
+et al. (2015) and Runge et al. (2018), but typically they scale
+polynomially in time.
+The other major challenge with high dimensionality is
+detection power as analyzed in Example VII C.
+
+VI. PERFORMANCE EVALUATION CRITERIA
+
+How can causal discovery methods, such as those
+described in Sec. V be evaluated? Typically, we want to know
+which method performs best on data from the kind of system
+we wish to study. Ideally, we would like to compare different
+methods on a data sample where the underlying causal truth is
+known or evaluate methods by experimentally manipulating
+a system, i.e., actually performing the do-experiment (Pearl,
+2000) mentioned in the introduction which forms the theo-
+retical basis of the present concept of causality. Since both of
+these options are mostly not available, an alternative is to con-
+struct synthetic model data where the underlying ground truth
+is known. These can then be used to study the performance of
+causal methods for realistic ﬁnite sample situations.
+
+A. Models
+
+To evaluate causal methods on synthetic data, several
+aspects for constructing model systems are relevant:
+
+1. Model realism: The model systems should mimic the
+domain-speci ﬁc properties of real data in terms of nonlin-
+earity, autocorrelation, spectral properties, noise structure
+(dynamical as well as observational), etc.
+2. Model diversity: To avoid biased conclusions, a large
+number of different
+randomly selected connectivity
+structures should be tested [including link density
+as well as properties such as small-worldness (Watts
+and Strogatz, 1998)]. For example, the aforementioned
+forward-selection approach failed for the example shown
+in Fig. 11 but works for many other graphs. But also
+consistent methods may have biases for ﬁnite samples as
+studied in Runge et al. (2018).
+3. Model dimensionality: As studied in Fig. 16, a method
+may perform well only for a small number of variables
+
+075310-14
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+and the performance for high-dimensional settings (large
+networks) can quickly degrade.
+4. Sample sizes: The comparative performance of different
+models may vary widely for different sample sizes which
+needs to be studied if no uniform consistency results are
+available.
+
+B. Metrics
+
+The performance of a causal method on a single real-
+ization of a model does not allow for reliable conclusions.
+Therefore, each model needs to be evaluated from many real-
+izations. Then the most straightforward evaluation metric is to
+measure false positive rates and true positive rates for a given
+α as shown in the comparison studies in Sec. VII. The number
+of realizations should be chosen high enough since the error
+of a false or true positive rate r for B realizations is given
+by σr = √
+r(1 − r)/B. Alternative evaluation metrics that do
+not depend on a particular signi ﬁcance level but directly on
+the p-values are the Kullback-Leibler divergence to evaluate
+whether the p-values are uniformly distributed (to measure
+how well-calibrated a test is) and the Area Under the Power
+Curve (AUPC) to evaluate true positives.
+Next to the true and false positives of a causal method
+for ﬁnite samples, another performance criterion is computa-
+tional runtime, though this may strongly depend on a given
+implementation.
+
+VII. COMPARISON STUDIES
+
+In this section, we compare several common causal dis-
+covery methods in three numerical comparison studies high-
+lighting the effect of dynamical noise in deterministic chaotic
+systems, autocorrelation, and high dimensionality.
+
+A. Dynamical noise in deterministic chaotic systems
+
+In Example 6, we studied a static example of determin-
+ism. Here, we evaluate the effect of dynamical noise in a
+system of coupled chaotic logistic maps:
+Zt = Zt−1 (r − rZt−1 + σ ηZ
+) mod 1,
+Xt = Xt−1 (r − rXt−1 − Zt−1 + σ ηX
+Yt = Yt−1 (r − rYt−1 − Zt−1 + σ ηY
+) mod 1,
+
+) mod 1,
+
+(36)
+
+t
+
+t
+
+t
+
+(37)
+with uniformly distributed independent noise η and r = 4
+leading to chaotic dynamics. Here, σ controls the amount of
+dynamical noise in the system. To evaluate true positive rates
+(correctly detecting Zt−1 → Xt and Zt−1 → Yt ) and false pos-
+itive rates (incorrect detections for any other variable pair,
+direction, or lag), 200 realizations with time series length
+n = 150 were generated.
+We compare three methods from an information-theoretic
+framework (FullCI, OCE, PCMCI) with convergent-cross
+mapping (CCM, Sugihara et al., 2012) (see also Arnhold et
+al., 1999; Hirata et al., 2016) as a nonlinear dynamics-inspired
+approach. The signi ﬁcance of CMIs in FullCI and OCE is
+tested with a nearest-neighbor CMI estimator (Kraskov et al.,
+2004; Frenzel and Pompe, 2007; Vejmelka and Palus, 2008) in
+
+FIG. 14. Comparison of CCM, FullCI, OCE, and two versions of PCMCI on
+common driver system of three coupled chaotic logistic maps. The top panel
+σ = 0 and σ = 0.4, respectively, the width of arrows denotes the detection
+shows the true graph structure. In the left and right graphs for noise levels
+rate, gray edges depict false links (only false positive rates 0.08 shown). The
+center panels depict average true (black, left axis) and false positive rates (red,
+right axis) for different strengths σ of dynamical noise. The gray line marks
+the 5% signiﬁcance threshold.
+
+combination with a permutation test where X i
+t−τ is randomly
+shufﬂed. PCMCI is implemented with the CMIknn indepen-
+dence test (Runge, 2018) as discussed in Example 12. We
+also evaluate a variant (PCMCI0 ) where the condition on the
+parents ˆP (X i
+t−τ ) is dropped and the only difference to OCE
+is the condition-selection step. CCM reconstructs the vari-
+able’s state-spaces using lagged coordinate embedding and
+concludes on X → Y if points on X can be well predicted
+using nearest neighbors in the state space of Y . Note that CCM
+and related works only use the time series of X and Y with the
+underlying assumption that the dynamics of Z can be recon-
+structed using delay embedding. All methods were evaluated
+at a signi ﬁcance level of 0.05. For implementation details, see
+Appendix B 1. In the top panel of Fig. 14, we depict the true
+causal graph.
+with σ = 0, PCMCI has almost no power, while PCMCI0
+Figure 14 shows that in the purely deterministic regime
+features a detection rate of 0.8 and FullCI, OCE, and CCM
+
+075310-15
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+I MCI
+Zt−1→Xt
+
+almost always detect
+the couplings. On the other hand,
+CCM also has the highest number of false positives around
+0.2 which exceeds the signi ﬁcance level indicating an ill-
+calibrated test. FullCI, OCE, and PCMCI0 also do not control
+false positives well, while with PCMCI they are around the
+expected level.
+For higher dynamical noise levels interesting behav-
+ior emerges: FullCI and CCM have continuously decreasing
+power (and slightly decreasing false positives) dropping to
+almost zero at σ = 0.4, while the power of OCE and both
+PCMCI versions steadily increases up to σ = 0.2 after which
+power decreases with a more pronounced decrease for PCMCI
+and PCMCI0 having the highest power. False positives are
+above the 0.05 threshold for FullCI and OCE for a wide range
+of noise levels, while for PCMCI false positives are always
+well-controlled at the expected 0.05.
+How can these results be understood? CCM attempts to
+reconstruct the attractor manifolds underlying X and Y . With
+more dynamical noise, this reconstruction becomes more dif-
+ﬁcult and CCM looses power. The fact that CCM does not
+control false positives well, especially in the deterministic
+regime deserved further study. FullCI suffers from the curse
+of dimensionality especially for higher noise levels.
+The MCI test statistic for the link Zt−1 → Xt estimates
+= I (Zt−1 ; Xt | Zt−2 , Xt−1 ). Now since for σ = 0 Zt−1
+is a deterministic mapping of Zt−2 , in theory we have I MCI = 0
+above (and analogously for Zt−1 → Yt ). In practice, we can
+for the same reasons as in the simple deterministic model (19)
+only measure the entropies at some coarse-grained level (here
+determined by the CMI nearest-neighbor parameter) and the
+deterministic dependency is never exactly recovered leading
+to a non-zero MCI. In OCE and PCMCI0 , only the parents of
+Xt are included in the condition. The fact that FullCI, despite
+conditioning on the whole past, also detects the link deserves
+further study. Possible explanations are an ill-calibrated test or
+dynamical properties of the logistic-map system. In summary,
+purely deterministic dynamics here seem to generate too little
+momentary information which is necessary for information-
+theoretic coupling detection with MCI (see also Pompe and
+Runge, 2011).
+Given at least some dynamical noise to sufﬁce the Faith-
+fulness condition and together with the other assumptions
+discussed in this paper, OCE and PCMCI provably converge
+to the true causal graph in the limit of in ﬁnite sample size
+(Runge et al., 2018; Sun et al., 2015, see also Sec. V B), while
+no such theoretical results is available for CCM. In the in ﬁ-
+nite sample limit also the inﬂated false positives of OCE due
+to time-dependent samples vanish. For ﬁnite samples, on the
+other hand, among other factors, consistency depends on how
+well-calibrated the signi ﬁcance test is. PCMCI here always
+yields expected levels of false positives. The inﬂated false
+positives for FullCI and OCE for a wide range of noise levels
+and for PCMCI0 for very low dynamical noise is related to
+the way signiﬁcance testing is implemented. In theory, OCE
+should have less false positives than the expected 0.05 due to
+the sequential testing problem (Sec. V C), but in our examples
+autocorrelation and the global permutation scheme leads to ill-
+calibrated tests with inﬂated false positives in each individual
+test, see Examples 12 and 13, leading to an overall higher false
+
+positive rate. The effect of autocorrelation is evaluated further
+in the next example.
+
+B. Autocorrelation
+
+t
+
+In Fig. 15, we evaluate the previously introduced causal
+algorithms (Sec. V A) FullCI, OCE, and PCMCI on autocor-
+related data which is an ubiquitous feature in real world time
+series data. The full model setup is described in Appendix B
+2. In short, here we only evaluate the false positive rates (for
+c = 0) and true positive rates (for c (cid:15)= 0) of the link Xt−1 → Yt
+(top panel of Fig. 15) where the autocorrelation a is varied for
+different numbers of common drivers DZ and the coefﬁcients
+b and σZ are chosen such that the unconditional dependence
+stays the same, and we only investigate the effect of autocorre-
+lation. The time series length is n = 150 and 1000 realizations
+were run for each model setup to evaluate false positive rates
+and true positive rates at an α = 0.05 signi ﬁcance level.
+We compare partial correlation implementations (test
+statistic ρ ) of the following tests: (1) FullCI directly tests
+De ﬁnition 1, Xt−1 ⊥⊥ Yt | X(t−1,...,t−τmax )
+\ {Xt−1 } for τmax = 5.
+For OCE and PCMCI, we assume that the condition-selection
+steps already picked the correct parent sets and only test the
+link Xt−1 → Yt in the second stages of OCE and PCMCI,
+tests Xt−1 ⊥⊥ Yt | PYt , where PYt
+respectively: (2) OCE [Eq. (26), equivalent to PCMCI0 ] here
+is given by the gray and
+blue boxes in the top panel of Fig. 15. (3) OCEpw with
+conditioning set as for OCE, but where all variables are
+pre-whitened beforehand as described in Appendix B 2. (4)
+OCEbs with conditioning set as for OCE, but where a block-
+shufﬂe test was used as described in Appendix B 2. (5)
+PCMCI tests Xt−1 ⊥⊥ Yt | PYt , PXt−1 [Eq. (29)] as given by
+the gray, blue, and red boxes. For all approaches, the analyti-
+cal null distribution of the partial correlation test statistic was
+used (t-test), except for the block-shufﬂe permutation test.
+In the bottom four panels of Fig. 15, we depict results
+for DZ = 0, that is, the bivariate case, and DZ = 4, both for
+varying the autocorrelation strength a. In the bivariate case,
+all approaches well control the false positive rates except
+for OCE and (slightly better) OCEbs, which feature inﬂated
+false positive rates for very high autocorrelation. The rea-
+son is that when testing ρ OCE = ρ (Xt−1 ; Yt |Yt−1 ) with the
+t-test, we assume i.i.d.-data, but since X is autocorrelated,
+this is not the case. This false positive in ﬂation is also seen
+in Fig. 14. Here, pre-whitening removes this autocorrelation
+and block-shufﬂing remedies it to some extent. PCMCI and
+FullCI both condition out autocorrelation and well-control
+false positives with constant true positive levels, independent
+of a, while the true positive level depends on a for OCE and
+its modi ﬁcations, even though the coupling coefﬁcient
+c is
+constant.
+For DZ = 4 false positive inﬂation becomes even more
+severe for OCE and here also pre-whitening does not help but
+leads to strongly increased false positive rates since univari-
+ate pre-whitening is not suitable for multivariate conditional
+independence testing. The PCMCI approach conditions on the
+parents of the lagged variable which helps to exclude auto-
+correlation as shown in Runge et al. (2018) and allows us to
+utilize analytical null distributions that assume i.i.d. data.
+
+075310-16
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+FIG. 16. Comparison of FullCI, OCE, and PCMCI under high dimensional-
+ity. The model setup is the same as in Fig. 15. Shown are false positive rates
+and true positive rates for different dimensions DZ and no autocorrelation
+(a = 0) in the model detailed in Appendix B 2.
+
+PCMCI increases only slightly and the power stays at higher
+levels.
+The problem becomes even more severe for non-
+parametric tests such as multivariate transfer entropy. Another
+alternative to OLS partial correlation estimation are regular-
+ization techniques such as ridge regression (Hoerl et al., 1970;
+Tibshirani, 1996; Tikhonov, 1963), but these come with other
+difﬁculties, for example regarding signi ﬁcance testing. These
+issues are further analyzed in Runge et al. (2018).
+
+VIII. DISCUSSION AND CONCLUSIONS
+
+The long preceding list of theoretical assumptions in Sec.
+IV may make causal discovery seem a daunting task. In most
+real data application, we will not have all common drivers
+measured, hence violating the causal sufﬁciency assumption.
+Then also the Markov assumption may be violated in many
+cases due to time-aggregation. A conclusion on the existence
+of a causal link, thus, rests on a number of partially strong
+assumptions. So what can we learn from an estimated causal
+graph? Let us consider what the assumptions on the absence
+of a causal link are.
+Remark 1. Let ˜X be measurements of a stochastic pro-
+cess X. Assuming Faithfulness (De ﬁnition 5) and that all
+variables in ˜X are measured without error we have that for
+˜X , ˜Y , ˜Z ∈ ˜X with ˜X , ˜Y /∈ ˜Z if
+˜Xt−τ ⊥⊥ ˜Yt | ˜Z for any subset ˜Z ∈ ˜X
+⇒ Xt−τ → Yt ,
+
+(38)
+
+−
+
+t
+
+FIG. 15. Comparison of FullCI, three versions of OCE, and PCMCI under
+strong autocorrelation. (Top panel) Model time series graph with labels
+denoting linear coefﬁcients. The full model setup is described in Appendix B
+t = (Xt−1 , . . . , Xt−5 ), OCE has condi-
+2. FullCI has the conditioning set X
+tioning set depicted by gray and blue boxes, and PCMCI has conditioning
+set depicted by gray, blue, and red boxes. (Bottom panel) False positive rates
+and true positive rates are shown for two different dimensions DZ and various
+autocorrelation strengths a.
+
+−
+
+C. Curse of dimensionality
+
+In Fig. 16, we evaluate the causal algorithms (Sec. V
+A) for high-dimensional data using the same model as in
+Fig. 15 described in Appendix B 2. Here only FullCI, OCE,
+and PCMCI are compared, all of them again based on partial
+correlation.
+As shown in Fig. 16, FullCI severely suffers from the
+curse of dimensionality and the OLS-solver even becomes
+ill-conditioned for DZ = 32 since then the estimation dimen-
+sion exceeds the sample size. For OCE and PCMCI, we again
+assume that the condition-selection algorithms selected the
+correct set of parents. Then the dimensionality of OCE and
+
+075310-17
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+(cid:3)
+
+that is, if independence is measured given any subset of con-
+ditions, then there is no direct causal link between Xt−τ and
+Yt in G .
+Note that for the practical estimation from ﬁnite data, we
+also need to assume that all dependencies among lagged vari-
+ables in X can be modeled with the conditional independence
+test statistic, that is, no false negative errors occur. Neverthe-
+less, Remark 1 rests on much weaker assumptions than the
+existence of a causal link since it does not require Causal Suf-
+ﬁciency or Causal the Markov Condition. The proof follows
+almost directly from the Faithfulness assumption.
+process, we have that ˜X = X. Then ˜Xt−τ ⊥⊥ ˜Yt | ˜Z ⇒ Xt−τ ⊥⊥
+Proof. Firstly, since we assume an error-free measurement
+Yt | Z ⇒ Xt−τ (cid:10)(cid:11) Yt | Z. The last relation is the Faithfulness
+Xt−τ → Yt exists in G .
+assumption. Separation implies in particular that no direct link
+The second set of assumptions important for causal dis-
+covery are the assumptions underlying signi ﬁcance testing
+(Sec. V C). Failing to properly take into account auto-
+correlation or too simple permutation schemes imply ill-
+calibrated signiﬁcance tests leading to inﬂated false posi-
+tives beyond those expected by the signi ﬁcance level (see
+the comparison studies in Sec. VII). Next to the theoreti-
+cal causal assumptions, statistical reliability of reconstructed
+networks is an important aspect for drawing causal conclu-
+sions.
+This paper is intended to recapitulate the main con-
+cepts of time-lagged causal discovery from observational
+time series data and accessibly illustrate important chal-
+lenges. But many more challenges exist, for example, we
+have not considered selection bias or issues with the de ﬁnition
+of variables as elaborated on in Spirtes et al. (2000). We
+also have not discussed the topic of determining causal
+effects (Pearl, 2000) (causal quanti ﬁcation) or mediation
+(VanderWeele, 2015; Runge et al., 2015a, 2015b) as opposed
+the pure existence or absence of causal
+links presented
+here.
+Our focus was on time series which make the causal dis-
+covery problem easier in some aspects (e.g., time order can
+be exploited), but more difﬁcult in other aspects, especially
+regarding statistical testing. We have brie ﬂy mentioned the
+recent works based on different sets of assumptions in the
+framework of structural causal modeling (Peters et al., 2017),
+which do not require time-order. Also, many more techniques
+and insights from the conditional independence framework
+(Spirtes et al., 2000) can be utilized in the time series case. An
+important conclusion is that causal discovery is a very active
+area of research in many ﬁelds, from mathematics, computer
+science, and physics to applied sciences, and methodologi-
+cal progress can greatly beneﬁt from more interdisciplinary
+exchange.
+
+ACKNOWLEDGMENTS
+
+J.R.
+thanks C. Glymour and F. Eberhardt for com-
+ments and D. Sejdinovic, K. Zhang, and J. Peters for help-
+ful discussions. Special thanks to C. Linstead for help with
+high-performance computing. J.R. received funding from a
+
+postdoctoral award by the James S. McDonnell Founda-
+tion and gratefully acknowledges the European Regional
+Development Fund (ERDF), the German Federal Ministry
+of Education and Research, and the Land Brandenburg for
+supporting this project by providing resources on the high-
+performance computer system at the Potsdam Institute for
+Climate Impact Research. Software is available online under
+https://github.com/jakobrunge/tigramite.
+
+APPENDIX A: INCONSISTENT CAUSAL ALGORITHM
+
+For the example graph shown in Fig. 11, consider the fol-
+lowing decomposition [chain rule (Cover and Thomas, 2006),
+dropping t]:
+I (X , Z1 , Z2 ; Y ) = I (X ; Y ) + I (Z1 , Z2 ; Y | X ).
+Alternatively, one can decompose the same MI as
+
+(A1)
+
+I (X , Z1 , Z2 ; Y )
+= I (Z1 ; Y ) + I (Z2 ; Y | Z1 ) + I (X ; Y | Z1 , Z2 )
+,
+
+(cid:4)
+
+(cid:5)(cid:6)
+
+=0
+
+(cid:7)
+
+(A2)
+
+where the last term vanishes because (Z1 , Z2 ) separates X and
+Y in the graph (Markov condition). From these two equations,
+it follows that if
+I (Z1 , Z2 ; Y | X ) < I (Z2 ; Y | Z1 )
+=⇒ I (Z1 ; Y ) < I (X ; Y ).
+Hence, the wrong parent X has higher MI and would be
+selected with a pure forward-selection scheme.
+
+(A3)
+
+(A4)
+
+APPENDIX B: IMPLEMENTATION DETAILS FOR
+NUMERICAL EXAMPLES
+
+1. Dynamical noise model
+CCM was estimated with embedding dimension E = 2,
+and the surrogate test ebisuzaki with 500 surrogates using
+the R-package rEDM. CCM requires two criteria (Sugihara et
+al., 2012), both a signi ﬁcant CCM value at library size n and
+an increasing CCM value over increasing library length. As a
+p-value of CCM, we thus take max(pn , pconv ), where pn is the
+p-value of CCM at library size n and pconv is the p-value for
+the hypothesis of an increasing linear trend. OCE was esti-
+mated with threshold parameter αOCE = 0.1 and τmax = 2 in
+the forward step and with CMI nearest-neighbor parameter
+kCMI = 15 and B = 500 permutation surrogates. FullCI was
+also estimated with CMI parameter kCMI = 15 and B = 500
+permutation surrogates. PCMCI was implemented with αPC =
+0.1, τmax = 2 and CMIknn parameters kCMI = 15, kperm = 5
+and B = 500 permutation surrogates (Runge, 2018). PCMCI
+was run without restricting the number of parents pX in the
+MCI step, while for PCMCI0 only the parents of the non-
+lagged variable were included. For each noise level σ , we
+ran the four methods on 200 time series realizations of the
+model. We compute as true positives the average rates at
+which the links Zt−1 → Xt and Zt−1 → Yt were detected from
+the 200 realizations at an α = 0.05 signi ﬁcance level. We cal-
+culate as false positives the average rates for i (cid:15)= j ∈ {X , Y , Z }
+and τ ∈ {1, 2} where there is no link. Since we use an α =
+
+075310-18
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+0.05 signi ﬁcance level, a well-calibrated test should yield 5%
+false positives. The edge color and width of the graphs in
+Fig. 14 corresponds to the lag with maximum CMI/CCM
+value.
+
+2. Model for examples on autocorrelation and
+high-dimensionality
+
+The model time series graph is depicted in Fig. 15.
+In the model setup, all links correspond to linear depen-
+dencies. The autocorrelation a is the same for all variables
+X , Y , Z1 , . . . , ZDZ . The coupling coefﬁcient
+Xt−1 → Yt is zero to test false positive rates and nonzero to
+c of the link
+test true positive rates. For nonzero c its value is chosen such
+that in the corresponding bivariate model without autocorrela-
+tion (DZ = 0, a = 0), we obtain a constant mutual information
+I (Xt−1 ; Yt ) = 0.03 nats for the linear coupling with partial
+coefﬁcient b = b(DZ , a) and the covariance among the drivers
+correlation. On the other hand, the common driver forcing
+σZ = b/2 are chosen such that in the full model for every pair
+(DZ > 0, a ≥ 0) with c = 0 we have I (Xt−1 ; Yt ) = 0.4 nats,
+a relatively strong forcing corresponding to a correlation of
+≈ 0.7.
+This setup guarantees that the unconditional dependence
+stays the same and we only investigate the effect of increasing
+Gaussian noise terms η ∼ N (0, 1). For DZ = 0 the model
+autocorrelation and higher dimensionality. We test additive
+setup corresponds to two autocorrelated processes without a
+common driver forcing. The sample lengths are n = 150 for
+partial correlation. 1000 realizations were evaluated to assess
+false and true positives.
+
+3. Pre-whitening and block-shufﬂing
+
+t
+
+t
+
+t
+
+t−1
+
+(B1)
+
+We also tested the OCE test using a pre-whitening
+(OCEpw) and a block-shufﬂe permutation test (OCEbs). For
+the pre-whitening test, we preprocessed all N time series
+by estimating the univariate lag-1 autocorrelation coefﬁcients
+ˆai = ρ (X i
+t−1 ; X i
+) and regressing out the AR(1) autocorrelation
+part of the signals:
+˜X i
+= X i
+− ˆaiX i
+∀t and i = 1, . . . , N .
+Then the OCE test is applied to these residuals ˜X.
+Another remedy is a block-shufﬂe permutation test,
+which is based on a block-shufﬂe surrogate test following
+Peifer et al. (2005) and Mader et al. (2013). For the test statis-
+tic T , an ensemble of M = 500 values of I (X
+generated where X
+t−τ is a block-shufﬂed surrogate of Xt−τ ,
+i.e., with blocks of the original time series permuted. As an
+optimal block-length, we use the method described in Peifer
+et al. (2005) and Mader et al. (2013) for non-overlapping
+blocks. The optimal block-length formula Eq. (6) in Mader
+et al. (2013) involves the decay rate of the envelope of the
+autocorrelation function γ (τ ). The latter was estimated up to
+a maximum delay of 5% of the samples, and the envelope was
+estimated using the Hilbert transform. Then a function Cφ τ
+was ﬁt to the envelope with constant C to obtain the decay
+rate φ . The block length was limited to a maximum of 10% of
+the sample length. Finally, the estimated values are sorted, and
+
+t−τ ; Yt | . . .) is
+
+∗
+
+∗
+
+a p-value is obtained as the fraction of surrogates with values
+greater than or equal to the estimated value.
+
+Probab.
+
+Arnhold, J., Grassberger, P., Lehnertz, K., and Elger, C., “A robust method for
+detecting interdependences: Application to intracranially recorded EEG,”
+Physica D 134, 419–430 (1999).arXiv:9907013 [chao-dyn].
+Barnett, L., Barrett, A. B., and Seth, A. K., “Granger causality andtrans-
+fer entropy are equivalent for Gaussian variables,” Phys. Rev. Lett. 103,
+238701 (2009). arXiv:0910.4514
+Barnett, L. and Seth, A. K., “Granger causality for state space models,” Phys.
+Rev. E 91, 040101 (2015).
+Benjamini, Y. and Hochberg, Y., “Controlling the false discovery rate: A prac-
+tical and powerful approach to multiple testing,” J. R. Stat. Soc. Ser. B 57,
+289–300 (1995).
+Breitung, J. and Swanson, N. R., “Temporal aggregation and spurious instan-
+taneous causality in multiple time series models,”
+J. Time Ser. Anal. 23,
+651–665 (2002).
+Chalupka, K., Perona, P., and Eberhardt, F.,
+“Fast conditional
+inde-
+pendence test for vector variables with large sample sizes,” (2018).
+arXiv:1804.02747v1
+Colombo, D. and Maathuis, M. H., “Order-independent constraint-based
+causal structure learning,” J. Mach. Learn. Res. 15, 3921–3962 (2014).
+Cover, T. M. and Thomas, J. A., Elements of Information Theory (John Wiley
+& Sons, Hoboken, 2006).
+Daniusis, P., Janzing, D., Mooij, J., Zscheischler, J., Steudel, B., Zhang, K.,
+and B. Schölkopf, “Inferring deterministic causal relations,” in
+Proceedings
+of the 26th Conference on Uncertainty in Artiﬁcial Intelligence , edited by
+P. Grünwald and P. Spirtes (UAI, 2010), pp. 143–150. arXiv:1203.3475
+Doran, G., Muandet, K., Zhang, K., and B. Schölkopf, “A permutation-based
+kernel conditional independence test,” in Proceedings of the Thirtieth Con-
+ference on Uncertainty in Artiﬁcial Intelligence , edited by N. L. Zhang and
+J. Tian (UAI, 2014), pp. 132–141.
+Eichler, M.,
+“Graphical modelling of multivariate time series,”
+Theory Relat. Fields 153, 233–268 (2012).arXiv:0610654 [math].
+Eichler, M., “Causal inference with multiple time series: Principles and
+Philos. Trans. R. Soc. A: Math. Phys. Eng. Sci. 371,
+problems,”
+20110613–20110613 (2013).
+Entner, D. and Hoyer, P. O., “On causal discovery from time series data
+using FCI,” in Proceedings of the Fifth European Workshop on Probabilis-
+tic Graphical Models, edited by P. Myllymaeki, T. Roos and T. Jaakkola
+(HIIT Publications, 2010), pp. 121–128.
+Frenzel, S. and Pompe, B., “Partial mutual information for coupling analysis
+of multivariate time series,” Phys. Rev. Lett. 99, 204101 (2007).
+Gao, S., Steeg, G. V., and Galstyan, A., “Efﬁcient estimation of mutual infor-
+mation for strongly dependent variables,” in Proceedings of the 18th Inter-
+national Conference on Artiﬁcial Intelligence and Statistics, San Diego, CA
+(2015), Vol. 38, pp. 277–286.
+Geiger, P., Zhang, K., Gong, M., Janzing, D., and B. Schölkopf, “Causal
+inference by identiﬁcation of vector autoregressive processes with hidden
+components,” 1917–1925 (2014). arXiv:1411.3972
+Gong, M., Zhang, K., Schoelkopf, B., Tao, D., and Geiger, P., “Discover-
+ing temporal causal relations from subsampled data,” in Proceedings of the
+32nd International Conference on Machine Learning (Lille, France, 2015),
+Vol. 37, pp. 1898–1906.
+Granger, C. W. J., “Investigating causal relations by econometric models and
+cross-spectral methods,” Econometrica 37, 424–438 (1969).
+Gretton, A., Fukumizu, K., Teo, C. H., Song, L., B. Schölkopf, and Smola,
+A. J., “A kernel statistical test of independence,” in
+Advances in Neu-
+ral Information Processing Systems 20:21st Annual Conference on Neural
+Information Processing Systems 2007, edited by J. C. Platt, D. Koller,
+Y. Singer and S. T. Roweis (2008), pp. 585–592.
+Hirata, Y., J. M. Amigó, Matsuzaka, Y., Yokota, R., Mushiake, H., and Aihara,
+K., “Detecting causality by combined use of multiple methods: Climate and
+brain examples,” PLoS ONE 11, e0158572 (2016).
+Hlavácková-Schindler, K., Palus, M., Vejmelka, M., and Bhattacharya, J.,
+“Causality detection based on information-theoretic approaches in time
+series analysis,” Phys. Rep. 441, 1–46 (2007).
+Hoerl, A. E., Kennard, R. W., and Ridge, Regression,
+“Biased estima-
+tion for nonorthogonal problems,” Technometrics 12, 55–67 (1970).
+arXiv:9809069v1 [arXiv:gr-qc].
+Hyttinen, A., Eberhardt, F., and M. Järvisalo, “Constraint-based causal dis-
+covery: Conﬂict resolution with answer set programming,” in
+Proceedings
+
+075310-19
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+J.,
+
+(UAI,
+
+of the 30th Conference on Uncertainty in Artiﬁcial Intelligence
+2014), pp. 340–349.
+Hyttinen, A., Plis, S., M. Järvisalo, Eberhardt, F., and Danks, D., “Causal
+discovery from subsampled time series data by constraint optimization,” J.
+Mach. Learn. Res. 52, 216–227 (2016).arXiv:1602.07970
+James, R. G., Barnett, N., and Crutchﬁeld, J. P., “Information ﬂows? A
+critique of transfer entropies,” Phys. Rev. Lett. 116, 238701 (2016).
+arXiv:1512.06479
+Janzing, D., Mooij,
+J., Zhang, K., Lemeire,
+J., Zscheischler,
+Daniusis, P., Steudel, B., and B. Schölkopf,
+“Information-geometric
+approach to inferring causal directions,” Artif. Intell. 182–183, 1–31
+(2012).
+Kalisch, M., “Estimating high-dimensional directed acyclic graphs with the
+PC-algorithm,” J. Mach. Learn. Res. 8, 613–636 (2007).
+Kantz, H. and Schreiber, T., Nonlinear Time Series Analysis (Cambridge
+University Press, Cambridge, 2003), pp. 27–43.
+Kraskov, A., Stögbauer, H., and Grassberger, P., “Estimating mutual informa-
+tion,” Phys. Rev. E 69, 16 (2004). arXiv:0305641 [cond-mat].
+Lauritzen, S. L., Graphical Models (Oxford University Press, Oxford, 1996).
+Lopez-Paz, D., Muandet, K., B. Schölkopf, and Tolstikhin, I., “Towards
+a learning theory of cause-effect inference,” in Proceedings of the 32nd
+International Conference on Machine Learning ( Lille, France, 2015), Vol.
+37. arXiv:1502.02398
+Lord, W. M., Sun, J., and Bollt, E. M., “Geometric k-nearest neighbor esti-
+mation of entropy and mutual information,” Chaos 28, 033114 (2018).
+arXiv:1711.00748
+Mader, M., Mader, W., Sommerlade, L., Timmer, J., and Schelter, B.,
+“Block-bootstrapping for noisy data,”
+J. Neurosci. Methods 219, 285–91
+(2013).
+Maneewongvatana, S. and Mount, D., “It’sokay to be skinny, if your friends
+are fat,” in Center for Geometric Computing 4th Annual Workshop on
+Computational Geometry (1999), pp. 1–8.
+Pearl, J., Causality: Models, Reasoning, and Inference (Cambridge Univer-
+sity Press, Cambridge, 2000).
+Peifer, M., Schelter, B., Guschlbauer, B., Hellwig, B., C. H. Lücking, and
+Timmer, J., “On studentising and block length selection for the bootstrap
+on time series,” Biom. J. 47, 346–357 (2005).
+Peters, J., P. Bühlmann, and Meinshausen, N., “Causal inference using invari-
+ant prediction: Identiﬁcation and conﬁdence intervals,”
+J. R. Stat. Soc.: Ser.
+B (Stat. Method.) 1–42 (2016).arXiv:1501.01332
+Peters, J., Janzing, D., and B. Schölkopf, “Causal inference on time series
+using restricted structural equation models,” in NIPS (Curran Associates,
+Inc., 2013), pp. 154–162.arXiv:1207.5136
+Peters, J., Janzing, D., and B. Schölkopf, Elements of Causal Inference:
+Foundations and Learning Algorithms, Number December (MIT Press,
+Cambridge, MA, 2017), pp. 1214–1216.
+Philander, S., “ElNiño and La Niña,”
+J. Atmos. Sci. 42, 2652–2662 (1985).
+Póczos, B. and Schneider, J., “Nonparametric estimation of conditional infor-
+mation and divergences,” in Proceedings of the Fifteenth International
+Conference on Artiﬁcial Intelligence and Statistics XX (2012), Vol. 22,
+pp. 914–923.
+Pompe, B. and Runge, J., “Momentary information transfer as a coupling
+measure of time series, ” Phys. Rev. E: Stat. Nonlin. Soft Matter Phys. 83,
+1–12 (2011).
+Ramb, R., Eichler, M., Ing, A., Thiel, M., Weiller, C., Grebogi, C.,
+Schwarzbauer, C., Timmer, J., and Schelter, B., “The impact of latent con-
+founders in directed network analysis in neuroscience,” Philos. Trans. R.
+Soc. A: Math. Phys. Eng. Sci. 371, 20110612–20110612 (2013).
+Rasmussen, C. and Williams, C., Gaussian Processes for Machine Learning
+(MIT Press, Cambridge, MA, USA, 2006).
+Robins, J. M., Scheines, R., Spirtes, P., and Wasserman, L.,
+“Uniform
+consistency in causal inference,” Biometrika 90, 491–515 (2003).
+Runge, J., “Quantifying information transfer and mediation along causal
+pathways in complex systems,” Phys. Rev. E 92, 062829 (2015).
+Runge, J., “Conditional independence testing based on a nearest-neighbor
+estimator of conditional mutual information,” in Proceedings of the 21st
+International Conference on Artiﬁcial Intelligence and Statistics (AISTATS)
+(Lanzarote, Spain, 2018).
+Runge, J., Donner, R. V., and Kurths, J.,
+“Optimal model-free predic-
+tion from multivariate time series,” Phys. Rev. E 91, 052909 (2015a).
+arXiv:1506.05822v1
+Runge, J., Heitzig, J., Marwan, N., and Kurths, J., “Quantifying causal cou-
+pling strength: Alag-speci ﬁc measure for multivariate time series related to
+transfer entropy,” Phys. Rev. E 86, 061121 (2012a). arXiv:1210.2748
+
+Runge, J., Heitzig, J., Petoukhov, V., and Kurths, J., “Escaping the curse of
+dimensionality in estimating multivariate transfer entropy,” Phys. Rev. Lett.
+108, 258701 (2012b).
+Runge, J., Nowack, P., Kretschmer, M., Flaxman, S., and Sejdinovic, D.,
+“Detecting causal associations in large nonlinear time series datasets,”
+http://arxiv.org/abs/1702.07007v2 (2018).
+Runge, J., Petoukhov, V., Donges, J. F., Hlinka, J., Jajcay, N., Vejmelka,
+M., Hartman, D., Marwan, N., Palus, M., and Kurths, J., “Identifying
+causal gateways and mediators in complex spatio-temporal systems,” Nat.
+Commun. 6, 8502 (2015b).
+Runge, J., Petoukhov, V., and Kurths, J., “Quantifying the strength and delay
+of climatic interactions: The ambiguities of cross correlation and a Novel
+Measure Based on Graphical Models,” J. Clim. 27, 720–739 (2014).
+Scheines, R. and Ramsey, J., “Measurement error and causal discovery,”
+in CEUR Workshop Proceedings (NIH Public Access, 2016), Vol. 1792,
+pp. 1–7.
+Schreiber, T., “Measuring information transfer,” Phys. Rev. Lett. 85, 461–464
+(2000). arXiv:0001042v1 [nlin].
+Sen, R., Suresh, A. T., Shanmugam, K., Dimakis, A. G., and Shakkottai, S.,
+“Model-powered conditional independence test,” in
+Advances in Neural
+Information Processing Systems (Curran Associates, Inc. 2017), Vol. 30,
+pp. 2955–2965.arXiv:1709.06138
+Smirnov, D. A., “Spurious causalities with transfer entropy,” Phys. Rev. E 87,
+1–12 (2013).
+Spirtes, P. and Glymour, C., “An algorithm for fast recovery of sparse causal
+graphs,” Soc. Sci. Comput. Rev. 9, 62–72 (1991)
+Spirtes, P., Glymour, C., and Scheines, R., Causation, Prediction, and Search
+(The MIT Press, Boston, 2000).
+Spirtes, P. and Zhang, K., “Causal discovery and inference: Concepts and
+recent methodological advances,” Appl. Inform. 3, 3 (2016).
+Staniek, M. and Lehnertz, K., “Symbolic transfer entropy,”
+Phys. Rev. Lett.
+100, 1–4 (2008).
+Storch, H. V. and Zwiers, F. W., Journal of the American Statistical Associa-
+tion (Cambridge University Press, Cambridge, 1999), Vol. 95.
+Strobl, E. V. and Spirtes, P. L., “Estimating and controlling the false dis-
+covery rate for the PC algorithm using edge-speciﬁc p-values,” (2016).
+arXiv:1607.03975v1
+Strobl, E. V., Zhang, K., and Visweswaran, S., “Approximate kernel-based
+conditional independence tests for fast non-parametric causal discovery,”
+http://arxiv.org/abs/1702.03877 (2017). arXiv:1702.03877
+Sugihara, G., May, R., Ye, H., Hsieh, C.-h., Deyle, E., Fogarty, M., and
+Munch, S., “Detecting causality in complex ecosystems,”
+Science 338,
+496–500 (2012).
+Sun, J. and Bollt, E., “Causation entropy identiﬁes indirect inﬂuences, dom-
+inance of neighbors and anticipatory couplings,” Physica D 267, 49–57
+(2014).
+Sun, J., Taylor, D., and Bollt, E. M., “Causal network inference by opti-
+mal causation entropy,” SIAM J. Appl. Dyn. Syst. 14, 73–106 (2015).
+arXiv:1401.7574
+Székely, G. J., Rizzo, M. L., and Bakirov, N. K., “Measuring and testing
+dependence by correlation of distances,” Ann. Stat. 35, 2769–2794 (2007).
+arXiv:0803.4101
+Tibshirani, R., “Regression shrinkage and selection via the lasso,”
+J. R.
+Stat. Soc. Ser. B Stat. Methodol. 58, 267–288 (1996).arXiv:11/73273
+[13697412].
+Tikhonov, A., “Regularization of incorrectly posed problems,” Sov. Math.
+Doki. 4, 1624–1627 (1963).
+Tsamardinos, I. and Brown, L. E., “Bounding the false discovery rate in
+local Bayesian network learning,” in Proceedings of the Twenty-Third
+AAAI Conference on Artiﬁcial Intelligence
+(AAAI Press, 2008), pp.
+1100–1105.
+Tsamardinos, I., Brown, L. E., and Aliferis, C. F., “The max-min hill-climbing
+Bayesian network structure learning algorithm,” Mach. Learn. 65, 31–78
+(2006).
+Uhler, C., Raskutti, G., P. B ühlmann, and Yu, B.,
+“Geometry of the
+faithfulness assumption in causal
+inference,” Ann. Stat. 41, 436–463
+(2013).
+VanderWeele, T., Explanation in Causal Inference: Methods for Mediation
+and Interaction (Oxford University Press, Oxford, 2015).
+Vejmelka, M. and Palus, M.,
+“Inferring the directionality of cou-
+pling with conditional mutual information,” Phys. Rev. E 77, 026214
+(2008).
+Wang, X., Pan, W., Hu, W., Tian, Y., and Zhang, H., “Conditional distance
+correlation,” J. Am. Stat. Assoc. 110, 1726–1734 (2015).
+
+075310-20
+
+J. Runge
+
+Chaos 28, 075310 (2018)
+
+Wasserman, L., All of Statistics : A Concise Course in Statistical Inference
+(Springer Berlin Heidelberg, New York, 2004). arXiv:1011.1669v3
+Watts, D. J. and Strogatz, S. H., “Collective dynamics of “small-world”
+networks,” Nature 393, 440–442 (1998).
+Wibral, M., Pampu, N., Priesemann, V., F. Siebenhühner, Seiwert, H., Lind-
+ner, M., Lizier, J. T., and Vicente, R., “Measuring information-transfer
+delays,” PloS ONE 8, e55809 (2013).
+Wiener, N., Modern Mathematics for Engineers (McGraw-Hill, New York,
+1956).
+Zhang, J., “On the completeness of orientation rules for causal discovery in
+the presence of latent confounders and selection bias,” Artif. Intell. 172,
+1873–1896 (2008).
+
+Zhang, K. and A. Hyvärinen, “On the identiﬁability of the post-nonlinear
+causal model,” in Proceedings of the Twenty-Fifth Conference on Uncer-
+tainty in Artiﬁcial Intelligence
+(AUAI Press Arlington, VA, 2009), pp.
+647–655.arXiv:1309.2178
+Zhang, K., Peters, J., Janzing, D., and B. Schölkopf, “Kernel-based condi-
+tional independence test and application in causal discovery,” 27th Con-
+ference on Uncertainty in Artiﬁcial Intelligence (UAI 2011)
+(AUAI Press
+Arlington, VA, 2011), pp. 804–813.arXiv:1202.3775
+
+

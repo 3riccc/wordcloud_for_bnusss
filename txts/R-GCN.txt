@@ -1,0 +1,1459 @@
+Modeling Relational Data with Graph Convolutional Networks
+
+Michael Schlichtkrull∗
+
+University of Amsterdam
+
+m.s.schlichtkrull@uva.nl
+
+Rianne van den Berg
+
+University of Amsterdam
+
+r.vandenberg@uva.nl
+
+Thomas N. Kipf∗
+
+University of Amsterdam
+
+t.n.kipf@uva.nl
+
+Peter Bloem
+
+VU Amsterdam
+
+p.bloem@vu.nl
+
+Ivan Titov
+
+University of Amsterdam
+
+titov@uva.nl
+
+Max Welling
+
+University of Amsterdam, CIFAR†
+
+m.welling@uva.nl
+
+7
+1
+0
+2
+
+t
+
+c
+
+O
+
+6
+2
+
+]
+
+L
+
+M
+
+.
+
+t
+
+a
+
+t
+
+s
+
+[
+
+4
+v
+3
+0
+1
+6
+0
+
+.
+
+3
+0
+7
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+Abstract
+
+Knowledge graphs enable a wide variety of applications, in-
+cluding question answering and information retrieval. De-
+spite the great effort invested in their creation and mainte-
+nance, even the largest (e.g., Yago, DBPedia or Wikidata)
+remain incomplete. We introduce Relational Graph Convo-
+lutional Networks (R-GCNs) and apply them to two standard
+knowledge base completion tasks: Link prediction (recovery
+of missing facts, i.e. subject-predicate-object triples) and en-
+tity classiﬁcation (recovery of missing entity attributes). R-
+GCNs are related to a recent class of neural networks operat-
+ing on graphs, and are developed speciﬁcally to deal with the
+highly multi-relational data characteristic of realistic knowl-
+edge bases. We demonstrate the effectiveness of R-GCNs as
+a stand-alone model for entity classiﬁcation. We further show
+that factorization models for link prediction such as DistMult
+can be signiﬁcantly improved by enriching them with an en-
+coder model to accumulate evidence over multiple inference
+steps in the relational graph, demonstrating a large improve-
+ment of 29.8% on FB15k-237 over a decoder-only baseline.
+
+1
+
+Introduction
+
+Knowledge bases organize and store factual knowledge, en-
+abling a multitude of applications including question an-
+swering (Yao and Van Durme 2014; Bao et al. 2014; Seyler,
+Yahya, and Berberich 2015; Hixon, Clark, and Hajishirzi
+2015; Bordes et al. 2015; Dong et al. 2015) and informa-
+tion retrieval (Kotov and Zhai 2012; Dalton, Dietz, and Al-
+lan 2014; Xiong and Callan 2015b; 2015a). Even the largest
+knowledge bases (e.g. DBPedia, Wikidata or Yago), despite
+enormous effort invested in their maintenance, are incom-
+plete, and the lack of coverage harms downstream applica-
+tions. Predicting missing information in knowledge bases is
+the main focus of statistical relational learning (SRL).
+Following previous work on SRL, we assume that knowl-
+edge bases store collections of triples of the form (subject,
+predicate, object). Consider, for example, the triple (Mikhail
+Baryshnikov, educated at, Vaganova Academy), where we
+will refer to Baryshnikov and Vaganova Academy as enti-
+ties and to educated at as a relation. Additionally, we as-
+sume that entities are labeled with types (e.g., Vaganova
+
+∗Equal contribution.
+†Canadian Institute for Advanced Research
+
+Figure 1: A knowledge base fragment: The nodes are en-
+tities, the edges are relations labeled with their types, the
+nodes are labeled with entity types (e.g., university). The
+edge and the node label shown in red are the missing in-
+formation to be inferred.
+
+Academy is marked as a university). It is convenient to rep-
+resent knowledge bases as directed labeled multigraphs with
+entities corresponding to nodes and triples encoded by la-
+beled edges (see Figure 1).
+We consider two fundamental SRL tasks: link predic-
+tion (recovery of missing triples) and entity classiﬁcation
+(assigning types or categorical properties to entities). In
+both cases, many missing pieces of information can be ex-
+pected to reside within the graph encoded through the neigh-
+borhood structure – i.e. knowing that Mikhail Baryshnikov
+was educated at the Vaganova Academy implies both that
+Mikhail Baryshnikov should have the label person, and that
+the triple (Mikhail Baryshnikov, lived in, Russia) must be-
+long to the knowledge graph. Following this intuition, we
+develop an encoder model for entities in the relational graph
+and apply it to both tasks.
+Our entity classiﬁcation model, similarly to Kipf and
+Welling (2017), uses softmax classiﬁers at each node in the
+graph. The classiﬁers take node representations supplied by
+a relational graph convolutional network (R-GCN) and pre-
+dict the labels. The model, including R-GCN parameters, is
+learned by optimizing the cross-entropy loss.
+Our link prediction model can be regarded as an autoen-
+coder consisting of (1) an encoder: an R-GCN producing
+latent feature representations of entities, and (2) a decoder:
+a tensor factorization model exploiting these representations
+
+Mikhail BaryshnikovVaganova AcademyU.S.A.Vilcek prizeawardededucated_atcitizen_of:country:university:award:ballet_dancer 
+ 
+ 
+ 
+ 
+ 
+to predict labeled edges. Though in principle the decoder can
+rely on any type of factorization (or generally any scoring
+function), we use one of the simplest and most effective fac-
+torization methods: DistMult (Yang et al. 2014). We observe
+that our method achieves competitive results on standard
+benchmarks, outperforming, among other baselines, direct
+optimization of the factorization (i.e. vanilla DistMult). This
+improvement is especially large when we consider the more
+challenging FB15k-237 dataset (Toutanova and Chen 2015).
+This result demonstrates that explicit modeling of neighbor-
+hoods in R-GCNs is beneﬁcial for recovering missing facts
+in knowledge bases.
+Our main contributions are as follows. To the best of our
+knowledge, we are the ﬁrst to show that the GCN frame-
+work can be applied to modeling relational data, speciﬁcally
+to link prediction and entity classiﬁcation tasks. Secondly,
+we introduce techniques for parameter sharing and to en-
+force sparsity constraints, and use them to apply R-GCNs
+to multigraphs with large numbers of relations. Lastly, we
+show that the performance of factorization models, at the
+example of DistMult, can be signiﬁcantly improved by en-
+riching them with an encoder model that performs multiple
+steps of information propagation in the relational graph.
+
+2 Neural relational modeling
+
+We introduce the following notation: we denote directed and
+labeled multi-graphs as G = (V , E , R) with nodes (entities)
+vi ∈ V and labeled edges (relations) (vi , r, vj ) ∈ E , where
+r ∈ R is a relation type.1
+
+2.1 Relational graph convolutional networks
+
+Our model is primarily motivated as an extension of GCNs
+that operate on local graph neighborhoods (Duvenaud et al.
+2015; Kipf and Welling 2017) to large-scale relational data.
+These and related methods such as graph neural networks
+(Scarselli et al. 2009) can be understood as special cases of
+a simple differentiable message-passing framework (Gilmer
+et al. 2017):
+
+(cid:33)
+
+h(l+1)
+i
+
+= σ
+
+gm (h(l)
+i
+
+, h(l)
+
+j )
+
+,
+
+(1)
+
+m∈Mi
+i ∈ Rd(l) is the hidden state of node vi in the
+where h(l)
+l-th layer of the neural network, with d(l) being the di-
+mensionality of this layer’s representations. Incoming mes-
+sages of the form gm (·, ·) are accumulated and passed
+through an element-wise activation function σ(·), such as
+the ReLU(·) = max(0, ·).2 Mi denotes the set of incoming
+messages for node vi and is often chosen to be identical to
+the set of incoming edges. gm (·, ·) is typically chosen to be
+a (message-speciﬁc) neural network-like function or simply
+a linear transformation gm (hi , hj ) = W hj with a weight
+matrix W such as in Kipf and Welling (2017).
+
+1R contains relations both in canonical direction (e.g. born in)
+and in inverse direction (e.g. born in inv).
+2Note that this represents a simpliﬁcation of the message pass-
+ing neural network proposed in (Gilmer et al. 2017) that sufﬁces to
+include the aforementioned models as special cases.
+
+(cid:32) (cid:88)
+
+(cid:88)
+
+(cid:88)
+
+r∈R
+
+j∈N r
+
+i
+
+This type of transformation has been shown to be very
+effective at accumulating and encoding features from lo-
+cal, structured neighborhoods, and has led to signiﬁcant im-
+provements in areas such as graph classiﬁcation (Duvenaud
+et al. 2015) and graph-based semi-supervised learning (Kipf
+and Welling 2017).
+Motivated by these architectures, we deﬁne the following
+simple propagation model for calculating the forward-pass
+update of an entity or node denoted by vi in a relational (di-
+rected and labeled) multi-graph:
+
+h(l+1)
+i
+
+= σ
+
+1
+
+ci,r
+
+W (l)
+r h(l)
+j + W (l)
+0 h(l)
+i
+
+(2)
+
+where N r
+i denotes the set of neighbor indices of node i un-
+der relation r ∈ R. ci,r is a problem-speciﬁc normaliza-
+tion constant that can either be learned or chosen in advance
+(such as ci,r = |N r
+i |).
+Intuitively, (2) accumulates transformed feature vectors
+of neighboring nodes through a normalized sum. Different
+from regular GCNs, we introduce relation-speciﬁc transfor-
+mations, i.e. depending on the type and direction of an edge.
+To ensure that the representation of a node at layer l + 1
+can also be informed by the corresponding representation at
+layer l, we add a single self-connection of a special relation
+type to each node in the data. Note that instead of simple lin-
+ear message transformations, one could choose more ﬂexi-
+ble functions such as multi-layer neural networks (at the ex-
+pense of computational efﬁciency). We leave this for future
+work.
+A neural network layer update consists of evaluating (2)
+in parallel for every node in the graph. In practice, (2) can be
+implemented efﬁciently using sparse matrix multiplications
+to avoid explicit summation over neighborhoods. Multiple
+layers can be stacked to allow for dependencies across sev-
+eral relational steps. We refer to this graph encoder model
+as a relational graph convolutional network (R-GCN). The
+computation graph for a single node update in the R-GCN
+model is depicted in Figure 2.
+
+2.2 Regularization
+
+A central issue with applying (2) to highly multi-relational
+data is the rapid growth in number of parameters with the
+number of relations in the graph. In practice this can easily
+lead to overﬁtting on rare relations and to models of very
+large size.
+To address this issue, we introduce two separate meth-
+ods for regularizing the weights of R-GCN-layers: basis-
+and block-diagonal-decomposition. With the basis decom-
+position, each W (l)
+is deﬁned as follows:
+
+r
+
+ ,
+
+B(cid:88)
+
+W (l)
+
+r =
+
+a(l)
+rb V (l)
+b
+
+,
+
+(3)
+
+b=1
+
+i.e. as a linear combination of basis transformations V (l)
+Rd(l+1)×d(l) with coefﬁcients a(l)
+rb such that only the coefﬁ-
+cients depend on r. In the block-diagonal decomposition, we
+
+b ∈
+
+(a) Entity classiﬁcation
+
+(b) Link prediction
+
+Figure 3: (a) Depiction of an R-GCN model for entity clas-
+siﬁcation with a per-node loss function. (b) Link predic-
+tion model with an R-GCN encoder (interspersed with fully-
+connected/dense layers) and a DistMult decoder that takes
+pairs of hidden node representations and produces a score
+for every (potential) edge in the graph. The loss is evaluated
+per edge.
+
+we only consider such a featureless approach in this work,
+we note that it was shown in Kipf and Welling (2017) that
+it is possible for this class of models to make use of pre-
+deﬁned feature vectors (e.g. a bag-of-words description of a
+document associated with a speciﬁc node).
+
+3 Entity classiﬁcation
+
+For (semi-)supervised classiﬁcation of nodes (entities),
+we simply stack R-GCN layers of the form (2), with a
+softmax(·) activation (per node) on the output of the last
+layer. We minimize the following cross-entropy loss on all
+labeled nodes (while ignoring unlabeled nodes):
+
+L = − (cid:88)
+
+K(cid:88)
+
+tik ln h(L)
+ik ,
+
+(5)
+
+k=1
+
+i∈Y
+where Y is the set of node indices that have labels and h(L)
+is the k-th entry of the network output for the i-th labeled
+node. tik denotes its respective ground truth label. In prac-
+tice, we train the model using (full-batch) gradient descent
+techniques. A schematic depiction of our entity classiﬁca-
+tion model is given in Figure 3a.
+
+ik
+
+4 Link prediction
+
+Link prediction deals with prediction of new facts (i.e.
+triples (subject, relation, object)). Formally, the knowledge
+base is represented by a directed, labeled graph G =
+(V , E , R). Rather than the full set of edges E , we are given
+only an incomplete subset ˆE . The task is to assign scores
+f (s, r, o) to possible edges (s, r, o) in order to determine
+how likely those edges are to belong to E .
+In order to tackle this problem, we introduce a graph
+auto-encoder model, comprised of an entity encoder and a
+vi ∈ V to a real-valued vector ei ∈ Rd . The decoder re-
+scoring function (decoder). The encoder maps each entity
+constructs edges of the graph relying on the vertex repre-
+sentations; in other words, it scores (subject, relation, ob-
+ject)-triples through a function s : Rd × R × Rd → R.
+Most existing approaches to link prediction (for example,
+tensor and neural factorization methods (Socher et al. 2013;
+
+Figure 2: Diagram for computing the update of a single
+graph node/entity (red) in the R-GCN model. Activations
+(d-dimensional vectors) from neighboring nodes (dark blue)
+are gathered and then transformed for each relation type
+individually (for both in- and outgoing edges). The result-
+ing representation (green) is accumulated in a (normalized)
+sum and passed through an activation function (such as the
+ReLU). This per-node update can be computed in parallel
+with shared parameters across the whole graph.
+
+let each W (l)
+r be deﬁned through the direct sum over a set of
+low-dimensional matrices:
+
+W (l)
+
+r =
+
+Q(l)
+br .
+
+(4)
+
+B(cid:77)
+
+b=1
+
+Thereby, W (l)
+
+r
+
+are
+
+diag(Q(l)
+1r , . . . , Q(l)
+Br ) with Q(l)
+
+block-diagonal
+
+br ∈ R(d(l+1) /B )×(d(l) /B ) .
+
+matrices:
+
+The basis function decomposition (3) can be seen as a
+form of effective weight sharing between different relation
+types, while the block decomposition (4) can be seen as a
+sparsity constraint on the weight matrices for each relation
+type. The block decomposition structure encodes an intu-
+ition that latent features can be grouped into sets of variables
+which are more tightly coupled within groups than across
+groups. Both decompositions reduce the number of parame-
+ters needed to learn for highly multi-relational data (such as
+realistic knowledge bases). At the same time, we expect that
+the basis parameterization can alleviate overﬁtting on rare
+relations, as parameter updates are shared between both rare
+and more frequent relations.
+The overall R-GCN model then takes the following form:
+We stack L layers as deﬁned in (2) – the output of the previ-
+ous layer being the input to the next layer. The input to the
+ﬁrst layer can be chosen as a unique one-hot vector for each
+node in the graph if no other features are present. For the
+block representation, we map this one-hot vector to a dense
+representation through a single linear transformation. While
+
+rel_1 (in)rel_1 (out)rel_N (in)rel_N (out)…+rel_1rel_NReLUself-loopself-loopR-GCNInputNode lossencoderR-GCNInputEdge lossDistMultencoderdecoderL = −
+
+(7)
+
+Lin et al. 2015; Toutanova et al. 2016; Yang et al. 2014;
+Trouillon et al. 2016)) can be interpreted under this frame-
+work. The crucial distinguishing characteristic of our work
+is the reliance on an encoder. Whereas most previous ap-
+proaches use a single, real-valued vector ei for every vi ∈
+V optimized directly in training, we compute representa-
+tions through an R-GCN encoder with ei = h(L)
+, simi-
+lar to the graph auto-encoder model introduced in Kipf and
+Welling (2016) for unlabeled undirected graphs. Our full
+link prediction model is schematically depicted in Figure 3b.
+In our experiments, we use the DistMult factoriza-
+tion (Yang et al. 2014) as the scoring function, which is
+known to perform well on standard link prediction bench-
+marks when used on its own. In DistMult, every relation r
+is associated with a diagonal matrix Rr ∈ Rd×d and a triple
+(s, r, o) is scored as
+
+i
+
+f (s, r, o) = eT
+s Rr eo .
+
+(6)
+As in previous work on factorization (Yang et al. 2014;
+Trouillon et al. 2016), we train the model with negative
+sampling. For each observed example we sample ω nega-
+tive ones. We sample by randomly corrupting either the sub-
+ject or the object of each positive example. We optimize
+for cross-entropy loss to push the model to score observable
+triples higher than the negative ones:
+
+(cid:88)
+
+y log l(cid:0)f (s, r, o)(cid:1)+
+(1 + ω)| ˆE |
+1
+(1 − y) log(cid:0)1 − l(cid:0)f (s, r, o)(cid:1)(cid:1) ,
+
+(s,r,o,y)∈T
+
+where T is the total set of real and corrupted triples, l is the
+logistic sigmoid function, and y is an indicator set to y = 1
+for positive triples and y = 0 for negative ones.
+
+5 Empirical evaluation
+
+5.1 Entity classiﬁcation experiments
+
+Here, we consider the task of classifying entities in a knowl-
+edge base. In order to infer, for example, the type of an entity
+(e.g. person or company), a successful model needs to rea-
+son about the relations with other entities that this entity is
+involved in.
+
+Datasets We evaluate our model on four datasets3 in Re-
+source Description Framework (RDF) format (Ristoski, de
+Vries, and Paulheim 2016): AIFB, MUTAG, BGS, and AM.
+Relations in these datasets need not necessarily encode di-
+rected subject-object relations, but are also used to encode
+the presence, or absence, of a speciﬁc feature for a given
+entity. In each dataset, the targets to be classiﬁed are prop-
+erties of a group of entities represented as nodes. The exact
+statistics of the datasets can be found in Table 1. For a more
+detailed description of the datasets the reader is referred to
+Ristoski, de Vries, and Paulheim (2016). We remove rela-
+tions that were used to create entity labels: employs and afﬁl-
+iation for AIFB, isMutagenic for MUTAG, hasLithogenesis
+for BGS, and objectCategory and material for AM.
+
+3 http://dws.informatik.uni-mannheim.de/en/research/a-
+collection-of-benchmark-datasets-for-ml
+
+Dataset
+Entities
+Relations
+Edges
+Labeled
+Classes
+
+AIFB MUTAG
+8,285
+23,644
+45
+23
+29,043
+74,227
+176
+340
+4
+2
+
+BGS
+333,845
+103
+916,199
+146
+2
+
+AM
+1,666,764
+133
+5,988,321
+1,000
+11
+
+Table 1: Number of entities, relations, edges and classes
+along with the number of labeled entities for each of the
+datasets. Labeled denotes the subset of entities that have la-
+bels and that are to be classiﬁed.
+
+Baselines As a baseline for our experiments, we com-
+pare against recent state-of-the-art classiﬁcation results
+from RDF2Vec embeddings (Ristoski and Paulheim 2016),
+Weisfeiler-Lehman kernels (WL) (Shervashidze et al. 2011;
+de Vries and de Rooij 2015), and hand-designed feature ex-
+tractors (Feat) (Paulheim and F ¨umkranz 2012). Feat assem-
+bles a feature vector from the in- and out-degree (per re-
+lation) of every labeled entity. RDF2Vec extracts walks on
+labeled graphs which are then processed using the Skipgram
+(Mikolov et al. 2013) model to generate entity embeddings,
+used for subsequent classiﬁcation. See Ristoski and Paul-
+heim (2016) for an in-depth description and discussion of
+these baseline approaches. All entity classiﬁcation experi-
+ments were run on CPU nodes with 64GB of memory.
+
+Results All
+
+results in Table 2 are reported on the
+train/test benchmark splits from Ristoski, de Vries, and
+Paulheim (2016). We further set aside 20% of the training set
+as a validation set for hyperparameter tuning. For R-GCN,
+we report performance of a 2-layer model with 16 hidden
+units (10 for AM), basis function decomposition (Eq. 3), and
+trained with Adam (Kingma and Ba 2014) for 50 epochs us-
+ing a learning rate of 0.01. The normalization constant is
+chosen as ci,r = |N r
+i |. Further details on (baseline) models
+and hyperparameter choices are provided in the supplemen-
+tary material.
+
+Model
+Feat
+WL
+RDF2Vec
+R-GCN
+
+AIFB MUTAG
+
+BGS
+
+AM
+
+55.55
+80.55
+88.88
+95.83
+
+77.94
+80.88
+67.20
+73.23
+
+72.41
+86.20
+87.24
+83.10
+
+66.66
+87.37
+88.33
+89.29
+
+Table 2: Entity classiﬁcation results in accuracy (averaged
+over 10 runs) for a feature-based baseline (see main text
+for details), WL (Shervashidze et al. 2011; de Vries and
+de Rooij 2015), RDF2Vec (Ristoski and Paulheim 2016),
+and R-GCN (this work). Test performance is reported on the
+train/test set splits provided by Ristoski, de Vries, and Paul-
+heim (2016).
+
+Our model achieves state-of-the-art results on AIFB and
+AM. To explain the gap in performance on MUTAG and
+BGS it
+is important
+to understand the nature of these
+
+datasets. MUTAG is a dataset of molecular graphs, which
+was later converted to RDF format, where relations either
+indicate atomic bonds or merely the presence of a certain
+feature. BGS is a dataset of rock types with hierarchical fea-
+ture descriptions which was similarly converted to RDF for-
+mat, where relations encode the presence of a certain feature
+or feature hierarchy. Labeled entities in MUTAG and BGS
+are only connected via high-degree hub nodes that encode a
+certain feature.
+We conjecture that the ﬁxed choice of normalization con-
+stant for the aggregation of messages from neighboring
+nodes is partly to blame for this behavior, which can be par-
+ticularly problematic for nodes of high degree. A potential
+way to overcome this limitation is to introduce an atten-
+tion mechanism, i.e. to replace the normalization constant
+1/ci,r with data-dependent attention weights aij,r , where
+j,r aij,r = 1. We expect this to be a promising avenue
+for future research.
+
+(cid:80)
+
+5.2 Link prediction experiments
+
+triplet pairs t = (e1 , r, e2 ) and t(cid:48) = (e2 , r−1 , e1 ) with t
+
+As shown in the previous section, R-GCNs serve as an ef-
+fective encoder for relational data. We now combine our en-
+coder model with a scoring function (which we will refer to
+as a decoder, see Figure 3b) to score candidate triples for
+link prediction in knowledge bases.
+Datasets Link prediction algorithms are commonly evalu-
+ated on FB15k, a subset of the relational database Freebase,
+and WN18, a subset of WordNet containing lexical relations
+between words. In Toutanova and Chen (2015), a serious
+ﬂaw was observed in both datasets: The presence of inverse
+in the training set and t(cid:48) in the test set. This reduces a large
+part of the prediction task to memorization of affected triplet
+pairs. A simple baseline LinkFeat employing a linear classi-
+ﬁer on top of sparse feature vectors of observed training re-
+lations was shown to outperform existing systems by a large
+margin. To address this issue, Toutanova and Chen proposed
+a reduced dataset FB15k-237 with all such inverse triplet
+pairs removed. We therefore choose FB15k-237 as our pri-
+mary evaluation dataset. Since FB15k and WN18 are still
+widely used, we also include results on these datasets using
+the splits introduced by Bordes et al. (2013).
+
+Dataset
+Entities
+Relations
+Train edges
+Val. edges
+Test edges
+
+WN18
+40,943
+18
+141,442
+5,000
+5,000
+
+FB15K FB15k-237
+14,951
+14,541
+1,345
+237
+483,142
+272,115
+50,000
+17,535
+59,071
+20,466
+
+Table 3: Number of entities and relation types along with the
+number of edges per split for the three datasets.
+
+Baselines A common baseline for both experiments is di-
+rect optimization of DistMult (Yang et al. 2014). This fac-
+torization strategy is known to perform well on standard
+
+1
+
+R
+R
+
+M
+
+0.5
+
+0
+
+R-GCN
+DistMult
+
+500 1,000 1,500 2,000 2,500
+
+Average degree
+
+Figure 4: Mean reciprocal rank (MRR) for R-GCN and Dist-
+Mult on the FB15k validation data as a function of the node
+degree (average of subject and object).
+
+datasets, and furthermore corresponds to a version of our
+model with ﬁxed entity embeddings in place of the R-GCN
+encoder as described in Section 4. As a second baseline, we
+add the simple neighbor-based LinkFeat algorithm proposed
+in Toutanova and Chen (2015).
+We further compare to ComplEx (Trouillon et al. 2016)
+and HolE (Nickel, Rosasco, and Poggio 2015), two state-of-
+the-art link prediction models for FB15k and WN18. Com-
+plEx facilitates modeling of asymmetric relations by gen-
+eralizing DistMult to the complex domain, while HolE re-
+places the vector-matrix product with circular correlation.
+Finally, we include comparisons with two classic algorithms
+– CP (Hitchcock 1927) and TransE (Bordes et al. 2013).
+
+r |N r
+
+as ci,r = ci = (cid:80)
+
+Results We provide results using two commonly used
+evaluation metrics: mean reciprocal rank (MRR) and Hits at
+n (H@n). Following Bordes et al. (2013), both metrics can
+be computed in a raw and a ﬁltered setting. We report both
+ﬁltered and raw MRR (with ﬁltered MRR typically consid-
+ered more reliable), and ﬁltered Hits at 1, 3, and 10.
+We evaluate hyperparameter choices on the respective
+validation splits. We found a normalization constant deﬁned
+i | — in other words, applied across
+relation types – to work best. For FB15k and WN18, we re-
+port results using basis decomposition (Eq. 3) with two basis
+functions, and a single encoding layer with 200-dimensional
+embeddings. For FB15k-237, we found block decomposi-
+tion (Eq. 4) to perform best, using two layers with block
+dimension 5 × 5 and 500-dimensional embeddings. We reg-
+ularize the encoder through edge dropout applied before nor-
+malization, with dropout rate 0.2 for self-loops and 0.4 for
+other edges. Using edge droupout makes our training ob-
+jective similar to that of denoising autoencoders (Vincent et
+al. 2008). We apply l2 regularization to the decoder with a
+penalty of 0.01.
+We use the Adam optimizer (Kingma and Ba 2014) with
+a learning rate of 0.01. For the baseline and the other
+factorizations, we found the parameters from Trouillon et
+al. (2016) – apart from the dimensionality on FB15k-237 –
+to work best, though to make the systems comparable we
+maintain the same number of negative samples (i.e. ω = 1).
+We use full-batch optimization for both the baselines and
+our model.
+On FB15k, local context in the form of inverse relations
+
+MRR
+Filtered
+0.779
+0.634
+0.651
+
+0.696
+
+Raw
+
+0.248
+0.251
+
+0.262
+
+0.152
+0.221
+0.232
+0.242
+
+0.326
+0.380
+0.524
+0.692
+
+FB15k
+
+1
+
+0.522
+0.541
+
+0.601
+
+0.219
+0.231
+0.402
+0.599
+
+Hits @
+3
+
+0.718
+0.736
+
+0.760
+
+0.376
+0.472
+0.613
+0.759
+
+10
+0.804
+0.814
+0.825
+
+0.842
+
+0.532
+0.641
+0.739
+0.840
+
+Model
+LinkFeat
+DistMult
+R-GCN
+R-GCN+
+CP*
+TransE*
+HolE**
+ComplEx*
+
+MRR
+Filtered
+0.938
+0.813
+0.814
+0.819
+0.058
+0.454
+0.938
+
+0.941
+
+Raw
+
+0.526
+0.553
+0.561
+0.075
+0.335
+
+0.616
+
+0.587
+
+WN18
+
+Hits @
+3
+
+0.921
+0.928
+0.929
+0.080
+0.823
+
+0.945
+0.945
+
+1
+
+0.701
+0.686
+0.697
+0.049
+0.089
+0.930
+
+0.936
+
+10
+0.939
+0.943
+0.955
+
+0.964
+
+0.125
+0.934
+0.949
+0.947
+
+Table 4: Results on the the Freebase and WordNet datasets. Results marked (*) taken from Trouillon et al. (2016). Results marks
+(**) taken from Nickel, Rosasco, and Poggio (2015). R-GCN+ denotes an ensemble between R-GCN and DistMult – see main
+text for details.
+
+is expected to dominate the performance of the factoriza-
+tions, contrasting with the design of the R-GCN model. To
+better understand the difference, we plot in Figure 4 the
+FB15k performance of the best R-GCN model and the base-
+line (DistMult) as functions of degree of nodes correspond-
+ing to entities in the considered triple (namely, the average
+of degrees for the subject and object entities). It can be seen
+that our model performs better for nodes with high degree
+where contextual information is abundant. The observation
+that the two models are complementary suggests combining
+the strengths of both into a single model, which we refer to
+as R-GCN+. On FB15k and WN18 where local and long-
+distance information can both provide strong solutions, we
+expect R-GCN+ to outperform each individual model. On
+FB15k-237 where local information is less salient, we do not
+expect the combination model to outperform a pure R-GCN
+model signiﬁcantly. To test this, we evaluate an ensemble
+(R-GCN+) with a trained R-GCN model and a separately
+trained DistMult factorization model: f (s, r, t)R-GCN+ =
+
+αf (s, r, t)R-GCN + (1 − α)f (s, r, t)DistMult , with α = 0.4 se-
+
+lected on FB15k development data.
+In Table 4, we evaluate the R-GCN model and the combi-
+nation model (R-GCN+) on FB15k and WN18.
+On the FB15k and WN18 datasets, R-GCN and R-GCN+
+both outperform the DistMult baseline, but like all other
+systems underperform on these two datasets compared to
+the LinkFeat algorithm. The strong result from this baseline
+highlights the contribution of inverse relation pairs to high-
+performance solutions on these datasets. Interestingly, R-
+GCN+ yields better performance than ComplEx for FB15k,
+even though the R-GCN decoder (DistMult) does not explic-
+itly model asymmetry in relations, as opposed to ComplEx.
+This suggests that combining the R-GCN encoder with
+the ComplEx scoring function (decoder) may be a promising
+direction for future work. The choice of scoring function is
+orthogonal to the choice of encoder; in principle, any scoring
+function or factorization model could be incorporated as a
+decoder in our auto-encoder framework.
+In Table 5, we show results for FB15k-237 where (as
+
+Model
+LinkFeat
+DistMult
+R-GCN
+R-GCN+
+CP
+TransE
+HolE
+ComplEx
+
+MRR
+Filtered
+0.063
+0.191
+0.248
+
+0.249
+
+0.182
+0.233
+0.222
+0.201
+
+Raw
+
+0.100
+
+0.158
+
+0.156
+0.080
+0.144
+0.124
+0.109
+
+Hits @
+3
+
+1
+
+0.106
+
+0.153
+
+0.151
+0.101
+0.147
+0.133
+0.112
+
+0.207
+0.258
+
+0.264
+
+0.197
+0.263
+0.253
+0.213
+
+10
+0.079
+0.376
+0.414
+
+0.417
+
+0.357
+0.398
+0.391
+0.388
+
+Table 5: Results on FB15k-237, a reduced version of FB15k
+with problematic inverse relation pairs removed. CP, TransE,
+and ComplEx were evaluated using the code published for
+Trouillon et al. (2016), while HolE was evaluated using the
+code published for Nickel, Rosasco, and Poggio (2015).
+
+previously discussed) inverse relation pairs have been re-
+moved and the LinkFeat baseline fails to generalize4 . Here,
+our R-GCN model outperforms the DistMult baseline by
+a large margin of 29.8%, highlighting the importance of a
+separate encoder model. As expected from our earlier anal-
+ysis, R-GCN and R-GCN+ show similar performance on
+this dataset. The R-GCN model further compares favorably
+against other factorization methods, despite relying on a
+DistMult decoder which shows comparatively weak perfor-
+mance when used without an encoder.
+
+4Our numbers are not directly comparable to those reported in
+Toutanova and Chen (2015), as they use pruning both for training
+and testing (see their sections 3.3.1 and 4.2). Since their pruning
+schema is not fully speciﬁed (e.g., values of the relation-speciﬁc
+parameter t are not given) and the code is not available, it is not
+possible to replicate their set-up.
+
+6 Related Work
+
+6.1 Relational modeling
+
+Our encoder-decoder approach to link prediction relies on
+DistMult (Yang et al. 2014) in the decoder, a special and
+simpler case of the RESCAL factorization (Nickel, Tresp,
+and Kriegel 2011), more effective than the original RESCAL
+in the context of multi-relational knowledge bases. Numer-
+ous alternative factorizations have been proposed and stud-
+ied in the context of SRL, including both (bi-)linear and non-
+linear ones (e.g., (Bordes et al. 2013; Socher et al. 2013;
+Chang et al. 2014; Nickel, Rosasco, and Poggio 2015;
+Trouillon et al. 2016)). Many of these approaches can be
+regarded as modiﬁcations or special cases of classic tensor
+decomposition methods such as CP or Tucker; for a com-
+prehensive overview of tensor decomposition literature we
+refer the reader to Kolda and Bader (2009).
+Incorporation of paths between entities in knowledge
+bases has recently received considerable attention. We can
+roughly classify previous work into (1) methods creating
+auxiliary triples, which are then added to the learning objec-
+tive of a factorization model (Guu, Miller, and Liang 2015;
+Garcia-Duran, Bordes, and Usunier 2015); (2) approaches
+using paths (or walks) as features when predicting edges
+(Lin et al. 2015); or (3) doing both at the same time (Nee-
+lakantan, Roth, and McCallum 2015; Toutanova et al. 2016).
+The ﬁrst direction is largely orthogonal to ours, as we would
+also expect improvements from adding similar terms to our
+loss (in other words, extending our decoder). The second
+research line is more comparable; R-GCNs provide a com-
+putationally cheaper alternative to these path-based models.
+Direct comparison is somewhat complicated as path-based
+methods used different datasets (e.g., sub-sampled sets of
+walks from a knowledge base).
+
+6.2 Neural networks on graphs
+
+Our R-GCN encoder model is closely related to a number
+of works in the area of neural networks on graphs. It is pri-
+marily motivated as an adaption of previous work on GCNs
+(Bruna et al. 2014; Duvenaud et al. 2015; Defferrard, Bres-
+son, and Vandergheynst 2016; Kipf and Welling 2017) for
+large-scale and highly multi-relational data, characteristic of
+realistic knowledge bases.
+Early work in this area includes the graph neural network
+by Scarselli et al. (2009). A number of extensions to the orig-
+inal graph neural network have been proposed, most notably
+(Li et al. 2016) and (Pham et al. 2017), both of which utilize
+gating mechanisms to facilitate optimization.
+R-GCNs can further be seen as a sub-class of message
+passing neural networks (Gilmer et al. 2017), which encom-
+pass a number of previous neural models for graphs, includ-
+ing GCNs, under a differentiable message passing interpre-
+tation.
+
+7 Conclusions
+
+We have introduced relational graph convolutional networks
+(R-GCNs) and demonstrated their effectiveness in the con-
+text of two standard statistical relation modeling problems:
+
+link prediction and entity classiﬁcation. For the entity clas-
+siﬁcation problem, we have demonstrated that the R-GCN
+model can act as a competitive, end-to-end trainable graph-
+based encoder. For link prediction, the R-GCN model with
+DistMult factorization as the decoding component outper-
+formed direct optimization of the factorization model, and
+achieved competitive results on standard link prediction
+benchmarks. Enriching the factorization model with an R-
+GCN encoder proved especially valuable for the challenging
+FB15k-237 dataset, yielding a 29.8% improvement over the
+decoder-only baseline.
+There are several ways in which our work could be ex-
+tended. For example, the graph autoencoder model could be
+considered in combination with other factorization models,
+such as ComplEx (Trouillon et al. 2016), which can be better
+suited for modeling asymmetric relations. It is also straight-
+forward to integrate entity features in R-GCNs, which would
+be beneﬁcial both for link prediction and entity classiﬁcation
+problems. To address the scalability of our method, it would
+be worthwhile to explore subsampling techniques, such as
+in Hamilton, Ying, and Leskovec (2017). Lastly, it would
+be promising to replace the current form of summation over
+neighboring nodes and relation types with a data-dependent
+attention mechanism. Beyond modeling knowledge bases,
+R-GCNs can be generalized to other applications where re-
+lation factorization models have been shown effective (e.g.
+relation extraction).
+
+Acknowledgements
+
+We would like to thank Diego Marcheggiani, Ethan Fetaya,
+and Christos Louizos for helpful discussions and comments.
+This project is supported by the European Research Council
+(ERC StG BroadSem 678254), the SAP Innovation Center
+Network and the Dutch National Science Foundation (NWO
+VIDI 639.022.518).
+
+References
+
+Bao, J.; Duan, N.; Zhou, M.; and Zhao, T. 2014. Knowledge-
+based question answering as machine translation. In ACL.
+Bordes, A.; Usunier, N.; Garcia-Duran, A.; Weston, J.; and
+Yakhnenko, O. 2013. Translating embeddings for modeling
+multi-relational data. In NIPS.
+Bordes, A.; Usunier, N.; Chopra, S.; and Weston, J. 2015.
+Large-scale simple question answering with memory net-
+works. arXiv preprint arXiv:1506.02075.
+Bruna, J.; Zaremba, W.; Szlam, A.; and LeCun, Y. 2014.
+Spectral networks and locally connected networks on
+graphs. In ICLR.
+Chang, K.-W.; tau Yih, W.; Yang, B.; and Meek, C. 2014.
+Typed Tensor Decomposition of Knowledge Bases for Rela-
+tion Extraction. In EMNLP.
+Dalton, J.; Dietz, L.; and Allan, J. 2014. Entity query feature
+expansion using knowledge base links.
+In Proceedings of
+the 37th international ACM SIGIR conference on Research
+& development in information retrieval, 365–374.
+de Vries, G. K. D., and de Rooij, S. 2015. Substructure
+counting graph kernels for machine learning from rdf data.
+
+Web Semantics: Science, Services and Agents on the World
+Wide Web 35:71–84.
+Defferrard, M.; Bresson, X.; and Vandergheynst, P. 2016.
+Convolutional neural networks on graphs with fast localized
+spectral ﬁltering. In NIPS.
+Dong, L.; Wei, F.; Zhou, M.; and Xu, K. 2015. Question an-
+swering over freebase with multi-column convolutional neu-
+ral networks. In ACL.
+Duvenaud, D. K.; Maclaurin, D.; Iparraguirre, J.; Bombarell,
+R.; Hirzel, T.; Aspuru-Guzik, A.; and Adams, R. P. 2015.
+Convolutional networks on graphs for learning molecular
+ﬁngerprints. In NIPS.
+Garcia-Duran, A.; Bordes, A.; and Usunier, N. 2015. Com-
+posing relationships with translations. Technical Report,
+CNRS, Heudiasyc.
+Gilmer, J.; Schoenholz, S. S.; Riley, P. F.; Vinyals, O.; and
+Dahl, G. E. 2017. Neural message passing for quantum
+chemistry. arXiv preprint arXiv:1704.01212.
+Guu, K.; Miller, J.; and Liang, P.
+2015.
+Travers-
+ing knowledge graphs in vector space.
+arXiv preprint
+arXiv:1506.01094.
+Hamilton, W. L.; Ying, R.; and Leskovec, J. 2017. Induc-
+tive representation learning on large graphs. arXiv preprint
+arXiv:1706.02216.
+Hitchcock, F. L. 1927. The expression of a tensor or a
+polyadic as a sum of products. Studies in Applied Mathe-
+matics 6(1-4):164–189.
+Hixon, B.; Clark, P.; and Hajishirzi, H. 2015. Learning
+knowledge graphs for question answering through conver-
+sational dialog. In Proceedings of NAACL HLT, 851–861.
+Kingma, D., and Ba, J. 2014. Adam: A method for stochastic
+optimization. arXiv preprint arXiv:1412.6980.
+Kipf, T. N., and Welling, M. 2016. Variational graph auto-
+encoders. arXiv preprint arXiv:1611.07308.
+Kipf, T. N., and Welling, M. 2017. Semi-supervised classi-
+ﬁcation with graph convolutional networks. In ICLR.
+Kolda, T. G., and Bader, B. W. 2009. Tensor decompositions
+and applications. SIAM review 51(3):455–500.
+Kotov, A., and Zhai, C. 2012. Tapping into knowledge
+base for concept feedback: leveraging conceptnet to improve
+search results for difﬁcult queries. In WSDM.
+Li, Y.; Tarlow, D.; Brockschmidt, M.; and Zemel, R. 2016.
+Gated graph sequence neural networks. In ICLR.
+Lin, Y.; Liu, Z.; Luan, H.; Sun, M.; Rao, S.; and Liu, S.
+2015. Modeling relation paths for representation learning of
+knowledge bases. arXiv preprint arXiv:1506.00379.
+Mikolov, T.; Sutskever, I.; Chen, K.; Corrado, G. S.; and
+Dean, J. 2013. Distributed representations of words and
+phrases and their compositionality. In NIPS.
+Neelakantan, A.; Roth, B.; and McCallum, A. 2015. Com-
+positional vector space models for knowledge base comple-
+tion. arXiv preprint arXiv:1504.06662.
+Nickel, M.; Rosasco, L.; and Poggio, T.
+2015. Holo-
+graphic embeddings of knowledge graphs. arXiv preprint
+arXiv:1510.04935.
+
+Nickel, M.; Tresp, V.; and Kriegel, H.-P. 2011. A three-
+way model for collective learning on multi-relational data.
+In ICML.
+Paulheim, H., and F ¨umkranz, J. 2012. Unsupervised gen-
+eration of data mining features from linked open data.
+In
+Proceedings of the 2nd international conference on web in-
+telligence, mining and semantics, 31.
+Pham, T.; Tran, T.; Phung, D.; and Venkatesh, S. 2017. Col-
+umn networks for collective classiﬁcation. In AAAI.
+Ristoski, P., and Paulheim, H. 2016. Rdf2vec: Rdf graph
+embeddings for data mining. In International Semantic Web
+Conference, 498–514. Springer.
+Ristoski, P.; de Vries, G. K. D.; and Paulheim, H. 2016. A
+collection of benchmark datasets for systematic evaluations
+of machine learning on the semantic web. In International
+Semantic Web Conference, 186–194. Springer.
+Scarselli, F.; Gori, M.; Tsoi, A. C.; Hagenbuchner, M.; and
+Monfardini, G. 2009. The graph neural network model.
+IEEE Transactions on Neural Networks 20(1):61–80.
+Seyler, D.; Yahya, M.; and Berberich, K. 2015. Generating
+quiz questions from knowledge graphs. In Proceedings of
+the 24th International Conference on World Wide Web.
+Shervashidze, N.; Schweitzer, P.; Leeuwen, E. J. v.;
+Mehlhorn, K.; and Borgwardt, K. M. 2011. Weisfeiler-
+lehman graph kernels. Journal of Machine Learning Re-
+search 12(Sep):2539–2561.
+Socher, R.; Chen, D.; Manning, C. D.; and Ng, A. 2013.
+Reasoning with neural tensor networks for knowledge base
+completion. In NIPS.
+Toutanova, K., and Chen, D. 2015. Observed versus latent
+features for knowledge base and text inference. In Proceed-
+ings of the 3rd Workshop on Continuous Vector Space Mod-
+els and their Compositionality, 57–66.
+Toutanova, K.; Lin, V.; Yih, W.-t.; Poon, H.; and Quirk, C.
+2016. Compositional learning of embeddings for relation
+paths in knowledge base and text. In ACL.
+Trouillon, T.; Welbl, J.; Riedel, S.; Gaussier, E.; and
+Bouchard, G. 2016. Complex embeddings for simple link
+prediction. In ICML.
+Vincent, P.; Larochelle, H.; Bengio, Y.; and Manzagol, P.-
+A. 2008. Extracting and composing robust features with
+denoising autoencoders. In ICML.
+Xiong, C., and Callan, J. 2015a. Esdrank: Connecting query
+and documents through external semi-structured data.
+In
+CIKM.
+Xiong, C., and Callan, J. 2015b. Query expansion with free-
+base. In Proceedings of the 2015 International Conference
+on The Theory of Information Retrieval, 111–120.
+Yang, B.; Yih, W.-t.; He, X.; Gao, J.; and Deng, L. 2014.
+Embedding entities and relations for learning and inference
+in knowledge bases. arXiv preprint arXiv:1412.6575.
+Yao, X., and Van Durme, B. 2014. Information extraction
+over structured data: Question answering with freebase. In
+ACL.
+
+Further experimental details on entity classiﬁcation
+
+For the entity classiﬁcation benchmarks described in our paper, the evaluation process differs subtly between publications. To
+eliminate these differences, we repeated the baselines in a uniform manner, using the canonical test/train split from (Ristoski,
+de Vries, and Paulheim 2016). We performed hyperparameter optimization on only the training set, running a single evaluation
+on the test set after hyperparameters were chosen for each baseline. This explains why the numbers we report differ slightly
+from those in the original publications (where cross-validation accuracy was reported).
+For WL, we use the tree variant of the Weisfeiler-Lehman subtree kernel from the Mustard library.5 For RDF2Vec, we use
+an implementation provided by the authors of (Ristoski and Paulheim 2016) which builds on Mustard. In both cases, we extract
+explicit feature vectors for the instance nodes, which are classiﬁed by a linear SVM.
+For the MUTAG task, our preprocessing differs from that used in (de Vries and de Rooij 2015; Ristoski and Paulheim 2016)
+where for a given target relation (s, r, o) all triples connecting s to o are removed. Since o is a boolean value in the MUTAG
+data, one can infer the label after processing from other boolean relations that are still present. This issue is now mentioned in
+the Mustard documentation. In our preprocessing, we remove only the speciﬁc triples encoding the target relation.
+Hyperparameters for baselines are chosen according to the best model performance in (Ristoski and Paulheim 2016),
+i.e. WL: 2 (tree depth), 3 (number of iterations); RDF2Vec: 2 (WL tree depth), 4 (WL iterations), 500 (embedding size), 5
+(window size), 10 (SkipGram iterations), 25 (number of negative samples). We optimize the SVM regularization constant
+C ∈ {0.001, 0.01, 0.1, 1, 10, 100, 1000} based on performance on a 80/20 train/validation split (of the original training set).
+For R-GCN, we choose an l2 penalty on ﬁrst layer weights Cl2 ∈ {0, 5 · 10−4} and the number of basis functions B ∈
+{0, 10, 20, 30, 40} based on validation set performance, where B = 0 refers to using no basis function decomposition. Using
+the block decomposition did not improve results. Otherwise, hyperparameters are chosen as follows: 50 (number of epochs), 16
+(number of hidden units), and ci,r = |N r
+i | (normalization constant). We do not use dropout. For AM, we use a reduced number
+of 10 hidden units for R-GCN to reduce the memory footprint.
+Results with standard error (omitted in main paper due to spatial constraints) are summarized in Table 7. All entity classiﬁ-
+cation experiments were run on CPU nodes with 64GB of memory.
+
+R-GCN setting
+l2 penalty
+# basis functions
+# hidden units
+
+AIFB MUTAG
+
+0
+0
+16
+
+5 · 10−4
+30
+16
+
+BGS
+
+5 · 10−4
+40
+16
+
+AM
+
+5 · 10−4
+40
+10
+
+Table 6: Best hyperparameter choices based on validation set performance for 2-layer R-GCN model.
+
+Model
+Feat
+WL
+RDF2Vec
+R-GCN (Ours)
+
+AIFB
+
+55.55 ± 0.00
+80.55 ± 0.00
+88.88 ± 0.00
+95.83 ± 0.62
+
+MUTAG
+
+77.94 ± 0.00
+80.88 ± 0.00
+67.20 ± 1.24
+73.23 ± 0.48
+
+BGS
+
+72.41 ± 0.00
+86.20 ± 0.00
+87.24 ± 0.89
+83.10 ± 0.80
+
+AM
+
+66.66 ± 0.00
+87.37 ± 0.00
+88.33 ± 0.61
+89.29 ± 0.35
+
+Table 7: Entity classiﬁcation results in accuracy (average and standard error over 10 runs) for a feature-based baseline (see
+main text for details), WL (Shervashidze et al. 2011; de Vries and de Rooij 2015), RDF2Vec (Ristoski and Paulheim 2016),
+and R-GCN (this work). Test performance is reported on the train/test set splits provided by (Ristoski, de Vries, and Paulheim
+2016).
+
+5 https://github.com/Data2Semantics/mustard
+
+

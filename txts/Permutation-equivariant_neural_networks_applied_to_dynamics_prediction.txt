@@ -1,0 +1,731 @@
+Permutation-equivariant neural networks applied to dynamics prediction
+
+Nicholas Guttenberg
+
+Araya, Tokyo and
+Earth-Life-Science Institute, Tokyo
+
+Nathaniel Virgo and Olaf Witkowski
+
+Earth-Life-Science Institute, Tokyo
+
+Hidetoshi Aoki and Ryota Kanai
+
+Araya, Tokyo
+
+6
+1
+0
+2
+
+c
+e
+
+D
+
+4
+1
+
+]
+
+V
+
+C
+
+.
+
+s
+
+c
+
+[
+
+1
+v
+0
+3
+5
+4
+0
+
+.
+
+2
+1
+6
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+The introduction of convolutional layers greatly advanced the performance of neural networks
+on image tasks due to innately capturing a way of encoding and learning translation-invariant
+operations, matching one of the underlying symmetries of the image domain. In comparison, there
+are a number of problems in which there are a number of diﬀerent inputs which are all ’of the same
+type’ — multiple particles, multiple agents, multiple stock prices, etc. The corresponding symmetry
+to this is permutation symmetry, in that the algorithm should not depend on the speciﬁc ordering of
+the input data. We discuss a permutation-invariant neural network layer in analogy to convolutional
+layers, and show the ability of this architecture to learn to predict the motion of a variable number
+of interacting hard discs in 2D. In the same way that convolutional layers can generalize to diﬀerent
+image sizes, the permutation layer we describe generalizes to diﬀerent numbers of ob jects.
+
+INTRODUCTION
+
+Problems with a high degree of symmetry create large
+ineﬃciencies for machine learning algorithms which do
+not take those symmetries into account. When the prob-
+lem has symmetries (such as translation or rotation in-
+variance, or in the case of this paper, permutation invari-
+ance), then the algorithm must independently learn the
+same pattern multiple times over, leading to a massive in-
+crease in the amount of training data and time required,
+and creating many opportunities for spurious biases to
+creep in. One approach is to handle this at the level of
+the data, removing the redundant symmetries from the
+input and aligning things into a canonical form. Exam-
+ples of this range from things like data augmentation[1],
+SIFT features[2] and spatial transformer networks[3]. At-
+tentional models also do this implicitly, by aligning the
+location of attention to features rather than coordinates
+in the input data[4–8].
+The other possibility is to build the desired symme-
+try into the functional form of the network at some
+level. For example, convolutional neural networks do this
+with respect to translation invariance. Because the same
+shared ﬁlter is applied at each point in the image space,
+and then (eventually) aggregated through a hierarchy
+of pooling operations, the ﬁnal classiﬁcation result be-
+haves in a locally translation-invariant way at each scale.
+This kind of convolutional approach has been extended
+to other domains and other symmetries. For example,
+graph convolutional networks allow for convolution op-
+erations to be performed on local neighborhoods of ar-
+bitrary graphs[9, 10] (this kind of approach can be used
+for both invariance and, see later, equivariance). A gen-
+eral framework for constructing these kinds of speciﬁed
+
+invariances was proposed in [11], where the authors gen-
+eralized convolutional operations to aﬃne invariant com-
+putations and showed a way to construct similar things
+for arbitrary symmetry spaces. For permutation sym-
+metry, work along this line has been done in specifying
+an expansion in terms of a neural net applied to spe-
+ciﬁc symmetry functions for estimation of potentials in ab
+initio quantum mechanics calculations[12]. In addition,
+[13] uses pooling over instances to construct permutation-
+invariant summary statistics for diﬀerent data distribu-
+tions.
+Instead of invariance, which generates a result that
+does not change under transformations of the input, one
+might want to obtain a property called ‘equivariance’. In
+this case, the goal is not to make the ﬁnal outcome con-
+stant despite the application of some set of transforma-
+tions, but rather to create a structure such that the input
+and output of the network both behave the same way un-
+der transformation. That is to say, if invariance targets a
+function of the form f (x) = f (T [x]), equivariance targets
+a function of the form f (T [x]) = T [f (x)]. This is use-
+ful for things such as image segmentation, where apply-
+ing a rotation to the input image should not change the
+pixel classes, but should change the positions at which
+those classes occur (in the same way as the input was
+rotated). A general recipe for constructing equivariant
+convolutions was proposed in [14], where this technique
+was used to generate a convolutional layer equivariant to
+90 degree rotations and to mirror symmetry.
+In this paper, we’re interested in making networks
+which predict the future dynamics of sets of similar, in-
+teracting ob jects — for example, learning to predict and
+synthesize the future dynamics of a set of particles just
+by observing their tra jectories. This could be something
+
+ 
+ 
+ 
+ 
+ 
+ 
+2
+
+PERMUTATIONAL LAYERS
+
+The common theme to constructing group-invariant or
+group-equivariant functions is to perform a pooling over
+all combinations of the symmetry transforms. In the case
+of a symmetry group, applying a transformation associ-
+ated with that symmetry only shuﬄes around the mem-
+bers of the group — it does not add or remove a member.
+That means that as long as one does a calculation that
+is applied identically to all members of the symmetry
+group, the output will be invariant to transformations
+applied to the input. Equivariance can be constructed
+in a similar fashion by combining two members of the
+input space and only doing this pooling with respect to
+transformations applied to one of the two.
+For permutation equivariance, there is some existing
+work, which diﬀer in how interactions between elements
+are considered. Variadic networks[15, 16] implement per-
+mutation equivariance through the addition of a kind of
+mean-ﬁeld approximation of the interactions between el-
+ements to otherwise single-element neural networks (but
+the mean-ﬁeld eﬀect extends to hidden variables as well,
+so may indirectly capture higher order interactions). Re-
+cent work on set convolutions[17] also provides an equiv-
+ariant layer for interchangeable ob jects, in which sum-
+mation or maximization over pairs of ob jects is used to
+construct the equivariant functions.
+Both of these approaches have in common that there is
+a kind of wrapper which guarantees that the inﬂuence of
+the rest of the elements on a particular member of the set
+is pooled in an invariant way, but generally the structure
+outside of the wrapper is made complex and the struc-
+ture within the wrapper is made simple (being either an
+unstructured mean over the population or a maximiza-
+tion or summation of linear functions of the population
+features).
+When considering interacting particles, this may run
+into diﬃculties — interaction potentials may be, rela-
+tively speaking, fairly complex functions. But once we
+apply a pooling operation, we will lose the ability to track
+exactly what particles were interacted with in order to
+contribute to a given hidden layer feature. In that sense,
+it might require an excessive number of layers to recon-
+struct the correct interactions, because the network has
+to learn how to use the hidden variables to encode not
+just the interaction but also to store some kind of in-
+dexing information over its neighbors (similar to the way
+that pooling forces an autoencoder in the image domain
+to store positional information inside the learned features
+so that it can be reconstructed later during the decoding
+process).
+The ability to wrap a function with a pooling operation
+such that the output is invariant is quite general though,
+so it should be possible to put a complex function inside
+the interaction — a multi-layer neural network. This
+
+FIG. 1. Structure of a permutational layer. Each output
+yi is calculated with a function that separately combines the
+correspondingly indexed input xi with each of the other inputs
+xj , and then is summed over j . The same weights are used
+for all i, j combinations.
+
+along the line of deriving eﬀective equations of motions
+for complex particles such as animals in a swarm or play-
+ers of a sport, or apply at a more abstract level to some-
+thing such as relationships between variations in diﬀerent
+sectors of the economy or in the interaction between spe-
+ciﬁc stocks. The associated symmetry to this sort of data
+is permutation symmetry, and we are looking for meth-
+ods which let us build permutation equivariant neural
+networks.
+
+We present numerical experiments assessing the fea-
+sibility and performance of various approaches to this
+problem, and show that a combination of multi-layer em-
+bedded functions inside a max pooling permutation in-
+variant wrapper can achieve signiﬁcantly higher accuracy
+on predicting the dynamics of interacting hard discs. Fur-
+thermore, networks using this combination demonstrate
+the ability to generalize to a diﬀerent number of particles
+than seen during training, and can also handle cases in
+which the particles are not identical by way of including
+an auxiliary random label feature.
+
+Element 1Element 2Element 3Element 4Properties++++Output 1234x1x1x1x1x1x2x3x43
+
+plications to both input elements and then sum the result
+to create the ob ject which is aggregated to form the out-
+put of the layer (their Eq. 3, paraphrased here):
+
+(cid:88)
+
+j
+
+(cid:126)yi = σ(
+
+W1 (cid:126)xj + W2 (cid:126)xi )
+
+where W1 and W2 are matrices of parameters, σ is an
+element-wise nonlinearity, and the summation over j can
+be replaced with anything with the appropriate proper-
+ties over the set of elements (for example, maximization).
+In our case, we instead stack the two input elements
+together and then apply a dense neural network, then
+pool over the output of that network applied to all choices
+of the second element. That is to say, a single layer takes
+all combinations of two input elements (cid:126)xi and (cid:126)xj , and
+generates an output:
+
+(cid:88)
+
+j
+
+(cid:126)yi =
+
+1
+N
+
+f ( (cid:126)xi , (cid:126)xj )
+
+(1)
+
+where f is an arbitrary function, e.g. a multi-layered
+dense neural network. We will also consider a version
+where rather than a sum, we use: yi = maxj f (xi , xj ).
+The use of permutation invariance as a wrapper around
+an arbitrarily complex function is the central idea of this
+paper; from here, we’ll refer to this as a ’permutational
+layer’ (Fig. 1). These layers can be stacked to form a
+more complex network (Fig. 2).
+Interestingly, because this is only in terms of pairwise
+selections from the input set, it is only necessary to con-
+sider O(N 2 ) interactions overall. On the other hand, the
+method of [11] would at ﬁrst glance have an N ! cost due
+to having to construct the full symmetry space associ-
+ated with all permutations of the input set. What are we
+missing by looking at only N 2 interactions?
+We note that there is a similar situation in traditional
+convolutional neural networks. The most general convo-
+lutional layer would have ﬁlters of the same size as the
+input image, which would require require O(N 4 ) compu-
+tations to evaluate. However, by restricting the ﬁlters to
+be ﬁxed size and local in nature, the cost is reduced back
+to O(N 2 ). What we’re doing here is somewhat similar —
+the full symmetry space is constructed by taking all com-
+binations of pairwise exchanges (sort of like taking into
+account all vectors which can separate pairs of pixels in
+the full convolution). But we can consider only a ﬁnite
+number of pairwise exchanges as a sort of local neighbor-
+hood. In this case, viewed from the point of view of the
+method of [11], the pairwise layer is equivalent to a sort
+of nearest-neighbor ﬁlter on the symmetry space.
+In the image domain, this would restrict the recep-
+tive ﬁeld quite strongly, as stacking multiple layers at the
+same resolution just causes the ﬁlter sizes to add. But
+in the case of permutation symmetry, all elements are
+
+FIG. 2. Example network architecture involving permuta-
+tional layers. Inputs to the permutational layer are a rank-2
+tensor containing NO ob jects and N1 input features. Within
+a permutational layer is a neural network with 2N1 inputs,
+and N2 outputs, which is run on features taken from all N 2
+pairs of ob jects. The result is N2 output features on all NO
+ob jects. These layers can be stacked to capture multi-ob ject
+interactions.
+
+O
+
+is somewhat analogous to approaches in the image do-
+main which apply ’convolutions’ with a ﬁlter size of 1
+(sometimes referred to as network-in-network) in order
+to increase the complexity of operations done at a partic-
+ular scale, for example in the Inception architecture[18].
+There have also been recent experiments showing that
+factoring convolutions between the spatial part and local
+part can be advantageous[19].
+We construct a permutation equivariant layer in a sim-
+ilar way as the form described in [17] in the sense that
+pairs of elements are chosen from the input set, and these
+results are aggregated over all indices of the second ele-
+ment. However, in their work, they apply matrix multi-
+
+xyvxvyxyvxvyxyvxvyState at time tPermutationalLayer  NFFeaturesPermutationalLayerNFFeaturesPermutationalLayerxxyvxvyyvxvyNH Hidden, ReLUNF Outputs, ReLUNH Hidden, ReLUNH Hidden, ReLUNF Outputs, ReLUNF feats.NF feats.NH Hidden, ReLUNH Hidden, ReLU4 Outputs, LinearNF feats.NF feats....xyvxvyxyvxvyxyvxvyState at time t+0.24
+
+Network
+4-disc 8-disc 12-disc
+Dense-4
+0.069 0.095 0.073
+Dense-Skip-4
+0.067 0.088 0.071
+Dense-Skip-8
+0.066 0.092 0.072
+Perm-3,1
+0.047 0.062 0.063
+Perm-3,4
+0.014 0.028 0.036
+Perm-Skip-3,4
+0.013 0.025 0.038
+Perm-Skip-3,4-Max 0.011 0.018 0.035
+
+TABLE I. Final errors of the diﬀerent network architectures
+on the hard-disc task for diﬀerent numbers of discs, averaged
+over the last 10000 epochs of training.
+
+to relax the positions of the discs, and then set the initial
+velocities to (N (0, 1), N (0, 1)), followed by 400 steps of
+simulation to generate a training tra jectory. The task of
+the network is to take the positions and velocities of all
+of the discs at one point in time as input, and to pre-
+dict the positions and velocities 10 timesteps later (using
+mean squared error for comparison).
+We compare the performance of various network ar-
+chitectures on this task, each trained on 20000 tra jec-
+tories of length 400. The networks are implemented
+in Lasagne[20] and Theano[21]. We train using the
+Adam optimizer[22], with a learning rate schedule r =
+10−3 exp(−t/5000), where t is the number of training
+steps. In all cases, inputs to the network are x, y , vx , vy
+for each of the 8 discs, and outputs are the predicted
+values at t + 0.2. We compare three dense architectures
+(two using a residual skip connection[23, 24] to eﬀectively
+calculate only the changes in coordinates, one directly
+predicting the future coordinates) and four architectures
+using permutational layers. The network architectures
+we examine are shown in Fig. 3.
+In the case of the permutational layer networks, we
+use a stack of three such layers in each case. However,
+we compare the results for when the layers contain only
+a single matrix multiplication followed by a ReLU non-
+linearity, versus cases in which the layers contain 4-layer
+dense neural networks. We also compare the diﬀerence
+between using average pooling to aggregate over all the
+pairwise combinations, versus using max pooling.
+In general we found that for this kind of task,
+in-
+creasing the complexity of a single permutational layer
+works better than adding additional permutational lay-
+ers, suggesting that capturing the precise form of the
+inter-particle interactions is more important to accurate
+prediction than capturing complex multi-body interac-
+tions. Furthermore, max pooling appears to both per-
+form better and to generalize signiﬁcantly better than
+average pooling.
+Our training results are shown in Table I. All methods
+appear to more or less converge at the same rate, but
+the dense architectures perform signiﬁcantly worse on the
+task. Furthermore, increasing the depth of the dense net-
+
+FIG. 3. Network architectures we investigate for the hard
+disc dynamics task. We compare dense networks of diﬀerent
+sizes with and without a ﬁnal skip connection, as well as a
+3-layer permutational network with and without a ﬁnal skip
+connection. We also consider a version of Perm-Skip-3,4 with
+max pooling permutational layers instead of average pooling.
+
+densely connected, and so information percolates through
+the set by pairwise interactions very quickly. The output
+of a 2-body interaction such as Eq. 1 generates latent
+features which could be thought of as containing infor-
+mation about pairs of particles. However, the next layer
+can eﬀectively read that information for diﬀerent pairs,
+meaning that each output hidden feature after two lay-
+ers can contain at most information about the interaction
+between sets of 4 particles. This upper bound continues
+to grow exponentially with network depth. Of course,
+the information in the hidden features is not likely to be
+as simple as information about a single speciﬁc other par-
+ticle but is rather a kind of population average weighted
+in a way which depends on the features of the receiv-
+ing particle. Because the network can learn to construct
+that population average in a way that is relevant to each
+receiving particle separately, it becomes much easier to
+express locally relevant summary statistics rather than a
+common mean ﬁeld.
+
+HARD DISC DYNAMICS
+
+To test this architecture, we build a network to pre-
+dict the dynamics of a set of N colliding hard discs in
+2D. We simulate the dynamics using PyODE (http:
+variable number of discs of radius 0.2 in a box [−1, 1] with
+coeﬃcient of restitution 0.9, zero friction, and a timestep
+of 0.02. We initialize the system, simulate for 200 steps
+
+//pyode.sourceforge.net, http://ode.org), using a
+
+Dense-4Dense-Skip-4Perm-3,4Perm-Skip-3,4Dense-Skip-8Input (32)Dense ReLU (128)Dense ReLU (128)Dense ReLU (128)Dense Linear (32)Input (32)Dense ReLU (128)Dense Linear (32)+Input (32)Dense ReLU (128)Dense ReLU (128)Dense ReLU (128)Dense Linear (32)+x7Input (4,8)Input (2*4)Dense ReLU (128)Permutation Layer (128,8)Input (2*128)Dense ReLU (128)Permutation Layer (128,8)Input (2*128)Dense ReLU (128)Dense Linear (4)Permutation Layer (4,8)x4x3x4Input (4,8)Input (2*4)Dense ReLU (128)Permutation Layer (128,8)Input (2*128)Dense ReLU (128)Permutation Layer (128,8)Input (2*128)Dense ReLU (128)Dense Linear (4)Permutation Layer (4,8)x4x3x4+Perm-3,1Input (4,8)Input (2*4)Dense ReLU (128)Permutation Layer (128,8)Input (2*128)Dense ReLU (128)Permutation Layer (128,8)Input (2*128)Dense Linear (4)Permutation Layer (4,8)5
+
+Average pooling
+2-disc 4-disc 6-disc 8-disc 12-disc
+4-disc 0.046 0.011 0.037 0.065 0.147
+8-disc 0.154 0.091 0.031 0.024 0.052
+12-disc 0.370 0.147 0.083 0.052 0.036
+
+Max pooling
+2-disc 4-disc 6-disc 8-disc 12-disc
+4-disc 0.0036 0.010 0.018 0.026 0.037
+8-disc 0.0046 0.0078 0.012 0.017 0.027
+12-disc 0.012 0.018 0.024 0.028 0.031
+
+TABLE II. Generalization of the Perm-Skip-3,4 network to
+diﬀerent numbers of discs. The row corresponds to the train-
+ing case, the column to the test case. Entries are the average
+mean-squared-error over 1000 unseen sequences of dynamics.
+The max pooling version appears to have signiﬁcantly better
+generalization ability to diﬀerent numbers of discs (and sur-
+prisingly actually works better than models trained on the
+same number of discs in some cases).
+In this system, the
+true dynamics are strongly determined by nearest-neighbor
+interactions, which may contribute to the usefulness of max
+pooling compared to average pooling.
+
+of discs than it was trained on, averaged over 1000 un-
+seen sequences. The results are shown in Table II. For
+numbers of ob jects within a factor of 2 of the training
+case, the network appears to retain some predictive abil-
+ity (comparable to the error of competing dense network
+architectures trained directly on that case). Outside of
+that range, the network’s performance rapidly degrades.
+The way in which the network’s generalization ability
+fails may relate to the choice of pooling used in deﬁning
+the permutational layer structure. We use average pool-
+ing in order to aggregate the diﬀerent interactions, but
+other types of pooling would also be permutation invari-
+ant and would extract diﬀerent types of statistics from
+the population of ob jects (for example, max pooling is
+used in the aﬃne symmetry network in [11]). Average
+pooling conceals information about the absolute num-
+ber of particles present compared to an un-normalized
+sum, while max pooling might focus on something closer
+to nearest-neighbor interactions. Here we restrict our-
+selves to only average pooling as our focus is to present
+the permutational layer, but these other forms of pooling
+would be reasonable architectural choices to try in order
+to further optimize generalization performance. Varying
+the number of ob jects during training is another possible
+strategy.
+Weak permutation invariance: Another consider-
+ation of this kind of problem is that ob jects are not al-
+ways identical. That is to say, it may be that for the most
+part ob jects or data elements can be swapped, but there
+are some latent features which make the ob jects behave
+somewhat diﬀerently. These features may be known, or
+it may be that they must be learned from data. If the
+features must be learned but are persistent for a given
+
+FIG. 4. Example predicted (10 steps) and actual tra jectories,
+versus time (timesteps) for the Perm-skip-3,4 architecture on
+an 8 disc system.
+
+works beyond a certain point makes the asymptotic con-
+vergence worse. In both cases, using a skip connection
+from the beginning of the calculation to the end improves
+performance. Direct inspection of predicted tra jectories
+show that the velocities are harder to predict than posi-
+tions, and that the moments of collision with the walls
+and with other discs are the diﬃcult points to resolve ac-
+curately. Predicted tra jectories versus actual tra jectories
+are shown in Fig. 4.
+We can also use network to generate a ﬁctitious tra-
+jectory by taking its predictions as the next input state
+to generate the overall sequence. Accuracy compared
+to the real tra jectory quickly decays, but overall the re-
+sultant conﬁgurations are qualitatively consistent with
+the idea that these ob jects are hard discs — overlaps
+are avoided, the discs reﬂect oﬀ of one another and ap-
+pear to transfer momentum to eachother in doing so (in
+that motion tends to spread from a point of collision).
+It appears as though the model has captured at least
+some qualitative statistical regularities of the motion of
+hard discs, suﬃcient to generalize to extended tra jecto-
+ries. An example of a synthesized tra jectory generated
+using the Perm-Skip-3,4-Max architecture can be seen at
+
+https://youtu.be/s2DwiwrR1qU.
+
+Generalization:
+Because the permutational net-
+works are deﬁned as an operation which applies uniformly
+to all inputs, much like convolution they are ﬂexible to
+the size of the input (the number of particles in this case).
+However, this is not a guarantee of generalization, just
+a statement that the action of the network is still well-
+deﬁned for any number of input ob jects. We test this
+property by taking networks trained on between 4 and 12
+discs and using them to predict the motion of diﬀerent
+numbers of discs. We measure the mean squared error
+of the Perm-Skip-3,4 and Perm-Skip-3,4-Max networks’
+predictions when using it to predict a diﬀerent number
+
+ob ject from example to example, then a permutation in-
+variant architecture cannot directly capture that (much
+like a convolutional architecture can’t directly use diﬀer-
+ent weight values for diﬀerent positions in the image).
+However, this functionality can be added back in while
+preserving generalization over the permutation invariant
+parts of the system. This can be done by assigning addi-
+tional features to the input data to act as ob ject labels.
+This could be as simple as a unique vector associated
+with each ob ject, that the network must learn to asso-
+ciate with the latent properties, or it could be more ad-
+vanced. For example, one could use a low-dimensional
+embedding learned from the individual ob ject tra jecto-
+ries using, e.g., PCA, tSNE[25], or a siamese network[26].
+To test this idea, we train Perm-skip-3,4 on a system
+composed of 8 discs of radius 0.1 and 4 discs of radius
+0.2 (all having the same mass). We compare the re-
+sults when the network only has x, y , vx , vy versus when
+we also provide each disc an arbitrary 2-component ran-
+dom vector label. The base network obtains an average
+mean-squared-error after training of 0.041, signiﬁcantly
+worse than the identical discs case. On the other hand,
+the augmented network obtains a MSE of 0.022 which
+is about the same performance as the un-augmented al-
+gorithm achieves on identical discs. So even a very sim-
+ple sort of auxiliary labeling can allow non-permutation-
+invariant information to be injected back into the per-
+mutation invariant architecture while retaining beneﬁts
+in places where permutation invariance is appropriate.
+Of course, with this sort of random label it is unlikely
+that the network would generalize to diﬀerent numbers
+of discs with new random labels, but that choice was
+made just to test if the network could learn these hetero-
+geneities on its own. One could for example directly label
+discs with their radius instead, and that should general-
+ize (similarly, a low-dimensional embedding that clusters
+diﬀerent kinds of ob jects to similar points in the feature
+space could generalize to diﬀerent sets of ob jects, so long
+as their coordinates in that feature space were known
+ahead of prediction).
+
+CONCLUSIONS
+
+Permutation equivariant network architectures have
+been used for a variety of cases where the inputs and
+outputs are a set of interchangeable ob jects. We consid-
+ered a problem of this type, in learning to predict the
+tra jectories of sets of interacting ob jects.
+We note that there are two sources of complexity that
+the network must learn to handle. One is complexity
+arising from choices of complicated subsets of elements
+for multi-element interactions. The other is complexity
+arising from the form of the interaction itself. For the
+problem of dynamics prediction, the interactions are of-
+ten captured well by a pairwise approximation but the
+
+6
+
+speciﬁc form of the interactions can be a complicated
+function of the properties of the particles. Because of
+this, simple linear functions of pairs of particles must
+struggle to capture something such as the precise posi-
+tion of the collision between two discs.
+To handle this, we observed that the idea of taking a
+direct sum over pairwise selection of elements from a set
+to create permutation equivariance can act as a general
+wrapper around any sort of function combining those ele-
+ments — it does not have to be a linear function or sum of
+the elements with eachother. We can use this wrapper to
+embed a deep neural network in order to learn and model
+the form of complicated interaction potentials. We ﬁnd
+as a result that this architecture can capture complex in-
+teractions more accurately, and in a way which readily
+generalizes to diﬀerent numbers of non-identical ob jects.
+For future investigation, it would be interesting to ex-
+amine other problems in the domain of permutation in-
+variance and closely related symmetries (such as in the
+case of graph convolutions), to see whether the complex-
+ity of the pairwise interactions or the complexity of the
+multi-body relationships is the dominant factor in per-
+formance for those problems.
+The code for the network architectures and layers de-
+scribed in this paper along with the numerical experi-
+ments on hard disc dynamics and a trained Perm-Skip-
+3,4-Max network are available at https://github.com/
+
+arayabrain/PermutationalNetworks.
+
+ACKNOWLEDGEMENTS
+
+We would like to acknowledge Thomas Kipf and Michal
+Deﬀerrard for helpful comments on the content and pre-
+sentation of this paper.
+
+[1] B. Sch¨olkopf, C. Burges, and V. Vapnik, in International
+Conference on Artiﬁcial Neural Networks (Springer,
+1996) pp. 47–52.
+[2] D. G. Lowe, in Computer vision, 1999. The proceedings
+of the seventh IEEE international conference on, Vol. 2
+(Ieee, 1999) pp. 1150–1157.
+[3] M. Jaderberg, K. Simonyan, A. Zisserman, et al., in Ad-
+vances in Neural Information Processing Systems (2015)
+pp. 2017–2025.
+[4] A. Graves, G. Wayne, and I. Danihelka, arXiv preprint
+arXiv:1410.5401 (2014).
+[5] A. Graves, G. Wayne, M. Reynolds, T. Harley,
+I. Danihelka, A. Grabska-Barwi´nska, S. G. Colmenarejo,
+E. Grefenstette, T. Ramalho, J. Agapiou, et al., Nature
+538, 471 (2016).
+[6] D. Bahdanau, K. Cho, and Y. Bengio, arXiv preprint
+arXiv:1409.0473 (2014).
+[7] M.-T. Luong, H. Pham,
+and C. D. Manning, arXiv
+preprint arXiv:1508.04025 (2015).
+
+arXiv
+
+preprint
+
+[8] S. Merity, C. Xiong, J. Bradbury, and R. Socher, arXiv
+preprint arXiv:1609.07843 (2016).
+[9] M. Deﬀerrard, X. Bresson, and P. Vandergheynst, in Ad-
+vances in Neural Information Processing Systems (2016)
+pp. 3837–3845.
+[10] T. N. Kipf
+and M. Welling,
+arXiv:1609.02907 (2016).
+[11] R. Gens and P. M. Domingos, in Advances in neural in-
+formation processing systems (2014) pp. 2537–2545.
+[12] S. Jeong, B. Solenthaler, M. Pollefeys, M. Gross, et al.,
+ACM Transactions on Graphics (TOG) 34, 199 (2015).
+[13] H. Edwards
+and A.
+Storkey,
+arXiv
+preprint
+arXiv:1606.02185 (2016).
+[14] T. S. Cohen and M. Welling,
+arXiv:1602.07576 (2016).
+[15] S. McGregor, in International Conference on Artiﬁcial
+Neural Networks (Springer, 2007) pp. 460–470.
+[16] S. McGregor, Neural Networks 21, 830 (2008).
+[17] S. Ravanbakhsh, J. Schneider,
+and B. Poczos, arXiv
+preprint arXiv:1611.04500 (2016).
+[18] C. Szegedy, W. Liu, Y. Jia, P. Sermanet, S. Reed,
+D. Anguelov, D. Erhan, V. Vanhoucke, and A. Rabi-
+novich, in Proceedings of the IEEE Conference on Com-
+
+arXiv preprint
+
+7
+
+puter Vision and Pattern Recognition (2015) pp. 1–9.
+[19] F. Chollet, arXiv preprint arXiv:1610.02357 (2016).
+[20] S. Dieleman, J. Schlter, C. Raﬀel, E. Olson, S. K.
+Snderby, D. Nouri, D. Maturana, M. Thoma, E. Bat-
+tenberg, J. Kelly, J. D. Fauw, M. Heilman, D. M.
+de Almeida, B. McFee, H. Weideman, G. Takcs, P. de Ri-
+vaz, J. Crall, G. Sanders, K. Rasul, C. Liu, G. French,
+and J. Degrave, “Lasagne: First release.” (2015).
+[21] Theano
+Development
+Team,
+arXiv
+e-prints
+abs/1605.02688 (2016).
+[22] D. Kingma and J. Ba, arXiv preprint arXiv:1412.6980
+(2014).
+[23] K. He, X. Zhang, S. Ren, and J. Sun, arXiv preprint
+arXiv:1512.03385 (2015).
+[24] J. Long, E. Shelhamer, and T. Darrell, in Proceedings of
+the IEEE Conference on Computer Vision and Pattern
+Recognition (2015) pp. 3431–3440.
+[25] L. v. d. Maaten and G. Hinton, Journal of Machine
+Learning Research 9, 2579 (2008).
+[26] J. Bromley, J. W. Bentz, L. Bottou, I. Guyon, Y. LeCun,
+C. Moore, E. S¨ackinger, and R. Shah, International Jour-
+nal of Pattern Recognition and Artiﬁcial Intelligence 7,
+669 (1993).
+
+

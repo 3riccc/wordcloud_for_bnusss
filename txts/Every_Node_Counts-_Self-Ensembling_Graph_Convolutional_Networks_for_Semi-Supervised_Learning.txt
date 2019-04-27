@@ -1,0 +1,1234 @@
+Every Node Counts: Self-Ensembling Graph Convolutional Networks
+for Semi-Supervised Learning
+
+Yawei Luo1,2 , Tao Guan1 , Junqing Yu1 , Ping Liu2,3 , Yi Yang2
+
+1School of Computer Science & Technology, Huazhong University of Science & Technology
+2CAI, University of Technology Sydney
+3 JD.COM Silicon Valley Research Center, Big Data Group
+
+8
+1
+0
+2
+
+p
+
+e
+
+S
+
+6
+2
+
+]
+
+G
+
+L
+
+.
+
+s
+
+c
+
+[
+
+1
+v
+5
+2
+9
+9
+0
+
+.
+
+9
+0
+8
+1
+
+:
+
+v
+
+i
+
+X
+
+r
+
+a
+
+Abstract
+
+Graph convolutional network (GCN) provides a powerful
+means for graph-based semi-supervised tasks. However, as a
+localized ﬁrst-order approximation of spectral graph convolu-
+tion, the classic GCN can not take full advantage of unlabeled
+data, especially when the unlabeled node is far from labeled
+ones. To capitalize on the information from unlabeled nodes
+to boost the training for GCN, we propose a novel frame-
+work named Self-Ensembling GCN (SEGCN), which mar-
+ries GCN with Mean Teacher – another powerful model in
+semi-supervised learning. SEGCN contains a student model
+and a teacher model. As a student, it not only learns to cor-
+rectly classify the labeled nodes, but also tries to be consistent
+with the teacher on unlabeled nodes in more challenging sit-
+uations, such as a high dropout rate and graph collapse. As
+a teacher, it averages the student model weights and gener-
+ates more accurate predictions to lead the student. In such a
+mutual-promoting process, both labeled and unlabeled sam-
+ples can be fully utilized for backpropagating effective gra-
+dients to train GCN. In three article classiﬁcation tasks, i.e.
+Citeseer, Cora and Pubmed, we validate that the proposed
+method matches the state of the arts in the classiﬁcation ac-
+curacy.
+
+1
+
+Introduction
+
+Semi-supervised learning (SSL) aims to build a better clas-
+siﬁer, by utilizing huge amounts of unlabeled data which
+is readily accessible, together with a limited number of la-
+beled data. Such line of work is of great signiﬁcance because
+it achieves a high accuracy while requiring less human ef-
+fort for data annotation. Recently, SSL has gained consider-
+able attention when applied to deep learning-based methods,
+which are well known for their high demand on sizable and
+reliable labeled samples. Through distilling knowledge from
+unlabeled data, SSL boosts the deep learning-based methods
+to a new level in many tasks, e.g., speech recognition (Dai
+and Le 2015), image segmentation (Papandreou et al. 2015)
+and video understanding (Caelles et al. 2017).
+Inspired by the great success of SSL on regular Euclidean-
+based data such as speech, images, or video, a surge of re-
+cent approaches seek to apply SSL to data in a more general
+form – graph. The motivation is natural: in many real prob-
+
+Copyright c(cid:13) 2019, Association for the Advancement of Artiﬁcial
+Intelligence (www.aaai.org). All rights reserved.
+
+Figure 1: (Best viewed in color.) (a) Vanilla GCN, where
+the each node gathers features from its neighbors in lim-
+ited scope and only labeled nodes are supervised under the
+classiﬁcation loss. (b) Mean Teacher model, where student
+model operates under a perturbed setting and tries to be con-
+sistent with the predictions of teacher model.
+Our method marries (a) and (b), which utilizes both super-
+vised classiﬁcation loss and unsupervised consistency loss
+to train GCN. Such framework enables us to explore more
+unlabeled knowledge to boost the classiﬁcation accuracy un-
+der the semi-supervised setting.
+
+lems, the data samples are on irregular grid or more gener-
+ally in non-Euclidean domains, e.g. point cloud (Wang et al.
+2018), chemical molecules (Li et al. 2018) and social net-
+works (Rahimi, Cohn, and Baldwin 2018). Instead of regu-
+larly shaped tensors, those data are better to be structured as
+graph, which is capable of handling varying neighborhood
+vertex connectivity. Similar to the original goal on regular
+data, SSL on graph-structured data aims to classify the all
+the nodes in a graph using a small subset of labeled nodes
+and large amounts of unlabeled nodes. The recently de-
+veloped graph convolutional neural network (GCNN) (Def-
+ferrard, Bresson, and Vandergheynst 2016) and the follow-
+ing graph convolutional network (GCN) (Kipf and Welling
+2017) are successful attempts along this line, which general-
+
+(a) Vanilla GCN(b) Mean TeacherLabeled NodeUnlabeled NodeSupervised LossUnsupervised LossKernel Weight:  High       LowGraphLabelsGCNOutputTeacher GraphGCN_TGCN_SStudent GraphTeacher OutputStudent Output 
+ 
+ 
+ 
+ 
+ 
+ize the powerful convolutional neural network (CNN) in Eu-
+clidean data to modeling graph-structured data. This line of
+work capitalizes on the relation between nodes and enables
+the features to propagate between neighboring vertices. Dur-
+ing the training, the supervised loss acts upon the conﬂu-
+ent features of labeled node and then distribute the gradi-
+ent information across other unlabeled adjacent nodes. Such
+mechanism makes the features of both labeled and unlabeled
+vertices in the same cluster similar, thus largely easing the
+classiﬁcation task.
+Although it has made great progresses, GCN fails to take
+full advantage of unlabeled data, especially when the unla-
+beled node is far away from labeled ones. This is due to a
+K -layer GCN only captures node information up to K -hop
+neighborhood, which cannot effectively propagate the infor-
+mation to the entire graph. Taking the two-layers GCN as an
+example. In such network, a vertex vi would directly aggre-
+gate and ﬁlter features in its 2-hop neighborhood Nvi . Con-
+sidering that an adjacent vertex vj ∈ Nvi also aggregates
+features from its own 2-hop neighborhood Nvj , the vi can
+indirectly discover farther vertices beyond Nvi . However,
+such indirect link is de facto negligible which is represented
+with a tiny kernel weight. Consequently, any unlabeled ver-
+tex with shortest path distance > 2 from labeled ones in
+graph would gain very limited attention and are prone to
+be underutilized during the training. A deeper network with
+more graph convolutional layers may help to discover infor-
+mation in such remote nodes. However, as mentioned in (Li,
+Han, and Wu 2018), GCN is essentially a special form of
+Laplacian smoothing. Therefore, a deeper GCN may bring
+potential concerns of over-smoothing, i.e. the output features
+may be over-smoothed and the vertices from different clus-
+ters may become indistinguishable. In summary, the utiliza-
+tion of unlabeled information beyond the K -hop neighbor-
+hood remains an open problem.
+In this paper, we propose a new architecture that can dis-
+cover much more information within unlabeled vertices and
+learn from the global graph topology. A key innovation is
+to marry Mean Teacher framework (Tarvainen and Valpola
+2017) into the classic GCN. Instead of merely supervising
+the propagated features in labeled nodes, we directly give
+chances to unlabeled nodes to “speak up for themselves”.
+Speciﬁcally, SEGCN contains a student model and a teacher
+model. As a student, it not only learns to correctly predict
+the labeled nodes, but also tries to be consistent with teacher
+output on unlabeled nodes in more challenging settings, such
+as high dropout rates and graph collapse. As a teacher, it up-
+dates itself by averaging the student model weights. Since
+the teacher model operates under better settings such as low
+dropout rates and lossless graph, it generates more accurate
+predictions on both labeled and unlabeled nodes, thus being
+able to lead the student to learn in the next epoch. In such a
+mutual-promoting process, both labeled and unlabeled sam-
+ples can be fully utilized for back-propagating effective gra-
+dient to train GCN.
+To the best of our knowledge, this is the ﬁrst time to in-
+troduce Mean Teacher strategy in the GCN design. Precisely,
+the main contributions of this work are summarized below.
+• By proposing to combine Mean Teacher with classic
+
+GCN, we emphasize the importance of exploitation of un-
+labeled nodes in graph-structured data classiﬁcation.
+• Analogy to the noise added to student model in regular
+data, we successfully adapt Mean Teacher to graph-based
+data by designing new perturbation strategies for student
+model.
+• Our results are on par with the state-of-the-art methods on
+three node classiﬁcation benchmarks in terms of accuracy,
+i.e. Citeseer (69.9% → 73.4%), Core (80.4% → 83.5%)
+and Pubmed (78.6% → 78.9%).
+The rest of this paper is organized as follows. Section
+2 discusses related work for GCN and Mean Teacher that
+provide the foundation for this paper. Then we propose the
+SEGCN model in Section 3. Section 4 presents an experi-
+mental study in which we compare our method with baseline
+and state-of-the-art results of benchmark datasets. Finally,
+we conclude with our contributions in Section 5.
+
+2 Preliminaries and Related Work
+
+We ﬁrst provide a brief introduction to the required back-
+ground. Then we review SSL with GCN and Mean Teacher,
+which provide fundamental theories for this paper.
+
+2.1 Spectral Graph Convolution
+
+There are two means to deﬁne convolution on graph, either
+from a spatial approach or from a spectral approach. This
+paper focuses on the latter. Based on the theory of Chung
+et al. (Chung and Graham 1997), spectral GCNNs construct
+the convolution kernel on spectrum domain. They represent
+both the ﬁlter and the signal with the Fourier basis and mul-
+tiply them, then transforms the result back into the discrete
+domain. However this model requires explicitly computing
+the eigenvectors of Laplacian matrix L, which is impractical
+for real large graphs. To circumvent this problem, it was sug-
+gested in (Hammond, Vandergheynst, and Gribonval 2009)
+that approximate the spectral ﬁlter gθ(cid:48) with Chebyshev poly-
+nomials up to K th order:
+
+2
+
+λmax
+
+where θ (cid:48) ∈ RK is a vector of Chebyshev coefﬁcients and
+Tk (.) denotes the K th item of Chebyshev polynomials. ˜L =
+L−IN , where IN is a N order diagonal matrix and λmax
+denotes the largest eigenvalue of L.
+Recent proposed GCN (Kipf and Welling 2017) further
+simpliﬁes this model by limiting K = 1 and approximating
+λmax ≈ 2. Given the adjacent matrix A and the input fea-
+ture X , the output of a single convolutional layer Z can be
+represented as
+
+(2)
+˜Aij and Θ denotes the
+trainable model parameters. Speciﬁcally, a two-layer GCN
+model can be deﬁned as
+
+where ˜A = A + IN , ˜Dii = (cid:80)
+Z = ˜D− 1
+2 ˜A ˜D− 1
+2 X Θ ,
+(cid:16) ˆA ReLU
+(cid:16) ˆAX Θ(0)(cid:17)
+Z = f (X, A) = softmax
+
+Θ(1)(cid:17)
+
+j
+
+.
+
+(3)
+
+gθ(cid:48) (cid:63) x ≈ K(cid:88)
+
+k=0
+
+θ (cid:48)
+
+k Tk ( ˜L)x ,
+
+(1)
+
+where ˆA = ˜D− 1
+2 . This two-layer model forms the
+backbone of our SEGCN.
+
+2 ˜A ˜D− 1
+
+2.2 Semi-supervised Learning with GCNs
+
+The above GCN model in Eq. 3 can be expediently used
+for SSL. However, as the analysis in Sec. 1, this method is
+limited to its small receptive ﬁeld within few-hops neigh-
+borhood. Several recent methods are proposed to overcome
+such limitation (Weston et al. 2012; Abu-El-Haija et al.
+2018; Verma and Boyer 2018; Monti et al. 2017). Among
+these attempts, Random Walk is proven to be very effective
+to discover more remote cues (Grover and Leskovec 2016;
+Perozzi, Al-Rfou, and Skiena 2014). Moreover, attention
+mechanisms are introduced to emphasize the useful unla-
+beled information (Thekumparampil et al. 2018; Velikovi et
+al. 2018; Shang et al. 2018). To enable SSL on an extreme
+large graph, Liao et al. (Liao et al. 2018) extendse GCN by
+graph partitions.
+
+2.3 Semi-supervised Learning with Mean Teacher
+
+Mean Teacher (Tarvainen and Valpola 2017) is one of the
+self-ensembling methods. The idea of a teacher model train-
+ing a student is related to model compression (Bucilu, Caru-
+ana, and Niculescu-Mizil 2006) and distillation (Hinton,
+Vinyals, and Dean 2015). Apart from other variants (Bach-
+man, Alsharif, and Precup 2014; Laine and Aila 2016),
+Mean Teacher averages model weights instead of predic-
+tions and achieves excellent results in SSL. Other lines
+of work in self-ensembling focus on designing effective
+perturbation, including (Gastaldi 2017; Huang et al. 2016;
+Wan et al. 2013).
+
+3 Proposed Method
+
+3.1 Combining GCN with Mean Teacher
+
+Graph Convolutional Network and Mean Teacher model
+are individually powerful. However, as we present in early
+sections, the former explores the unlabeled information by
+halves while the latter has only shown its ability on Eu-
+clidean data. In this section, we propose a new framework
+called SEGCN that combines the merits of both models
+while overcomes their limitations. Particularly, SEGCN con-
+tains a student model f (Θs ) and a teacher model f (Θt ),
+where Θs and Θt are the weights of the respective mod-
+els. Given the labeled data DL = {(xL
+i=1 and unla-
+beled data DU = {xU
+i=1 , we ﬁrst construct a normalized
+adjacent matrix A upon these data according to their pair-
+wise relations. Speciﬁc to our article classiﬁcation task, the
+pairwise relations consist in a citation from one article to
+another.
+We formulate the overall
+loss of SEGCN from two
+aspects. On the one hand,
+the student should learn to
+minimize the cross-entropy loss under the supervision of
+labeled data in a noise-free environment.
+
+i )}NL
+
+i }NU
+
+i , yL
+
+(cid:96)CE (Θs , A, x, y) = − C(cid:88)
+
+c=1
+
+yc log f (A, x; Θs )c ,
+
+(4)
+
+Figure 2: Perturbation on graph structure. The arrows indi-
+cate the feature aggregation directions. A deeper blue arrow
+represents a larger kernel weight. (a) In original complete
+graph, the propagation paths between vertices are abundant,
+e.g., the vertex 5 can propagate its feature to the labeled ver-
+tex 1 via four different routes. (b) On the premise of no iso-
+lated node appears, PA (.) randomly cuts off the redundant
+edges in order to partially block the information transmis-
+sion between vertices. Our perturbation strategy enables the
+student to generate worse predictions while keeping the in-
+trinsic BoW features unchanged.
+
+where x denotes a labeled sample. The f (A, x; Θs )c denotes
+the predicted probability from the student classiﬁer on the
+class c. The yc denotes the ground truth probability of the
+class c.
+On the other hand, the student classiﬁer should be con-
+sistent with teacher’s predictions when operates under small
+perturbations. In classic Mean Teacher on Euclidean-based
+data, the perturbation is usually added to original inputs
+x to construct student inputs. Differently, the input fed in
+SEGCN are the Bag-of-Words (BoW ) features distilled from
+articles. As a result, the traditional data augmentation strate-
+gies such as scaling, inversion or distortion are not available
+in our task. Instead, we innovatively construct such pertur-
+bation on both the graph structure and the model of student
+network. For the perturbation on graph structure A, we gen-
+erate a “collapsed graph” by A(cid:48) = PA (A) where PA (.) is
+our perturbation function on the normalized adjacent ma-
+trix A. Similarly, we add noise to the original student model
+f (.) by f (cid:48) (.) = Pf (f (.)) where Pf is the perturbation func-
+tion on model. These two perturbation functions will be
+detailed discussed in Sec. 3.2. Given the disturbed setting
+{A(cid:48) , f (cid:48) (.)} for student and the original setting {A, f (.)} for
+teacher, the unsupervised consistency loss would penalizes
+the difference between the student’s predicted probabilities
+f (cid:48) (A(cid:48) , x; Θs ) and the teacher’s f (A, x; Θt ). In our paper, we
+formulate this loss as KL divergence.
+
+(cid:96)cons (Θt , Θs , A, A(cid:48) , x) = KL(f (A, x; Θt )||f (cid:48) (A(cid:48) , x; Θs )) .
+
+(5)
+
+With the above loss terms in Eq. 4 and Eq. 5, the overall
+loss function of our approach can be written as
+
+L(Θt , Θs , A, A(cid:48) , x, y) =
+
+(cid:88)
+(cid:123)(cid:122)
+
+LSup
+
+(cid:124)
+
+(x,y)∈DL
+
+x∈DL∪DU
+
++λ
+
+(cid:96)CE
+
+(cid:125)
+
+(cid:124)
+
+(cid:88)
+(cid:123)(cid:122)
+
+LUnsup
+
+(cid:96)cons
+
+,
+
+(cid:125)
+
+(6)
+
+1234512345(a) Complete Graph(b) Collapsed GraphFigure 3: (Best viewed in color.) (a) Vanilla GCN pushes decision boundaries away from the labeled sample. Since the labeled
+feature is mainly aggregated from adjacent vertices, the near samples can be well classiﬁed. However, a remote unlabeled
+node (red circle) is prone to be ignored by assigning a very small GCN kernel weight. Consequently, the vanilla model may
+be under-constrained and cannot be well adapted to these distant samples. (b) SEGCN pays more attentions on the unlabeled
+nodes than vanilla GCN. Via a mutual-promoting process leading by the consistency losses (e.g., the inconsistency between the
+solid/dotted red circles), SEGCN gives the chances to the unlabeled nodes as well to backpropagate effective gradient to train
+the model. Once the mutual-promoting process converges, even a remote unlabeled node can be well classiﬁed.
+
+where the parameter λ > 0 controls the relative importance
+of the consistency term in the overall loss.
+SEGCN is trained end-to-end to minimize the overall loss.
+In such scheme, the student can not only learn to distill
+knowledge from the labeled data under the supervised loss,
+but also pay much attention to the unlabeled vertices in order
+to come after the teacher. On the other side, through averag-
+ing the latest parameters in the student, the teacher is able
+to evolve itself since the gradient descent direction leading
+by consistency loss also applies to the update for the teacher
+model. As shown in Fig. 3, such a joint evolution between
+the dual GCNs paves the way for more thoroughly explo-
+ration on unlabeled information, which is otherwise not pos-
+sible if solved alone in their traditional frameworks.
+
+3.2 Perturbation in Student Model
+
+This subsection aims to design effective perturbations on
+graph-based data. We do not follow the traditional ways of
+adding noise to raw inputs (French, Mackiewicz, and Fisher
+2017), which is popularly used on images and videos. The
+reason is two-fold. Firstly, the traditional data augmentation
+strategies on Euclidean data such as scaling, inversion or
+distortion are not suitable in article classiﬁcation task. Sec-
+ondly, some keywords are closely related to the article cat-
+egory. If we directly modify the BoW feature vectors, the
+intrinsic cues for classifying an article may be lost. As a re-
+sult, we instead propose two perturbation strategies on the
+graph structure (represented by adjacent matrix A) and GCN
+model respectively.
+The perturbation operation on graph structure, which is
+denoted as PA (.), is shown in Fig.2. On the premise of no
+isolated node appears, PA (.) randomly cuts off the redun-
+
+dant edges in order to partially block the information trans-
+mission between vertices. The decreased number of connec-
+tion makes the feature aggregation from neighbor vertices
+becoming even harder, thus enabling the student to generate
+inconsistent predictions with the teacher.
+Another function Pf (.) denotes the perturbation on
+model itself. We implement Pf (.) by appending a dropout
+layer (Srivastava et al. 2014) to each model. The dropout
+layer can drop different nodes in each time and obtaining
+two different output vectors from student and teacher. To
+force the student to operate in a harder environment, we give
+a higher dropout rate to the student than the teacher. In a nut-
+shell, the two speciﬁcally designed perturbations enable the
+student to generate inconsistent predictions while keeping
+the intrinsic BoW features unchanged.
+
+3.3 Self-training in Mean Teacher
+
+Self-training is an effective scheme where the model is boot-
+strapped with additional labeled data obtained from its own
+highly conﬁdent predictions. This process is repeated un-
+til some termination conditions are reached. Although these
+methods are heuristic and have achieved much progress in
+semi-supervised learning, seeking for an appropriate thresh-
+old to select those high conﬁdent predictions is by no means
+easy. A strict threshold may reject most of the right predic-
+tions, thus leading to a degenerated self-training scheme. On
+the contrary, a loose threshold may bring about a poorer clas-
+siﬁer since the wrongly imported pseudo labels can reinforce
+poor predictions. Traditionally, this threshold is set empiri-
+cally and any prediction with a softmax score larger than the
+threshold will be selected as an extended labeled sample.
+Different from the traditional methods which generate
+
+Before GCNAfter GCNLabeled nodeUnlabeled nodeClassifier boundaryTeacher updateStudent update/Consistency loss...StudentBetter StudentTeacherBetter TeacherBest StudentBest Teacher...(a) Vanilla GCN(b) Mean TeacherAlgorithm 1 GCN in Mean Teacher framework
+
+Table 1: Dataset statistics
+
+1: Input :
+
+2: Initialization :
+
+Two-layer GCN model f (.)
+Normalized adjacent matrix A
+BoW features and labels (X L , Y L ) & X U
+High-noise model f (cid:48) (.) = Pf (f (.))
+Collapsed graph A(cid:48) = PA (A)
+Model weights Θt = Θs from scratch
+
+3: Repeat :
+
+4:
+5:
+6:
+
+LSup ← E q . 4
+LU nsup ← E q . 5
+7: Θs ← ADAM
+8: Θt ← E q . 7
+
+LOverall ← E q . 6
+
+Dataset
+
+Node5
+Citeseer
+Cora
+Pubmed
+
+# Nodes
+
+35
+3327
+2708
+19717
+
+# Edges
+
+42
+4732
+5429
+44338
+
+# Classes
+
+7
+6
+7
+3
+
+# Feature Dim.
+
+1433
+3703
+1433
+500
+
+lead to unstable predictions, which may deviate from our
+original intention. Therefore, traditional solution utilizes a
+two-stage training scheme. Namely, in ﬁrst stage the student
+is merely trained on labeled data until it converges. Then the
+mutual learning is started up in the second stage. Differently,
+to enable an end-to-end scheme, we approximate the classic
+two-stage training process using a hyperparameter trick. We
+initialize small λ and α in early epochs and progressively
+increase them during the training. In such one-stage scheme
+we can avoid the unwanted knowledge transmission between
+the immature partners in early epochs.
+
+4 Experiment
+
+4.1 Datasets
+
+We experiment on three public available citation graph
+datasets: Citeseer, Cora and Pubmed. Table 1 summarizes
+dataset statistics. A citation graph dataset consists of doc-
+uments as nodes and citation links as directed edges. Each
+node has a human annotated topic from a ﬁnite set of classes
+and a feature vector. For Citeseer and Cora, the feature vec-
+tor has binary entries indicating the presence/absence of
+the corresponding word from a dictionary. For the Pubmed
+dataset, the feature vector has real-values entries indicating
+Term Frequency-Inverse Document Frequency (TF-IDF) of
+the corresponding word from a dictionary. Although the net-
+works are directed, we use undirected versions of the graphs
+for all experiments, which is common in all baseline ap-
+proaches.
+Besides the three benchmarks above, we construct a new
+toy dataset called Node5 in order to clearly showcase the ef-
+fect of SEGCN on far-away nodes. It derives from a subset
+of Cora. For each class in Cora, we select 5 (1 labeled and 4
+unlabeled) samples and link them as a complete graph struc-
+ture presented in Fig. 2. The experiment on this toy dataset
+aims to verify the phenomenon we present in Fig. 3.
+
+4.2 Experimental Setup
+
+We use PyTorch for implementation. we train both baseline
+and SEGCN as two-layer networks described in GCN (Kipf
+and Welling 2017), where the ﬁrst layer outputs 16 di-
+mensions per node and the second layer outputs the num-
+ber of classes. For the student model, we use ADAM opti-
+mizer (Kingma and Ba 2014) with β 1 = 0.9, β 2 = 0.999,
+
+weightdecay = 0.0005 and dropoutrate = 0.5. While for
+
+the teacher, no dropout is applied. We ﬁx the learning rate
+to 0.01 and train SEGCN for 1,000 epochs. As mentioned
+in Sec. 3.4, hyperparameter λ in Eq. 6 gradually increases
+from 0 to 2 while α in Eq. 7 increases from 0 to 0.999 in our
+best model. To import more pseudo label candidates when
+
+9:
+
+Add high conﬁdent pseudo labels to (X L , Y L )
+10: Until LOverall converges.
+
+predictions merely from a single classiﬁer, SEGCN is born
+with the dual classiﬁers and able to make predictions from
+two views, i.e. the student view and the teacher view. This
+property motivates us to combine the different views aiming
+to select more robust pseudo labels. Particularly, we regard
+a prediction as a high conﬁdent result only if both student
+and teacher give larger softmax scores than the threshold t
+on the same class. Otherwise, if the two classiﬁers give in-
+consistent predictions, it indicates a probably incorrect pre-
+diction which will be excluded from the additional labeled
+data in this epoch. In our experiment, we verify that com-
+bining teacher and student can achieve a better self-training
+performance compared with the single model-based variant.
+
+3.4 Training SEGCN
+
+The training of SEGCN framework is essentially a
+mutual-promoting process. We detail the training step in
+Algorithm 1. The student weight Θs is initialized from
+scratch while the teacher weight Θt is initialized by copying
+from Θs . Given the labeled BoW features (X L , Y L ) and the
+unlabeled ones X U , the student is ﬁrstly trained to minimize
+the supervised cross-entropy loss on X L using a complete
+all vertices X L (cid:83) X U using a collapsed graph A(cid:48) and
+graph A and a low dropout model f (.). Then the student
+is forced to be consistent with the teacher predictions on
+a high dropout model f (cid:48) (.). Finally, the teacher updates
+its own model weights from the latest student model. In
+each iteration,
+the student network is optimized using
+ADAM (Kingma and Ba 2014), while the weights of the
+teacher network are updated with an exponential moving
+average of those of the latest student, which is formulated
+as Eq. 7.
+
+t + (1 − α)Θe+1
+t = αΘe
+
+Θe+1
+
+s
+
+,
+
+(7)
+
+where α is a smoothing coefﬁcient hyperparameter and e
+denotes the current epoch.
+Since the student and the teacher are both inaccurate in
+early epochs, the mutual learning between each other could
+
+Table 2: Accuracy comparison with the state-of-art-methods under the setting of Fixed / Random data splits. ∗ indicates our
+own implemented baseline.
+
+Method
+
+DeepWalk (Perozzi et al. 2014)
+node2vec (Grover et al. 2016)
+DCNN (Atwood et al. 2016)
+Planetoid (Yang et al. 2016)
+GCN (Kipf et al. 2016)
+Graph-CNN (Such et al. 2017)
+MoNet (Monti et al. 2017)
+Bootstrap (Buchnik et al. 2017)
+FeaStNet (Verma et al. 2018)
+GPNN (Liao et al. 2018)
+N-GCN (Abu-El-Haija et al. 2018)
+F-GCN (Vijayan et al. 2018)
+GAT (Velikovi et al. 2018)
+
+GCN∗
+SEGCN
+
+Citeseer
+
+43.2
+54.7
+
+-
+
+64.7
+70.3
+
+-
+-
+
+53.6
+
+-
+
+72.3
+
+69.7
+71.0
+72.5 ± 0.7
+73.4 ± 0.7
+69.9
+
+Fixed splits
+Cora
+
+67.2
+74.9
+76.8
+75.7
+81.5
+81.7 ± 0.5
+76.3
+78.4
+81.6
+81.8
+81.8
+83.0 ± 0.7
+83.5 ± 0.4
+80.4
+
+79.0
+
+-
+
+65.3
+75.3
+73.0
+77.2
+79.0
+78.8 ± 0.3
+78.8
+79.0
+79.3
+79.4
+79.0 ± 0.3
+78.9 ± 0.7
+78.6
+
+-
+
+-
+-
+
+-
+-
+
+-
+-
+-
+
+67.9 ± 0.5
+
+80.1 ± 0.5
+
+78.9 ± 0.7
+
+50.3
+68.6 ± 1.7
+
+-
+
+78.2
+79.9 ± 2.4
+
+-
+
+75.6
+76.1 ± 2.0
+
+-
+
+66.8 ± 0.7
+69.0 ± 0.9
+
+79.6 ± 0.6
+80.8 ± 1.0
+
+78.3 ± 0.7
+78.0 ± 1.4
+
+Pubmed
+
+Citeseer
+
+Random splits
+Cora
+
+Pubmed
+
+47.2
+47.3
+
+70.2
+72.9
+
+72.0
+72.4
+
+-
+-
+
+-
+-
+
+-
+-
+-
+
+-
+-
+
+-
+-
+
+-
+-
+-
+
+our model is stable, we gradually decrease the self-training
+threshold t from 0.9 to 0.7. In all experiments, we utilize 500
+samples as a validation set and evaluate prediction accuracy
+on a test set of 1,000 examples. These validation samples are
+used for capturing the model parameters at peak validation
+accuracy to avoid overﬁtting.
+
+4.3 Comparative Study
+
+Fixed splits. In the ﬁrst experiment, we use the ﬁxed data
+splits from the work of Yang et al. (Yang, Cohen, and
+Salakhudinov 2016) as it is the standard benchmark data
+splits in literatures. Speciﬁcally, these experiments are run
+on the same ﬁxed split of 20 labeled nodes for each class.
+We present the classiﬁcation accuracy on the mentioned
+three benchmarks in Table 2 with comparisons to our base-
+line as well as the state-of-the-art semi-supervised classiﬁ-
+cation methods. Except our own implemented baseline GCN
+model, the accuracy of the other comparative methods are all
+taken from existing literature.
+On the one hand, we observe that SEGCN can signif-
+icantly outperforms baseline GCN method, which brings
+3.5%, 3.1% and 0.3% improvement on Citeseer, Cora and
+Pubmed respectively. It implies that Mean Teacher can
+actually boost the classiﬁer training. On the other hand,
+we compare SEGCN with the state-of-the-art methods in-
+cluding Deepwalk (Perozzi, Al-Rfou, and Skiena 2014),
+node2vec (Grover and Leskovec 2016), DCNN (Atwood
+and Towsley 2016), Planetoid (Yang, Cohen, and Salakhudi-
+nov 2016), Monet (Monti et al. 2017), Bootstrap (Buchnik
+and Cohen 2017), Graph-CNN (Such et al. 2017), FeaSt-
+Net (Verma and Boyer 2018), GPNN (Liao et al. 2018),
+N-GCN (Abu-El-Haija et al. 2018), F-GCN (Vijayan et al.
+2018) and GAT (Velikovi et al. 2018). As it can be seen
+SEGCN performs best on Citeseer and Cora which yields
+new state-of-the-art accuracies, while falling short by only
+0.5% from the best on the Pubmed dataset. The great per-
+formance not only relies on the high-performance baseline
+
+GCN method, but also due to the proposed self-ensembling
+strategy applied in the training scheme.
+Random splits. Next, following the setting of GCN (Kipf
+and Welling 2017) , we run experiments keeping the same
+size in labeled, validation, and test sets as in ﬁxed splits, but
+now selecting those nodes uniformly at random. This, along
+with the fact that different topics have different numbers of
+nodes in it, means that the labels might not be spread evenly
+across the topics. For 20 such randomly drawn dataset splits,
+the average accuracy is shown in Table 2 with the standard
+error. As we do not force an equal number of labeled data for
+each class, we observe that the performance degrades for all
+methods compared to ﬁxed splits except Deepwalk (Perozzi,
+Al-Rfou, and Skiena 2014). Besides, SEGCN achieves best
+results among the state-of-the-art methods on Citeseer and
+Cora, yielding 69.0% and 80.8% respectively in accuracy.
+We also note that the variances of the accuracies become
+larger and the performance falls short on Pubmed than base-
+line. We will discuss this observation in next subsection.
+
+More labeled samples on Pubmed. We note that the im-
+
+provement is relatively lower on Pubmed than that on Cite-
+seer and Core. We suspect that the reason is due to the
+different label rates in the three benchmarks: the Pubmed
+dataset is relative large and the labeled rate is very low when
+we only select 20 training samples from each class. Conse-
+quently, the labeled nodes can only reach extremely limited
+scope in graph and can not give stable initial gradient direc-
+tions to unlabeled vertices for the latter mutual-promoting
+process. Particularly, we observe that a few very low val-
+ues appears under the random splits settings. These failure
+cases signiﬁcantly decrease the average value and increase
+the variance. To clarify our hypothesis, we compare SEGCN
+with the state-of-the-art methods on Pubmed with more la-
+beled samples over range {50, 100, 200}. As it can be seen
+SEGCN outperforms other methods in all cases with higher
+accuracies and lower variances. These results validate our
+hypothesis since a relative large labeled set can create stable
+
+(a)
+
+(b)
+
+(c)
+
+(d)
+
+Figure 4: Feature distribution analysis on Node5 ((a), (b)) and Cora ((c), (d)). We map the high-dimensional features outputted
+from the second layer to a 2-D space with t-SNE. (a)&(c) are the result of vanilla GCN while (b)&(d) are ours. Different color
+indicates different class. The triangles in (a)&(b) denote the remote nodes (same as the red circles in Fig. 3).
+
+Table 3: Accuracy comparison with the state-of-art-methods
+on Pubmed with varying # labeled sample over range {50,
+100, 200}. ∗ indicates our own implemented baseline.
+
+Method
+
+DCNN
+N-GCN
+GCN∗
+
+80.9 ± 0.3
+SEGCN 81.7 ± 0.5
+
+-
+-
+
+# Labeled samples per class
+50
+100
+200
+
+82.6 ± 0.3
+83.0 ± 0.4
+81.8 ± 0.3
+83.8 ± 0.4
+
+-
+-
+
+84.1 ± 0.2
+84.7 ± 0.4
+
+Table 4: Ablation study on Cora.
+
+Perturbation
+
+RE(.) PA (.) Pf (.) T
+
+√
+
+Self-training
+S&T
+
+√
+√
+√
+√
+
+√
+√
+√
+√
+
+√
+
+√
+
+Accuracy
+
+80.1 ± 0.6
+81.7 ± 0.2
+80.9 ± 0.1
+82.4 ± 0.2
+83.1 ± 0.6
+83.5 ± 0.4
+
+initializations for mutual learning and self-training, which
+unlock the potential of SEGCN.
+
+4.4 Ablation Study
+
+To assess the importance of various aspects of the model,
+we run experiments on Cora under the setting of ﬁxed splits,
+deactivating one or a few modules at a time while keeping
+the others activated. Table 4 reports the classiﬁcation accu-
+racies under different ablations. To begin with, we test the
+two proposed perturbations PA (.) and Pf (.) respectively,
+comparing with randomly erasing (RE) (Zhong et al. 2017)
+the raw input features X . We observe that the direct pertur-
+bation on X would hurt the ﬁnal accuracy, dropping 0.3%
+from the baseline and bringing about larger variance. While
+our proposed perturbations are helpful in improving the ac-
+curacy and PA is more effective than Pf . When combining
+the PA and Pf , SEGCN yields 82.4% accuracy, which is
+higher than any single perturbation. It implies that PA and
+Pf are complimentary and can lead the student to learn in-
+formation from teacher. Then we test the self-training strat-
+egy with PA and Pf ﬁxed. We observe a signiﬁcant improve-
+ment when combining student and teacher over a single
+model scheme, which implies that by using Mean Teacher
+we can produce more correct labeled sample candidates in
+self-training. Finally, SEGCN can yield new state-of-the-art
+accuracies when employing all the proposed modules.
+
+4.5 Feature Distribution Analysis
+
+In this section, We aim to further prove the effectiveness
+of SEGCN via feature distribution analysis. To this end, we
+map the high-dimensional features distilled from the second
+
+layer into a 2-D space with t-SNE. Fig. 4 shows the t-SNE
+visualization, in which (a) and (b) represent the results of
+vanilla GCN and SEGCN respectively on Node5. As de-
+picted in (a) and (b), GCN maps the feature of the remote
+vertex far from the cluster center while SEGCN can map it
+near. As a result, SEGCN signiﬁcantly eases the classiﬁca-
+tion task. The distribution distinction can be also observed
+on Cora shown in (c) and (d). These visualization results
+further validate the effectiveness of the mutual learning we
+described in Fig. 3. To sum up, SEGCN can capitalize on
+the every nodes’ information to train a better classiﬁer. It is
+effective for those remote unlabeled vertices, which are hard
+to be classiﬁed with vanilla GCN.
+
+5 Conclusion
+
+In this paper, we propose a self-ensembling framework
+called SEGCN for semi-supervised learning on graph-based
+data. Apart from the vanilla GCN, SEGCN can directly ex-
+plore unlabeled information via the mutual learning between
+student and teacher, thus enabling every labeled and unla-
+beled nodes to backpropagate effective gradient to train the
+model. To the best of our knowledge, this is the ﬁrst work
+that integrates the Mean Teacher model into GCN to boost
+the semi-supervised node classiﬁcation. The extensive ex-
+periments on toy and public datasets show that SEGCN pre-
+cedes the baseline model signiﬁcantly and is on par with the
+state-of-the-art methods in tasks of article classiﬁcation.
+
+References
+
+[Abu-El-Haija et al. 2018] Abu-El-Haija, S.; Kapoor, A.;
+Perozzi, B.; and Lee, J. 2018. N-gcn: Multi-scale graph
+
+convolution for semi-supervised node classiﬁcation. arXiv
+preprint arXiv:1802.08888.
+[Atwood and Towsley 2016] Atwood, J., and Towsley, D.
+2016. Diffusion-convolutional neural networks.
+In NIPS,
+1993–2001.
+[Bachman, Alsharif, and Precup 2014] Bachman, P.; Al-
+sharif, O.; and Precup, D. 2014. Learning with pseudo-
+ensembles. In Advances in Neural Information Processing
+Systems, 3365–3373.
+[Buchnik and Cohen 2017] Buchnik, E., and Cohen, E.
+2017. Bootstrapped graph diffusions: Exposing the power
+of nonlinearity. arXiv preprint arXiv:1703.02618.
+[Bucilu, Caruana, and Niculescu-Mizil 2006] Bucilu,
+C.;
+Caruana, R.; and Niculescu-Mizil, A.
+2006. Model
+compression. In KDD, 535–541.
+[Caelles et al. 2017] Caelles, S.; Maninis, K.-K.; Pont-Tuset,
+J.; Leal-Taix ´e, L.; Cremers, D.; and Van Gool, L. 2017. One-
+shot video object segmentation. In CVPR, 5320–5329.
+[Chung and Graham 1997] Chung, F. R., and Graham, F. C.
+1997. Spectral graph theory. Number 92. American Mathe-
+matical Soc.
+[Dai and Le 2015] Dai, A. M., and Le, Q. V. 2015. Semi-
+supervised sequence learning. In NIPS, 3079–3087.
+[Defferrard, Bresson, and Vandergheynst 2016] Defferrard,
+M.; Bresson, X.; and Vandergheynst, P. 2016. Convolu-
+tional neural networks on graphs with fast localized spectral
+ﬁltering. In NIPS, 3844–3852.
+[French, Mackiewicz, and Fisher 2017] French, G.; Mack-
+iewicz, M.; and Fisher, M. 2017. Self-ensembling for visual
+domain adaptation. arXiv preprint arXiv:1706.05208.
+[Gastaldi 2017] Gastaldi, X. 2017. Shake-shake regulariza-
+tion. arXiv preprint arXiv:1705.07485.
+[Grover and Leskovec 2016] Grover, A., and Leskovec, J.
+2016. node2vec: Scalable feature learning for networks. In
+KDD, 855–864.
+[Hammond, Vandergheynst, and Gribonval 2009]
+Hammond, D. K.; Vandergheynst, P.; and Gribonval,
+R. 2009. Wavelets on graphs via spectral graph theory.
+arXiv preprint arXiv:0912.3848.
+[Hinton, Vinyals, and Dean 2015] Hinton, G.; Vinyals, O.;
+and Dean, J. 2015. Distilling the knowledge in a neural
+network. arXiv preprint arXiv:1503.02531.
+[Huang et al. 2016] Huang, G.; Sun, Y.; Liu, Z.; Sedra, D.;
+and Weinberger, K. Q. 2016. Deep networks with stochastic
+depth. In ECCV, 646–661.
+[Kingma and Ba 2014] Kingma, D. P., and Ba, J.
+2014.
+Adam: A method for stochastic optimization. arXiv preprint
+arXiv:1412.6980.
+[Kipf and Welling 2017] Kipf, T. N., and Welling, M. 2017.
+Semi-supervised classiﬁcation with graph convolutional net-
+works. In ICLR.
+[Laine and Aila 2016] Laine, S., and Aila, T. 2016. Tempo-
+ral ensembling for semi-supervised learning. arXiv preprint
+arXiv:1610.02242.
+
+[Li et al. 2018] Li, R.; Wang, S.; Zhu, F.; and Huang, J.
+2018. Adaptive graph convolutional neural networks. arXiv
+preprint arXiv:1801.03226.
+[Li, Han, and Wu 2018] Li, Q.; Han, Z.; and Wu, X.-M.
+2018. Deeper Insights into Graph Convolutional Networks
+for Semi-Supervised Learning. In AAAI.
+[Liao et al. 2018] Liao, R.; Brockschmidt, M.; Tarlow, D.;
+Gaunt, A. L.; Urtasun, R.; and Zemel, R. 2018. Graph par-
+tition neural networks for semi-supervised classiﬁcation. In
+ICLR Workshop.
+[Monti et al. 2017] Monti, F.; Boscaini, D.; Masci,
+J.;
+Rodol `a, E.; Svoboda, J.; and Bronstein, M. M. 2017. Geo-
+metric deep learning on graphs and manifolds using mixture
+model cnns. In CVPR, 5425–5434.
+[Papandreou et al. 2015] Papandreou, G.; Chen, L.-C.; Mur-
+phy, K. P.; and Yuille, A. L. 2015. Weakly-and semi-
+supervised learning of a deep convolutional network for se-
+mantic image segmentation. In ICCV, 1742–1750.
+[Perozzi, Al-Rfou, and Skiena 2014] Perozzi, B.; Al-Rfou,
+R.; and Skiena, S. 2014. Deepwalk: Online learning of so-
+cial representations. In KDD, 701–710.
+[Rahimi, Cohn, and Baldwin 2018] Rahimi, A.; Cohn, T.;
+and Baldwin, T.
+2018. Semi-supervised user geoloca-
+tion via graph convolutional networks.
+arXiv preprint
+arXiv:1804.08049.
+[Shang et al. 2018] Shang, C.; Liu, Q.; Chen, K.-S.; Sun, J.;
+Lu, J.; Yi, J.; and Bi, J. 2018. Edge attention-based multi-
+relational graph convolutional networks.
+arXiv preprint
+arXiv:1802.04944.
+[Srivastava et al. 2014] Srivastava,
+N.;
+Hinton,
+G.;
+Krizhevsky, A.; Sutskever,
+I.; and Salakhutdinov, R.
+2014. Dropout: a simple way to prevent neural networks
+from overﬁtting.
+The Journal of Machine Learning
+Research 15(1):1929–1958.
+[Such et al. 2017] Such, F. P.; Sah, S.; Dominguez, M. A.;
+Pillai, S.; Zhang, C.; Michael, A.; Cahill, N. D.; and Ptucha,
+R. 2017. Robust spatial ﬁltering with graph convolutional
+neural networks. IEEE Journal of Selected Topics in Signal
+Processing 11(6):884–896.
+[Tarvainen and Valpola 2017] Tarvainen, A., and Valpola, H.
+2017. Mean teachers are better role models: Weight-
+averaged consistency targets improve semi-supervised deep
+learning results. In NIPS, 1195–1204.
+[Thekumparampil et al. 2018] Thekumparampil, K. K.;
+Wang, C.; Oh, S.; and Li, L.-J. 2018. Attention-based graph
+neural network for semi-supervised learning. arXiv preprint
+arXiv:1803.03735.
+[Velikovi et al. 2018] Velikovi, P.; Cucurull, G.; Casanova,
+A.; Romero, A.; Li, P.; and Bengio, Y. 2018. Graph attention
+networks. In ICLR.
+[Verma and Boyer 2018] Verma, N., and Boyer, E. 2018.
+Feastnet: Feature-steered graph convolutions for 3d shape
+analysis. In CVPR.
+[Vijayan et al. 2018] Vijayan, P.; Chandak, Y.; Khapra,
+M. M.; and Ravindran, B. 2018. Fusion graph convolutional
+networks. arXiv preprint arXiv:1805.12528.
+
+[Wan et al. 2013] Wan, L.; Zeiler, M.; Zhang, S.; Le Cun, Y.;
+and Fergus, R. 2013. Regularization of neural networks
+using dropconnect. In ICML, 1058–1066.
+[Wang et al. 2018] Wang, Y.; Sun, Y.; Liu, Z.; Sarma, S. E.;
+Bronstein, M. M.; and Solomon, J. M. 2018. Dynamic
+graph cnn for learning on point clouds.
+arXiv preprint
+arXiv:1801.07829.
+[Weston et al. 2012] Weston, J.; Ratle, F.; Mobahi, H.; and
+Collobert, R. 2012. Deep learning via semi-supervised em-
+bedding. In Neural Networks: Tricks of the Trade. Springer.
+639–655.
+[Yang, Cohen, and Salakhudinov 2016] Yang, Z.; Cohen,
+W.; and Salakhudinov, R. 2016. Revisiting semi-supervised
+learning with graph embeddings. In ICML.
+[Zhong et al. 2017] Zhong, Z.; Zheng, L.; Kang, G.; Li, S.;
+and Yang, Y. 2017. Random erasing data augmentation.
+arXiv preprint arXiv:1708.04896.
+
+
